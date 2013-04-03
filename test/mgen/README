@@ -1,0 +1,24 @@
+Building
+---------
+1. To build mgen
+	make
+
+2. To clean the built objects
+	make clean
+
+Note
+----
+mgen is a micro-test application which can generate memory access with
+runtime latency between CPUs. 
+
+Please note the latencies reported by mgen are not the official latencies
+from Intel. It is just a tool to test numatop.
+
+For example:
+
+1. Generate LMA (Local Memory Access) on cpu1 for running 1000s:
+   ./mgen -a 1 -c 1 -t 1000
+
+2. Generate RMA (Remote Memory Access) from cpu10 to cpu0 for running 1000s.
+   (cpu10 and cpu0 are on different nodes):
+   ./mgen -a 0 -c 10 -t 1000

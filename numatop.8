@@ -1,0 +1,503 @@
+.TH NUMATOP 8 "April 3, 2013"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+numatop \- a tool for memory access locality characterization and analysis.
+.SH SYNOPSIS
+.B numatop
+.RI [ -s ] " " [ -l ] " " [ -f ] " " [ -d ]
+.PP
+.B numatop
+.RI [ -h ]
+.SH DESCRIPTION
+This manual page briefly documents the
+.B numatop
+command.
+.PP
+Most modern systems use a Non-Uniform Memory Access (NUMA) design for
+multiprocessing. In NUMA systems, memory and processors are organized in such a
+way that some parts of memory are closer to a given processor, while other parts
+are farther from it. A processor can access memory that is closer to it much faster
+than the memory that is farther from it. Hence, the latency between the processors
+and different portions of the memory in a NUMA machine may be significantly different.
+
+\fBnumatop\fP is an observation tool for runtime memory locality characterization
+and analysis of processes and threads running on a NUMA system. It helps the user to
+characterize the NUMA behavior of processes and threads and to identify where the
+NUMA-related performance bottlenecks reside. The tool uses Intel performance counter
+sampling technologies and associates the performance data with Linux system runtime
+information to provide real-time analysis in production systems. The tool can be used to:
+
+\fBA)\fP Characterize the locality of all running processes and threads to identify
+those with the poorest locality in the system.
+
+\fBB)\fP Identify the "hot" memory areas, report average memory access latency, and
+provide the location where accessed memory is allocated. A "hot" memory area is where
+process/thread(s) accesses are most frequent. numatop has a metric called "ACCESS%"
+that specifies what percentage of memory accesses are attributable to each memory area.
+
+\fBNote: numatop records only the memory accesses which have latencies greater than a
+predefined threshold (128 CPU cycles).\fP
+
+\fBC)\fP Provide the call-chain(s) in the process/thread code that accesses a given hot
+memory area. 
+
+\fBD)\fP Provide the call-chain(s) when the process/thread generates certain counter
+events (RMA/LMA/IR/CYCLE). The call-chain(s) helps to locate the source code that generates
+the events.
+.PP
+RMA: Remote Memory Access.
+.br
+LMA: Local Memory Access.
+.br
+IR: Instruction Retired.
+.br
+CYCLE: CPU cycles.
+.br
+
+\fBE)\fP Provide per-node statistics for memory and CPU utilization. A node is: a region
+of memory in which every byte has the same distance from each CPU.
+
+\fBF)\fP Show, using a user-friendly interface, the list of processes/threads sorted by
+some metrics (by default, sorted by CPU utilization), with the top process having the
+highest CPU utilization in the system and the bottom one having the lowest CPU utilization.
+Users can also use hotkeys to resort the output by these metrics: RMA, LMA, RMA/LMA, CPI,
+and CPU%.
+
+.br
+RMA/LMA: ratio of RMA/LMA.
+.br
+CPI: CPU cycle per instruction.
+.br
+CPU%: CPU utilization.
+.br
+
+\fBnumatop\fP is a GUI tool that periodically tracks and analyzes the NUMA activity of
+processes and threads and displays useful metrics. Users can scroll up/down by using the
+up or down key to navigate in the current window and can use several hot keys shown at the
+bottom of the window, to switch between windows or to change the running state of the tool.
+For example, hotkey 'R' refreshes the data in the current window.
+    
+Below is a detailed description of the various display windows and the data items
+that they display:
+    
+\fB[WIN1 - Monitoring processes and threads]:\fP
+.br
+Get the locality characterization of all processes. This is the first window upon startup,
+it's numatop's "Home" window. This window displays a list of processes. The top process has
+the highest system CPU utilization (CPU%), while the bottom process has the lowest CPU% in
+the system. Generally, the memory-intensive process is also CPU-intensive, so the processes
+shown in this window are sorted by CPU% by default. The user can press hotkeys '1', '2', '3', '4', or '5' to resort the output by "RMA", "LMA", "RMA/LMA", "CPI", or "CPU%".
+.PP
+\fB[KEY METRICS]:\fP
+.br
+RMA(K): number of Remote Memory Access (unit is 1000).
+.br
+        RMA(K) = RMA / 1000;
+.br
+LMA(K): number of Local Memory Access (unit is 1000).
+.br
+        LMA(K) = LMA / 1000;
+.br
+RMA/LMA: ratio of RMA/LMA.
+.br
+CPI: CPU cycles per instruction.
+.br
+CPU%: system CPU utilization (busy time across all CPUs).
+.PP
+\fB[HOTKEY]:\fP
+.br
+Q: Quit the application.
+.br
+H: WIN1 refresh.
+.br
+R: Refresh to show the latest data.
+.br
+I: Switch to WIN2 to show the normalized data.
+.br
+N: Switch to WIN11 to show the per-node statistics.
+.br
+1: Sort by RMA.
+.br
+2: Sort by LMA.
+.br
+3: Sort by RMA/LMA.
+.br
+4: Sort by CPI.
+.br
+5: Sort by CPU%
+.PP
+\fB[WIN2 - Monitoring processes and threads (normalized)]:\fP
+.br
+Get the normalized locality characterization of all processes.
+.PP 
+\fB[KEY METRICS]:\fP
+.br
+RPI(K): RMA normalized by 1000 instructions.
+.br
+        RPI(K) = RMA / (IR / 1000);
+.br
+LPI(K): LMA normalized by 1000 instructions.
+.br
+        LPI(K) = LMA / (IR / 1000);
+.br
+Other metrics remain the same.
+.PP
+\fB[HOTKEY]:\fP
+.br
+Q: Quit the application.
+.br
+H: Switch to WIN1.
+.br
+B: Back to previous window.
+.br
+R: Refresh to show the latest data.
+.br
+N: Switch to WIN11 to show the per-node statistics.
+.br
+1: Sort by RPI.
+.br
+2: Sort by LPI.
+.br
+3: Sort by RMA/LMA.
+.br
+4: Sort by CPI.
+.br
+5: Sort by CPU%
+.PP
+\fB[WIN3 - Monitoring the process]:\fP
+.br
+Get the locality characterization with node affinity of a specified process.
+.PP 
+\fB[KEY METRICS]:\fP
+.br
+NODE: the node ID.
+.br
+CPU%: per-node CPU utilization.
+.br
+Other metrics remain the same.
+.PP
+\fB[HOTKEY]:\fP
+.br
+Q: Quit the application.
+.br
+H: Switch to WIN1.
+.br
+B: Back to previous window.
+.br
+R: Refresh to show the latest data.
+.br
+N: Switch to WIN11 to show the per-node statistics.
+.br
+L: Show the latency information.
+.br
+C: Show the call-chain.
+.PP
+\fB[WIN4 - Monitoring all threads]:\fP
+.br
+Get the locality characterization of all threads in a specified process.
+.PP
+\fB[KEY METRICS]\fP:
+.br
+CPU%: per-CPU CPU utilization.
+.br
+Other metrics remain the same.
+.PP
+\fB[HOTKEY]:\fP
+.br
+Q: Quit the application.
+.br
+H: Switch to WIN1.
+.br
+B: Back to previous window.
+.br
+R: Refresh to show the latest data.
+.br
+N: Switch to WIN11 to show the per-node statistics.
+.PP
+\fB[WIN5 - Monitoring the thread]:\fP
+.br
+Get the locality characterization with node affinity of a specified thread.
+.PP
+\fB[KEY METRICS]:\fP
+.br
+CPU%: per-CPU CPU utilization.
+.br
+Other metrics remain the same.
+.PP      
+\fB[HOTKEY]:\fP
+.br
+Q: Quit the application.
+.br
+H: Switch to WIN1.
+.br
+B: Back to previous window.
+.br
+R: Refresh to show the latest data.
+.br
+N: Switch to WIN11 to show the per-node statistics.
+.br
+L: Show the latency information.
+.br
+C: Show the call-chain.
+.PP
+\fB[WIN6 - Monitoring memory areas]:\fP
+.br
+Get the memory area use with the associated accessing latency of a
+specified process/thread.
+.PP
+\fB[KEY METRICS]:\fP
+.br
+ADDR: starting address of the memory area.
+.br
+SIZE: size of memory area (K/M/G bytes).
+.br
+ACCESS%: percentage of memory accesses are to this memory area.
+.br
+LAT(ns): the average latency (nanoseconds) of memory accesses. 
+.br
+DESC: description of memory area (from /proc/<pid>/maps).
+.PP
+\fB[HOTKEY]:\fP
+.br
+Q: Quit the application.
+.br
+H: Switch to WIN1.
+.br
+B: Back to previous window.
+.br
+R: Refresh to show the latest data.
+.br
+A: Show the memory access node distribution.
+.br
+C: Show the call-chain when process/thread accesses the memory area.
+.PP
+\fB[WIN7 - Memory access node distribution overview]:\fP
+.br
+Get the percentage of memory accesses originated from the process/thread to each node. 
+.PP
+\fB[KEY METRICS]:\fP
+.br
+NODE: the node ID.
+.br
+ACCESS%: percentage of memory accesses are to this node.
+.br
+LAT(ns): the average latency (nanoseconds) of memory accesses to this node.
+.PP
+\fB[HOTKEY]:\fP
+.br
+Q: Quit the application.
+.br
+H: Switch to WIN1.
+.br
+B: Back to previous window.
+.br
+R: Refresh to show the latest data.
+.PP
+\fB[WIN8 - Break down the memory area into physical memory on node]:\fP
+.br
+Break down the memory area into the physical mapping on node with the
+associated accessing latency of a process/thread.
+.PP   
+\fB[KEY METRICS]:\fP
+.br
+NODE: the node ID.
+.br
+Other metrics remain the same.
+.PP   
+\fB[HOTKEY]:\fP
+.br
+Q: Quit the application.
+.br
+H: Switch to WIN1.
+.br
+B: Back to previous window.
+.br
+R: Refresh to show the latest data.
+.PP
+\fB[WIN9 - Call-chain when process/thread generates the event ("RMA"/"LMA"/"CYCLE"/"IR")]:\fP
+.br
+Determine the call-chains to the code that generates "RMA"/"LMA"/"CYCLE"/"IR".
+.PP 
+\fB[KEY METRICS]:\fP
+.br
+Call-chain list: a list of call-chains.
+.PP
+\fB[HOTKEY]:\fP
+.br
+Q: Quit the application.
+.br
+H: Switch to WIN1.
+.br
+B: Back to the previous window.
+.br
+R: Refresh to show the latest data.
+.br
+1: Locate call-chain when process/thread generates "RMA"
+.br
+2: Locate call-chain when process/thread generates "LMA"
+.br
+3: Locate call-chain when process/thread generates "CYCLE" (CPU cycle)
+.br
+4: Locate call-chain when process/thread generates "IR" (Instruction Retired)
+.PP
+\fB[WIN10 - Call-chain when process/thread access the memory area]:\fP
+.br
+Determine the call-chains to the code that references this memory area.
+The latency must be greater than the predefined latency threshold
+(128 CPU cycles).  
+.PP
+\fB[KEY METRICS]:\fP
+.br
+Call-chain list: a list of call-chains.
+.br
+Other metrics remain the same.
+.PP
+\fB[HOTKEY]:\fP
+.br
+Q: Quit the application.
+.br
+H: Switch to WIN1.
+.br
+B: Back to previous window.
+.br
+R: Refresh to show the latest data.
+.PP
+\fB[WIN11 - Node Overview]:\fP
+.br
+Show the basic per-node statistics for this system
+.PP
+\fB[KEY METRICS]:\fP
+.br
+MEM.ALL: total usable RAM (physical RAM minus a few reserved bits and the kernel binary code).
+.br
+MEM.FREE: sum of LowFree + HighFree (overall stat) .
+.br
+CPU%: per-node CPU utilization.
+.br
+Other metrics remain the same.
+.PP
+\fB[WIN12 - Information of Node N]:\fP
+.br
+Show the memory use and CPU utilization for the selected node.
+.PP
+\fB[KEY METRICS]:\fP
+.br
+CPU: array of logical CPUs which belong to this node.
+.br
+CPU%: per-node CPU utilization.
+.br
+MEM active: the amount of memory that has been used more recently and is not usually reclaimed unless absolute necessary.
+.br
+MEM inactive: the amount of memory that has not been used for a while and is eligible to be swapped to disk.
+.br
+Dirty: the amount of memory waiting to be written back to the disk.
+.br
+Writeback: the amount of memory actively being written back to the disk.
+.br
+Mapped: all pages mapped into a process.
+.PP
+\fB[HOTKEY]:\fP
+.br
+Q: Quit the application.
+.br
+H: Switch to WIN1.
+.br
+B: Back to previous window.
+.br
+R: Refresh to show the latest data.
+.PP
+.SH "OPTIONS"
+The following options are supported by numatop:
+.PP
+-s sampling_precision
+.br
+normal: balance precision and overhead (default)
+.br
+high: high sampling precision (high overhead)
+.br
+low: low sampling precision, suitable for high load system
+.PP
+-l log_level
+.br
+Specifies the level of logging in the log file. Valid values are:
+.br
+1: unknown (reserved for future use)
+.br
+2: all
+.PP
+-f log_file    
+.br
+Specifies the log file where output will be written. If the log file is
+not writable, the tool will prompt "Cannot open '<file name>' for writting.".
+.PP    
+-d dump_file
+.br
+Specifies the dump file where the screen data will be written. Generally the dump
+file is used for automated test. If the dump file is not writable, the tool will
+prompt "Cannot open <file name> for dump writing."
+.PP
+-h
+.br
+Displays the command's usage.
+.PP
+.SH EXAMPLES
+Example 1: Launch numatop with high sampling precision
+.br
+numatop -s high
+.PP
+Example 2: Write all warning messages in /tmp/numatop.log
+.br
+numatop -l 2 -o /tmp/numatop.log
+.PP
+Example 3: Dump screen data in /tmp/dump.log
+.br
+numatop -d /tmp/dump.log
+.PP
+.SH EXIT STATUS
+.br
+0: successful operation.
+.br
+Other value: an error occurred.
+.PP
+.SH USAGE
+.br
+You must have root privileges to run numatop.
+.br
+Or set -1 in /proc/sys/kernel/perf_event_paranoid
+.PP
+\fBNote\fP: The perf_event_paranoid setting has security implications and a non-root
+user probably doesn't have authority to access /proc. It is highly recommended
+that the user runs \fBnumatop\fP as root.
+.PP
+.SH VERSION
+.br
+
+\fBnumatop\fP requires a patch set to support PEBS Load Latency functionality in the
+kernel. The patch set has not been integrated in 3.8. Probably it will be integrated
+in 3.9. The following steps show how to get and apply the patch set.
+
+.PP
+1. git clone git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git
+.br
+2. cd tip
+.br
+3. git checkout perf/x86
+.br
+4. build kernel as usual
+.PP
+
+\fBnumatop\fP supports the Intel Xeon processors: 5500-series, 6500/7500-series, 
+5600 series, E7-x8xx-series, and E5-16xx/24xx/26xx/46xx-series. 
+\fBNote\fP: CPU microcode version 0x618 or 0x70c or later is required on
+E5-16xx/24xx/26xx/46xx-series.
