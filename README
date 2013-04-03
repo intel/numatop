@@ -1,0 +1,53 @@
+Building & Installing NumaTOP
+------------------------------
+1. To build NumaTOP
+	make
+
+2. To clean the built objects
+	make clean
+	
+3. To install NumaTOP (needs root authority).
+	make install
+
+
+Build Dependencies
+------------------
+NumaTOP requires following libraries:
+
+1. numactl-devel or libnuma-dev(el)
+2. libncurses
+3. libpthread
+
+
+Kernel Requirement:
+------------------
+NumaTOP requires a special patch which supports PEBS Load Latency functionality.
+The patch has not been integrated in 3.8 (probably it will be integrated
+in 3.9). The following steps instruct how to get and apply the patch.
+
+1. git clone git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git
+2. cd tip
+3. git checkout perf/x86
+4. build kernel as usual
+
+
+Directories
+------------------
+common:	common code for all platforms.
+
+intel : Intel platform-specific code.
+
+test  : mgen source code. mgen is a micro-test application which can
+        generate memory access with runtime latency value among CPUs.
+        Note that this application is only used for numatop testing!
+
+Note:
+-----
+numatop is supported on Intel Xeon processors: 5500-series, 6500/7500-series,
+5600 series, E7-x8xx-series, and E5-16xx/24xx/26xx/46xx-series. 
+
+E5-16xx/24xx/26xx/46xx-series had better be updated to latest CPU microcode
+(microcode must be 0x618+ or 0x70c+).
+
+To learn about NumaTOP, please visit http://01.org/numatop
+
