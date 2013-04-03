@@ -259,15 +259,15 @@ profiling_sample_read(struct perf_event_mmap_page *mhdr, int size,
 
 	/*
 	 * struct read_format {
-	 *		{ u32	pid, tid; }
-	 *		{ u64	nr; }
-	 *		{ u64	time_enabled; }
-	 *		{ u64	time_running; }
-     *		{ u64	cntr[nr]; }
-     *		[ u64	nr; }
-     *		{ u64   ips[nr]; }
-     * };
-     */
+	 *	{ u32	pid, tid; }
+	 *	{ u64	nr; }
+	 *	{ u64	time_enabled; }
+	 *	{ u64	time_running; }
+	 *	{ u64	cntr[nr]; }
+	 *	[ u64	nr; }
+	 *	{ u64   ips[nr]; }
+	 * };
+	 */
 	if (mmap_buffer_read(mhdr, &id, sizeof (id)) == -1) {
 		debug_print(NULL, 2, "profiling_sample_read: read pid/tid failed.\n");
 		goto L_EXIT;
@@ -478,14 +478,14 @@ ll_sample_read(struct perf_event_mmap_page *mhdr, int size,
 
 	/*
 	 * struct read_format {
-	 *		{ u32	pid, tid; }
-	 *		{ u64	addr; }
-	 *		{ u64	cpu; }
-     *		[ u64	nr; }
-     *		{ u64   ips[nr]; }
-	 *		{ u64	weight; }
-     * };
-     */
+	 *	{ u32	pid, tid; }
+	 *	{ u64	addr; }
+	 *	{ u64	cpu; }
+	 *	[ u64	nr; }
+	 *	{ u64   ips[nr]; }
+	 *	{ u64	weight; }
+	 * };
+	 */
 	if (mmap_buffer_read(mhdr, &id, sizeof (id)) == -1) {
 		debug_print(NULL, 2, "ll_sample_read: read pid/tid failed.\n");
 		goto L_EXIT;
