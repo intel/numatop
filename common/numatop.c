@@ -198,11 +198,11 @@ main(int argc, char *argv[])
 	(void) ulimit_expand(PERF_FD_NUM);
 
 	/*
-	 * Get the core number in system.
+	 * Get the number of online cores in system.
 	 */
-	if ((g_ncpus = sysconf(_SC_NPROCESSORS_CONF)) > NCPUS_MAX) {
+	if ((g_ncpus = sysfs_online_ncpus()) == -1) {
 		stderr_print("Platform is not supported "
-		    "(numatop supports up to %d CPUs\n", NCPUS_MAX);
+		    "(numatop supports up to %d CPUs)\n", NCPUS_MAX);
 		goto L_EXIT0;
 	}
 
@@ -213,6 +213,7 @@ main(int argc, char *argv[])
 		goto L_EXIT1;
 	}
 
+	debug_print(NULL, 2, "Detected %d online CPU.\n", g_ncpus);
 	log = NULL;
 	sym_init();
 

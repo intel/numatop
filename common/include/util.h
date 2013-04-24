@@ -118,6 +118,7 @@ extern void dump_cache_flush(void);
 extern void stderr_print(char *format, ...);
 extern boolean_t sysfs_node_enum(int *, int, int *);
 extern boolean_t sysfs_cpu_enum(int, int *, int, int *);
+extern int sysfs_online_ncpus(void);
 extern boolean_t sysfs_meminfo(int, meminfo_t *);
 extern int ulimit_expand(int);
 extern int array_alloc(void **, int *, int *, int, int);

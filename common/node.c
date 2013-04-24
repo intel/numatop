@@ -157,7 +157,7 @@ cpu_refresh(boolean_t init)
 	int i, j, num, cpuid_max = -1;
 	int cpu_arr[NCPUS_NODE_MAX];
 	node_t *node;
-	
+
 	for (i = 0; i < NNODES_MAX; i++) {
 		node = node_get(i);
 		if (NODE_VALID(node)) {
@@ -171,7 +171,6 @@ cpu_refresh(boolean_t init)
 			}
 
 			node->ncpus = num;
-
 			j = cpuid_max_get(cpu_arr, num);
 			if (cpuid_max < j) {
 				cpuid_max = j;
@@ -183,6 +182,8 @@ cpu_refresh(boolean_t init)
 		s_node_group.cpuid_max = cpuid_max;
 	}
 
+	/* Refresh the number of online CPUs */
+	g_ncpus = sysfs_online_ncpus();
 	return (0);
 }
 
@@ -431,7 +432,6 @@ countval_sum(count_value_t *countval_arr, int cpuid_max, int nid,
 		}
 
 		if ((cpuid = node->cpus[i].cpuid) != INVALID_CPUID) {
-			ASSERT((cpuid >= 0) && (cpuid < cpuid_max));
 			value += countval_arr[cpuid].counts[count_id];
 			num++;
 		}

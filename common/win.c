@@ -1731,6 +1731,23 @@ nodedetail_dyn_create(page_t *page)
 	return (dyn);
 }
 
+static int
+cpuid_cmp(const void *a, const void *b)
+{
+	int *id1 = (int *)a;
+	int *id2 = (int *)b;
+
+	if (*id1 > *id2) {
+		return (1);
+	}
+	
+	if (*id1 < *id2) {
+		return (-1);
+	}
+	
+	return (0);
+}
+
 /*
  * Build a readable string of CPU ID and try to reduce the string length. e.g.
  * For cpu1, cpu2, cpu3, cpu4, the string is "CPU(1-4)",
@@ -1739,22 +1756,46 @@ nodedetail_dyn_create(page_t *page)
 static void
 node_cpu_string(node_t *node, char *s1, int size)
 {
-	char s2[128];
-	int j, l, cpuid_start;
+	char s2[128], s3[128];
+	int i, j, k, l, cpuid_start;
+	int *cpuid_arr;
+	int ncpus;
 	perf_cpu_t *cpus = node_cpus(node);
 
-	if (node->ncpus == 0) {
+	s1[0] = 0;
+	if ((ncpus = node->ncpus) == 0) {
 		strncpy(s1, "-", size);
-		s1[size - 1] = 0;
-	} else {
-		s1[0] = 0;
+		return;
 	}
 
-	cpuid_start = cpus[0].cpuid;
+	if ((cpuid_arr = zalloc(sizeof (int) * ncpus)) == NULL) {
+		return;
+	}
+
+	j = 0;
+	for (i = 0; (i < NCPUS_NODE_MAX) && (j < ncpus); i++) {
+		if ((cpus[i].cpuid != INVALID_CPUID) && (!cpus[i].hotremove)) {
+			cpuid_arr[j++] = cpus[i].cpuid;
+		}
+	}
+
+	qsort(cpuid_arr, ncpus, sizeof (int), cpuid_cmp);
+	cpuid_start = cpuid_arr[0];
+
+	if (ncpus == 1) {
+		(void) snprintf(s2, sizeof (s2), "%d", cpuid_start);
+        (void) strncat(s1, s2, strlen(s2));
+        free(cpuid_arr);
+		return;
+	}
+
 	l = 1;
-	for (j = 1; j < node->ncpus; j++) {
-		if (cpus[j].cpuid != cpuid_start + l) {
-			if (j < node->ncpus - 1) {
+	k = 1;
+
+	for (j = 1; j < ncpus; j++) {
+		k++;
+		if (cpuid_arr[j] != cpuid_start + l) {
+			if (k < ncpus) {
 				if (l == 1) {
 					(void) snprintf(s2, sizeof (s2), "%d ", cpuid_start);
 				} else {
@@ -1763,19 +1804,23 @@ node_cpu_string(node_t *node, char *s1, int size)
 				}
           	} else {
 				if (l == 1) {
-					(void) snprintf(s2, sizeof (s2), "%d %d",
-						cpuid_start, cpus[j].cpuid);
+					(void) snprintf(s2, sizeof (s2), "%d",
+						cpuid_start);
 				} else {
 					(void) snprintf(s2, sizeof (s2), "%d-%d",
 						cpuid_start, cpuid_start + l - 1);
 				}
+
+				(void) snprintf(s3, sizeof (s3), " %d",
+					cpuid_arr[j]);
+	          	(void) strncat(s2, s3, strlen(s3));
 			}
 
           	(void) strncat(s1, s2, strlen(s2));
-          	cpuid_start = cpus[j].cpuid;
+          	cpuid_start = cpuid_arr[j];
            	l = 1;
 		} else {
-        	if (j == node->ncpus - 1) {
+        	if (k == ncpus) {
             	(void) snprintf(s2, sizeof (s2), "%d-%d",
                 	cpuid_start, cpuid_start + l);
          		(void) strncat(s1, s2, strlen(s2));
@@ -1783,7 +1828,9 @@ node_cpu_string(node_t *node, char *s1, int size)
             	l++;
        		}
        	}
-	}	
+	}
+	
+	free(cpuid_arr);
 }
 
 static void

@@ -1193,6 +1193,11 @@ perf_cpuarr_refresh(perf_cpu_t *cpu_arr, int cpu_num, int *cpuid_arr,
 
 			cpu_arr[j].hit = B_TRUE;
 			cpu_arr[j].hotadd = !init;
+
+			if (cpu_arr[j].hotadd) {
+				debug_print(NULL, 2, "cpu%d is hot-added.\n", cpu_arr[i].cpuid);
+			}
+
 		} else {
 			cpu->hit = B_TRUE;
 		}
@@ -1204,6 +1209,7 @@ perf_cpuarr_refresh(perf_cpu_t *cpu_arr, int cpu_num, int *cpuid_arr,
 			 * This CPU is invalid now.
 			 */
 			cpu_arr[i].hotremove = B_TRUE;
+			debug_print(NULL, 2, "cpu%d is hot-removed.\n", cpu_arr[i].cpuid);
 		}
 	}
 	

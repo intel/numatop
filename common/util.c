@@ -932,6 +932,24 @@ sysfs_cpu_enum(int nid, int *cpu_arr, int arr_size, int *num)
 	return (file_int_extract(path, cpu_arr, arr_size, num));
 }
 
+int
+sysfs_online_ncpus(void)
+{
+	int cpu_arr[NCPUS_MAX], num;
+	char path[PATH_MAX];
+
+	if (sysconf(_SC_NPROCESSORS_CONF) > NCPUS_MAX) {
+		return (-1);
+	}
+
+	snprintf(path, PATH_MAX, "/sys/devices/system/cpu/online");
+	if (!file_int_extract(path, cpu_arr, NCPUS_MAX, &num)) {
+		return (-1);
+	}
+
+	return (num);
+}
+
 static boolean_t
 memsize_parse(char *str, uint64_t *size)
 {
