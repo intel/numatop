@@ -16,7 +16,7 @@ INTEL_OBJS = wsm.o snb.o nhm.o
 all: $(PROG)
 
 $(PROG): $(COMMON_OBJS) $(INTEL_OBJS)
-	$(LD) $(LDLIBS) -o $@ $(COMMON_OBJS) $(INTEL_OBJS)
+	$(LD) -o $@ $(COMMON_OBJS) $(INTEL_OBJS) $(LDLIBS)
 
 %.o: ./common/%.c ./common/include/*.h
 	$(CC) $(CFLAGS) -o $@ -c $<
