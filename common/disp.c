@@ -158,7 +158,10 @@ disp_consthr_quit(void)
 
 	debug_print(NULL, 2, "Send PIPE_CHAR_QUIT to cons thread\n");
 	c = PIPE_CHAR_QUIT;
-	(void) write(s_cons_ctl.pipe[1], &c, 1);
+	if (write(s_cons_ctl.pipe[1], &c, 1) == -1) {
+		debug_print(NULL, 2, "Fail to write PIPE_CHAR_QUIT to pipe\n");
+	}
+
 	(void) pthread_join(s_cons_ctl.thr, NULL);
 	debug_print(NULL, 2, "cons thread exit yet\n");
 }
@@ -230,7 +233,9 @@ disp_on_resize(int sig)
 {
 	char c = PIPE_CHAR_RESIZE;
 
-	(void) write(s_cons_ctl.pipe[1], &c, 1);
+	if (write(s_cons_ctl.pipe[1], &c, 1) == -1) {
+		debug_print(NULL, 2, "Fail to write PIPE_CHAR_RESIZE to pipe\n");
+	}
 }
 
 void
@@ -616,7 +621,11 @@ cons_handler(void *arg)
 		if (select(s_cons_ctl.pipe[0] + 1, &s_cons_ctl.fds,
 		    NULL, NULL, NULL) > 0) {
 			if (FD_ISSET(s_cons_ctl.pipe[0], &s_cons_ctl.fds)) {
-				(void) read(s_cons_ctl.pipe[0], &ch, 1);
+				if (read(s_cons_ctl.pipe[0], &ch, 1) == -1) {
+					debug_print(NULL, 2, "cons: failed to"
+						"read from pipe\n");
+					continue;
+				}
 
 				/*
 				 * Character is from pipe.
