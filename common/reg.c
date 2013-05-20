@@ -41,10 +41,10 @@
 #include <unistd.h>
 #include <string.h>
 #include <strings.h>
-#include <curses.h>
 #include <signal.h>
-#include "include/types.h"
+#include <curses.h>
 #include "include/reg.h"
+#include "include/types.h"
 #include "include/win.h"
 #include "include/disp.h"
 
@@ -57,14 +57,14 @@ static boolean_t s_curses_init = B_FALSE;
  * Highlight the selected line.
  */
 static void
-reg_idx_highlight(win_reg_t *reg, int idx)
+reg_idx_highlight(win_reg_t *r, int idx)
 {
-	scroll_line_t *scroll = &reg->scroll;
+	scroll_line_t *scroll = &r->scroll;
 	char line[WIN_LINECHAR_MAX];
 
-	if (reg->hdl != NULL) {
-		reg->line_get(reg, idx, line, WIN_LINECHAR_MAX);
-		reg_highlight_write(reg, idx - scroll->page_start,
+	if (r->hdl != NULL) {
+		r->line_get(r, idx, line, WIN_LINECHAR_MAX);
+		reg_highlight_write(r, idx - scroll->page_start,
 		    ALIGN_LEFT, line);
 	}
 }
@@ -73,23 +73,23 @@ reg_idx_highlight(win_reg_t *reg, int idx)
  * Display the hidden lines on screen.
  */
 static void
-reg_hidden_show(win_reg_t *reg, int idx_start)
+reg_hidden_show(win_reg_t *r, int idx_start)
 {
 	int i, idx_end;
 	char line[WIN_LINECHAR_MAX];
 
-	if (reg->hdl == NULL) {
+	if (r->hdl == NULL) {
 		return;
 	}
 
-	if ((idx_end = idx_start + reg->nlines_scr) > reg->nlines_total) {
-		idx_end = reg->nlines_total;
+	if ((idx_end = idx_start + r->nlines_scr) > r->nlines_total) {
+		idx_end = r->nlines_total;
 	}
 
-	reg_erase(reg);
+	reg_erase(r);
 	for (i = idx_start; i < idx_end; i++) {
-		reg->line_get(reg, i, line, WIN_LINECHAR_MAX);
-		reg_line_write(reg, i - idx_start, ALIGN_LEFT, line);
+		r->line_get(r, i, line, WIN_LINECHAR_MAX);
+		reg_line_write(r, i - idx_start, ALIGN_LEFT, line);
 	}
 }
 
@@ -97,14 +97,14 @@ reg_hidden_show(win_reg_t *reg, int idx_start)
  * Lowlight the selected line.
  */
 static void
-reg_idx_lowlight(win_reg_t *reg, int idx)
+reg_idx_lowlight(win_reg_t *r, int idx)
 {
-	scroll_line_t *scroll = &reg->scroll;
+	scroll_line_t *scroll = &r->scroll;
 	char line[WIN_LINECHAR_MAX];
 
-	if (reg->hdl != NULL) {
-		reg->line_get(reg, idx, line, WIN_LINECHAR_MAX);
-		reg_line_write(reg, idx - scroll->page_start,
+	if (r->hdl != NULL) {
+		r->line_get(r, idx, line, WIN_LINECHAR_MAX);
+		reg_line_write(r, idx - scroll->page_start,
 		    ALIGN_LEFT, line);
 	}
 }
@@ -113,51 +113,51 @@ reg_idx_lowlight(win_reg_t *reg, int idx)
  * Create a 'window'.
  */
 static WINDOW *
-reg_win_create(win_reg_t *reg)
+reg_win_create(win_reg_t *r)
 {
-	return (subwin(stdscr, reg->nlines_scr, reg->ncols_scr,
-	    reg->begin_y, reg->begin_x));
+	return (subwin(stdscr, r->nlines_scr, r->ncols_scr,
+	    r->begin_y, r->begin_x));
 }
 
 /*
  * Initialization for one 'reg'.
  */
 int
-reg_init(win_reg_t *reg, int begin_x, int begin_y, int ncols, int nlines,
+reg_init(win_reg_t *r, int begin_x, int begin_y, int ncols, int nlines,
 	unsigned int mode)
 {
 	if ((ncols <= 0) || (nlines <= 0)) {
 		return (-1);
 	}
 
-	(void) memset(reg, 0, sizeof (win_reg_t));
-	reg->begin_x = begin_x;
-	reg->begin_y = begin_y;
-	reg->ncols_scr = ncols;
-	reg->nlines_scr = nlines;
-	reg->mode = mode;
-	reg->hdl = reg_win_create(reg);
-	return (reg->begin_y + reg->nlines_scr);
+	(void) memset(r, 0, sizeof (win_reg_t));
+	r->begin_x = begin_x;
+	r->begin_y = begin_y;
+	r->ncols_scr = ncols;
+	r->nlines_scr = nlines;
+	r->mode = mode;
+	r->hdl = reg_win_create(r);
+	return (r->begin_y + r->nlines_scr);
 }
 
 /*
  * Initialization for the data buffer in 'reg'.
  */
 void
-reg_buf_init(win_reg_t *reg, void *buf,
+reg_buf_init(win_reg_t *r, void *buf,
 	void (*line_get)(win_reg_t *, int, char *, int))
 {
-	reg->buf = buf;
-	reg->line_get = line_get;
+	r->buf = buf;
+	r->line_get = line_get;
 }
 
 /*
  * Initialization for 'scrolling'.
  */
 void
-reg_scroll_init(win_reg_t *reg, boolean_t enable)
+reg_scroll_init(win_reg_t *r, boolean_t enable)
 {
-	scroll_line_t *scroll = &reg->scroll;
+	scroll_line_t *scroll = &r->scroll;
 
 	scroll->enabled = enable;
 	scroll->highlight = -1;
@@ -167,10 +167,10 @@ reg_scroll_init(win_reg_t *reg, boolean_t enable)
  * Erase the data in 'reg' on screen.
  */
 void
-reg_erase(win_reg_t *reg)
+reg_erase(win_reg_t *r)
 {
-	if (reg->hdl != NULL) {
-		(void) werase(reg->hdl);
+	if (r->hdl != NULL) {
+		(void) werase(r->hdl);
 	}
 }
 
@@ -178,10 +178,10 @@ reg_erase(win_reg_t *reg)
  * Refresh the data in 'reg' and display the update data on screen.
  */
 void
-reg_refresh(win_reg_t *reg)
+reg_refresh(win_reg_t *r)
 {
-	if (reg->hdl != NULL) {
-		(void) wrefresh(reg->hdl);
+	if (r->hdl != NULL) {
+		(void) wrefresh(r->hdl);
 	}
 }
 
@@ -190,10 +190,10 @@ reg_refresh(win_reg_t *reg)
  * screen immediately.
  */
 void
-reg_refresh_nout(win_reg_t *reg)
+reg_refresh_nout(win_reg_t *r)
 {
-	if (reg->hdl != NULL) {
-		(void) wnoutrefresh(reg->hdl);
+	if (r->hdl != NULL) {
+		(void) wnoutrefresh(r->hdl);
 	}
 }
 
@@ -210,11 +210,11 @@ reg_update_all(void)
  * Free the resource of libcurses 'window'.
  */
 void
-reg_win_destroy(win_reg_t *reg)
+reg_win_destroy(win_reg_t *r)
 {
-	if (reg->hdl != NULL) {
-		(void) delwin(reg->hdl);
-		reg->hdl = NULL;
+	if (r->hdl != NULL) {
+		(void) delwin(r->hdl);
+		r->hdl = NULL;
 	}
 }
 
@@ -222,29 +222,29 @@ reg_win_destroy(win_reg_t *reg)
  * Fill data in a line and display the line on screen.
  */
 void
-reg_line_write(win_reg_t *reg, int line, reg_align_t align, char *content)
+reg_line_write(win_reg_t *r, int line, reg_align_t align, char *content)
 {
 	int pos_x = 0, len;
 
-	if (reg->hdl == NULL) {
+	if (r->hdl == NULL) {
 		return;
 	}
 
-	if (reg->mode != 0) {
-		(void) wattron(reg->hdl, reg->mode);
+	if (r->mode != 0) {
+		(void) wattron(r->hdl, r->mode);
 	}
 
 	len = strlen(content);
 	if (align == ALIGN_MIDDLE) {
-		pos_x = (reg->ncols_scr - len) / 2;
+		pos_x = (r->ncols_scr - len) / 2;
 	}
 
 	if (len > 0) {
-		(void) mvwprintw(reg->hdl, line, pos_x, content);
+		(void) mvwprintw(r->hdl, line, pos_x, content);
 	}
 
-	if (reg->mode != 0) {
-		wattroff(reg->hdl, reg->mode);
+	if (r->mode != 0) {
+		(void) wattroff(r->hdl, r->mode);
 	}
 }
 
@@ -252,39 +252,38 @@ reg_line_write(win_reg_t *reg, int line, reg_align_t align, char *content)
  * Fill data in one line and display it on screen with highlight.
  */
 void
-reg_highlight_write(win_reg_t *reg, int line, int align, char *content)
+reg_highlight_write(win_reg_t *r, int line, int align, char *content)
 {
 	int pos_x = 0, len;
 
-	if (reg->hdl == NULL) {
+	if (r->hdl == NULL) {
 		return;
 	}
 
-	(void) wattron(reg->hdl, A_REVERSE | A_BOLD);
+	(void) wattron(r->hdl, A_REVERSE | A_BOLD);
 	len = strlen(content);
-	if (align == ALIGN_MIDDLE) {		
-		pos_x = (reg->ncols_scr - len) / 2;
-		ASSERT(pos_x >= 0);
+	if (align == ALIGN_MIDDLE) {
+		pos_x = (r->ncols_scr - len) / 2;
 	}
 
 	if (len > 0) {
-		(void) mvwprintw(reg->hdl, line, pos_x, content);
+		(void) mvwprintw(r->hdl, line, pos_x, content);
 	}
-	
-	wattroff(reg->hdl, A_REVERSE | A_BOLD);
+
+	(void) wattroff(r->hdl, A_REVERSE | A_BOLD);
 }
 
 /*
  * Scroll one line UP/DOWN.
  */
 void
-reg_line_scroll(win_reg_t *reg, int scroll_type)
+reg_line_scroll(win_reg_t *r, int scroll_type)
 {
-	scroll_line_t *scroll = &reg->scroll;
+	scroll_line_t *scroll = &r->scroll;
 	int highlight, idx_next;
 	boolean_t page_scroll = B_FALSE;
 
-	if ((!scroll->enabled) || (reg->hdl == NULL)) {
+	if ((!scroll->enabled) || (r->hdl == NULL)) {
 		return;
 	}
 
@@ -302,11 +301,11 @@ reg_line_scroll(win_reg_t *reg, int scroll_type)
 			page_scroll = B_TRUE;
 		}
 	} else if (scroll_type == SCROLL_DOWN) {
-		if ((idx_next = highlight + 1) >= reg->nlines_total) {
+		if ((idx_next = highlight + 1) >= r->nlines_total) {
 			return;
 		}
 
-		if (((idx_next - scroll->page_start) % reg->nlines_scr) == 0) {
+		if (((idx_next - scroll->page_start) % r->nlines_scr) == 0) {
 			scroll->page_start++;
 			page_scroll = B_TRUE;
 		}
@@ -315,63 +314,67 @@ reg_line_scroll(win_reg_t *reg, int scroll_type)
 	}
 
 	if (page_scroll) {
-		reg_hidden_show(reg, scroll->page_start);
+		reg_hidden_show(r, scroll->page_start);
 	}
 
-	reg_idx_lowlight(reg, highlight);
-	reg_idx_highlight(reg, idx_next);
+	reg_idx_lowlight(r, highlight);
+	reg_idx_highlight(r, idx_next);
 	scroll->highlight = idx_next;
-	reg_refresh(reg);
+	reg_refresh(r);
 }
 
 /*
  * Show the 'scrolling reg'.
  */
 void
-reg_scroll_show(win_reg_t *reg, void *lines, int nreqs,
+reg_scroll_show(win_reg_t *r, void *lines, int nreqs,
     void (*str_build_func)(char *, int, int, void *))
 {
 	int highlight, i, start, end;
 	char content[WIN_LINECHAR_MAX];
 
-	highlight = reg->scroll.highlight;
+	highlight = r->scroll.highlight;
 	if (highlight != -1) {
-		if (highlight >= reg->scroll.page_start) {
-			if ((i = ((highlight - reg->scroll.page_start) /
-			    reg->nlines_scr)) != 0) {
-				reg->scroll.page_start += reg->nlines_scr * i;
-			}
-		} else {
-			reg->scroll.page_start =
-			    (highlight / reg->nlines_scr) *
-			    reg->nlines_scr;
+		if (highlight >= r->nlines_total) {
+			highlight = r->nlines_total - 1;
 		}
 
-		start = reg->scroll.page_start;
-		i = MIN(nreqs, reg->nlines_scr);
-		if ((end = start + i) > reg->nlines_total) {
-			end = reg->nlines_total;
+		if (highlight >= r->scroll.page_start) {
+			if ((i = ((highlight - r->scroll.page_start) /
+			    r->nlines_scr)) != 0) {
+				r->scroll.page_start += r->nlines_scr * i;
+			}
+		} else {
+			r->scroll.page_start =
+			    (highlight / r->nlines_scr) *
+			    r->nlines_scr;
+		}
+
+		start = r->scroll.page_start;
+		i = MIN(nreqs, r->nlines_scr);
+		if ((end = start + i) > r->nlines_total) {
+			end = r->nlines_total;
 		}
 	} else {
 		highlight = 0;
 		start = 0;
-		end = MIN(nreqs, reg->nlines_scr);
+		end = MIN(nreqs, r->nlines_scr);
 	}
 
 	for (i = start; i < end; i++) {
 		str_build_func(content, sizeof (content), i, lines);
 		dump_write("%s\n", content);
 		if (i != highlight) {
-			reg_line_write(reg, i - reg->scroll.page_start,
+			reg_line_write(r, i - r->scroll.page_start,
 			    ALIGN_LEFT, content);
 		}
 	}
 
 	if ((highlight >= start) && (highlight < end)) {
 		str_build_func(content, sizeof (content), highlight, lines);
-		reg_highlight_write(reg, highlight - reg->scroll.page_start,
-			ALIGN_LEFT, content);
-		reg->scroll.highlight = highlight;
+		reg_highlight_write(r, highlight - r->scroll.page_start,
+		    ALIGN_LEFT, content);
+		r->scroll.highlight = highlight;
 	}
 }
 
@@ -387,7 +390,7 @@ reg_curses_fini(void)
 		(void) endwin();
 		(void) fflush(stdout);
 		(void) putchar('\r');
-		s_curses_init = B_FALSE;		
+		s_curses_init = B_FALSE;
 	}
 }
 
@@ -399,13 +402,12 @@ reg_curses_init(boolean_t first_load)
 {
 	(void) initscr();
 	(void) refresh();
-	(void) start_color();	
+	(void) start_color();
 	(void) keypad(stdscr, TRUE);
 	(void) nonl();
 	(void) cbreak();
 	(void) noecho();
 	(void) curs_set(0);
-	(void) use_default_colors();
 
 	getmaxyx(stdscr, g_scr_height, g_scr_width);
 
@@ -434,13 +436,4 @@ reg_curses_init(boolean_t first_load)
 	}
 
 	return (B_TRUE);
-}
-
-void
-reg_win_clear(void)
-{
-	if (s_curses_init) {
-		(void) clear();
-		(void) refresh();
-	}
 }

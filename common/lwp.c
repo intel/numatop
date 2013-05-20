@@ -40,7 +40,9 @@
 #include "include/util.h"
 #include "include/lwp.h"
 #include "include/proc.h"
-#include "include/node.h"
+#include "include/perf.h"
+#include "include/os/node.h"
+#include "include/os/os_util.h"
 
 /*
  * Allocation and initialization for a 'track_lwp_t' struture.
@@ -52,12 +54,14 @@ lwp_alloc(void)
 	int cpuid_max;
 	track_lwp_t *lwp;
 	count_value_t *countval_arr;
+	boolean_t supported;
 
 	if ((cpuid_max = node_cpuid_max()) <= 0) {
 		return (NULL);
 	}
 
-	if ((countval_arr = zalloc(cpuid_max * sizeof (count_value_t))) == NULL) {
+	if ((countval_arr = zalloc(cpuid_max *
+	    sizeof (count_value_t))) == NULL) {
 		return (NULL);
 	}
 
@@ -66,8 +70,16 @@ lwp_alloc(void)
 		return (NULL);
 	}
 
+	if (((lwp->perf_priv = perf_priv_alloc(&supported)) == NULL) &&
+		(supported)) {
+		free(countval_arr);
+		free(lwp);
+		return (NULL);
+	}
+
 	if (pthread_mutex_init(&lwp->mutex, NULL) != 0) {
 		free(countval_arr);
+		perf_priv_free(lwp->perf_priv);
 		free(lwp);
 		return (NULL);
 	}
@@ -85,7 +97,7 @@ lwp_alloc(void)
  */
 int
 lwp_free(track_lwp_t *lwp)
-{	
+{
 	(void) pthread_mutex_lock(&lwp->mutex);
 	if (lwp->ref_count > 0) {
 		lwp->removing = B_TRUE;
@@ -97,6 +109,7 @@ lwp_free(track_lwp_t *lwp)
 		free(lwp->countval_arr);
 	}
 
+	perf_priv_free(lwp->perf_priv);
 	perf_countchain_reset(&lwp->count_chain);
 	perf_llrecgrp_reset(&lwp->llrec_grp);
 
@@ -123,8 +136,8 @@ lwp_sort_next(track_proc_t *proc)
 	if (idx < list->nlwps) {
 		list->sort_idx++;
 		return (list->sort_arr[idx]);
-	}	
-	
+	}
+
 	return (NULL);
 }
 
@@ -137,11 +150,11 @@ id_cmp(const void *a, const void *b)
 	if (*id1 > *id2) {
 		return (1);
 	}
-	
+
 	if (*id1 < *id2) {
 		return (-1);
 	}
-	
+
 	return (0);
 }
 
@@ -157,7 +170,7 @@ lwp_enum_update(track_proc_t *proc)
 	int *lwps_new, nlwp_new;
 	int i = 0, j = 0, k;
 
-	if (procfs_lwp_enum(proc->pid, &lwps_new, &nlwp_new) != 0) {
+	if (os_procfs_lwp_enum(proc->pid, &lwps_new, &nlwp_new) != 0) {
 		return;
 	}
 
@@ -168,30 +181,31 @@ lwp_enum_update(track_proc_t *proc)
 	}
 
 	(void) pthread_mutex_lock(&proc->mutex);
-	arr_old = list->id_arr;
 
-	while ((i < nlwp_new) && (j < list->nlwps)) {
-		if (lwps_new[i] == arr_old[j]->id) {
-			arr_new[i] = arr_old[j];
-			i++;
-			j++;
-			continue;	
-		}
-		
-		if (lwps_new[i] < arr_old[j]->id) {
-			if ((lwp = lwp_alloc()) != NULL) {
-				lwp->id = lwps_new[i];
-				lwp->proc = proc;
-				arr_new[i] = lwp;
+	if ((arr_old = list->id_arr) != NULL) {
+		while ((i < nlwp_new) && (j < list->nlwps)) {
+			if (lwps_new[i] == arr_old[j]->id) {
+				arr_new[i] = arr_old[j];
+				i++;
+				j++;
+				continue;
 			}
 
-			i++;
-			continue;
+			if (lwps_new[i] < arr_old[j]->id) {
+				if ((lwp = lwp_alloc()) != NULL) {
+					lwp->id = lwps_new[i];
+					lwp->proc = proc;
+					arr_new[i] = lwp;
+				}
+
+				i++;
+				continue;
+			}
+
+			/* The lwpid (arr_old[j]->id) is obsolete */
+			(void) lwp_free(arr_old[j]);
+			j++;
 		}
-		
-		/* The lwpid (arr_old[j]->id) is obsolete */
-		(void) lwp_free(arr_old[j]);
-		j++;
 	}
 
 	for (k = i; k < nlwp_new; k++) {
@@ -201,57 +215,21 @@ lwp_enum_update(track_proc_t *proc)
 			arr_new[k] = lwp;
 		}
 	}
-	
-	for (k = j; k < list->nlwps; k++) {
-		(void) lwp_free(arr_old[k]);
-	}
 
 	if (arr_old != NULL) {
+		for (k = j; k < list->nlwps; k++) {
+			(void) lwp_free(arr_old[k]);
+		}
+
 		free(arr_old);
 	}
 
 	list->id_arr = arr_new;
 	list->nlwps = nlwp_new;
 	(void) pthread_mutex_unlock(&proc->mutex);
-	
-L_EXIT:	
+
+L_EXIT:
 	free(lwps_new);
-}
-
-/*
- * Find the thread by pid/lwpid.
- */
-track_lwp_t *
-lwp_find(pid_t pid, int lwpid, boolean_t proc_refresh, boolean_t lwp_refresh)
-{
-	track_proc_t *proc;
-	track_lwp_t *lwp;
-
-	if ((proc = proc_find(pid)) == NULL) {
-		if (proc_refresh) {
-			proc_enum_update(pid);
-			if ((proc = proc_find(pid)) == NULL) {
-				return (NULL);
-			}
-		} else {
-			return (NULL);
-		}
-	}
-
-	if ((lwp = proc_lwp_find(proc, lwpid)) == NULL) {
-		if (lwp_refresh) {
-			lwp_enum_update(proc);
-			if ((lwp = proc_lwp_find(proc, lwpid)) == NULL) {
-				proc_refcount_dec(proc);
-				return (NULL);
-			}
-		} else {
-			proc_refcount_dec(proc);
-			return (NULL);
-		}
-	}
-
-	return (lwp);
 }
 
 /*
@@ -265,7 +243,7 @@ lwp_refcount_inc(track_lwp_t *lwp)
 
 	(void) pthread_mutex_lock(&lwp->mutex);
 
-	if (!lwp->removing) {
+	if ((!lwp->removing) && (!lwp->quitting)) {
 		lwp->ref_count++;
 		ret = 0;
 	}
@@ -300,7 +278,7 @@ static uint64_t
 count_value_get(track_lwp_t *lwp, count_id_t count_id)
 {
 	return (node_countval_sum(lwp->countval_arr, lwp->cpuid_max,
-		NODE_ALL, count_id));
+	    NODE_ALL, count_id));
 }
 
 /*
@@ -321,7 +299,7 @@ lwp_key_compute(track_lwp_t *lwp, void *arg, boolean_t *end)
 	}
 
 	*end = B_FALSE;
-	return (0);	
+	return (0);
 }
 
 /*
@@ -334,18 +312,18 @@ lwp_countval_update(track_lwp_t *lwp, int cpu, count_id_t count_id,
 	count_value_t *countval, *arr_new;
 	int cpuid_max = node_cpuid_max();
 
-	/* 
+	/*
 	 * Check if new cpu hotadd/online
 	 */
 	if (cpu >= lwp->cpuid_max) {
 		ASSERT(cpuid_max > lwp->cpuid_max);
 		if ((arr_new = realloc(lwp->countval_arr,
-			sizeof (count_value_t) * cpuid_max)) == NULL) {
+		    sizeof (count_value_t) * cpuid_max)) == NULL) {
 			return (-1);
 		}
-		
-		memset(&arr_new[lwp->cpuid_max], 0,
-			sizeof (count_value_t) * (cpuid_max - lwp->cpuid_max));
+
+		(void) memset(&arr_new[lwp->cpuid_max], 0,
+		    sizeof (count_value_t) * (cpuid_max - lwp->cpuid_max));
 
 		lwp->countval_arr = arr_new;
 		lwp->cpuid_max = cpuid_max;
@@ -353,7 +331,7 @@ lwp_countval_update(track_lwp_t *lwp, int cpu, count_id_t count_id,
 
 	countval = &lwp->countval_arr[cpu];
 	countval->counts[count_id] += value;
-	return (0);	
+	return (0);
 }
 
 int
@@ -381,4 +359,10 @@ lwp_intval_update(track_proc_t *proc, int intval_ms)
 	(void) pthread_mutex_lock(&proc->mutex);
 	proc_lwp_traverse(proc, intval_update, &intval_ms);
 	(void) pthread_mutex_unlock(&proc->mutex);
+}
+
+void
+lwp_quitting_set(track_lwp_t *lwp)
+{
+	lwp->quitting = B_TRUE;
 }

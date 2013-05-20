@@ -34,8 +34,8 @@
 #include <inttypes.h>
 #include <pthread.h>
 #include "types.h"
-#include "node.h"
 #include "perf.h"
+#include "./os/node.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,23 +51,25 @@ typedef struct _track_lwp {
 	int cpuid_max;
 	uint64_t key;
 	boolean_t removing;
+	boolean_t quitting;
 	boolean_t inited;
 	struct _track_proc *proc;
 	count_value_t *countval_arr;
 	perf_countchain_t count_chain;
 	perf_llrecgrp_t llrec_grp;
+	void *perf_priv;
 } track_lwp_t;
 
 extern int lwp_free(track_lwp_t *);
 extern track_lwp_t *lwp_sort_next(struct _track_proc *);
 extern void lwp_enum_update(struct _track_proc *);
-extern track_lwp_t *lwp_find(pid_t, int, boolean_t, boolean_t);
 extern int lwp_refcount_inc(track_lwp_t *);
 extern void lwp_refcount_dec(track_lwp_t *);
 extern int lwp_key_compute(track_lwp_t *, void *, boolean_t *end);
 extern int lwp_countval_update(track_lwp_t *, int, count_id_t, uint64_t);
 extern int lwp_intval_get(track_lwp_t *);
 extern void lwp_intval_update(struct _track_proc *, int intval_ms);
+extern void lwp_quitting_set(track_lwp_t *);
 
 #ifdef __cplusplus
 }

@@ -73,7 +73,6 @@ extern page_t *page_current_set(page_t *);
 extern void page_drop_next(page_t *);
 extern page_t *page_curprev_get(void);
 extern void page_win_destroy(void);
-extern boolean_t page_smpl_start(page_t *page);
 
 #ifdef __cplusplus
 }

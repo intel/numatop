@@ -35,18 +35,21 @@
 #include <unistd.h>
 #include <string.h>
 #include <strings.h>
-#include <curses.h>
 #include <sys/mman.h>
+#include <signal.h>
+#include <curses.h>
 #include "include/types.h"
 #include "include/util.h"
-#include "include/node.h"
-#include "include/plat.h"
 #include "include/disp.h"
 #include "include/reg.h"
 #include "include/lwp.h"
 #include "include/proc.h"
 #include "include/page.h"
 #include "include/perf.h"
+#include "include/os/node.h"
+#include "include/os/plat.h"
+#include "include/os/os_util.h"
+#include "include/os/os_win.h"
 
 static boolean_t s_first_load = B_TRUE;
 static win_reg_t s_note_reg;
@@ -81,7 +84,7 @@ topnproc_caption_build(char *buf, int size)
 	case SORT_KEY_RPI:
 		(void) snprintf(tmp, sizeof (tmp), "*%s", CAPTION_RPI);
 		(void) snprintf(buf, size,
-		     "%6s%15s%11s%11s%11s%11s%11s",
+		    "%6s%15s%11s%11s%11s%11s%11s",
 		    CAPTION_PID, CAPTION_PROC, tmp,
 		    CAPTION_LPI, CAPTION_RL, CAPTION_CPI, CAPTION_CPU);
 		break;
@@ -116,17 +119,10 @@ topnproc_data_build(char *buf, int size, topnproc_line_t *line)
 {
 	win_countvalue_t *value = &line->value;
 
-	if (plat_offcore_num() > 1) {
-		(void) snprintf(buf, size,
-	    	"%6d%15s%11.1f%11.1f%11.1f%11.2f%10.1f",
-	    	line->pid, line->proc_name, value->rpi, value->lpi,
-	    	value->rl, value->cpi, value->cpu * 100);
-	} else {
-		(void) snprintf(buf, size,
-	    	"%6d%15s%11.1f%11s%11s%11.2f%10.1f",
-	    	line->pid, line->proc_name, value->rpi, "-",
-	    	"-", value->cpi, value->cpu * 100);		
-	}
+	(void) snprintf(buf, size,
+	    "%6d%15s%11.1f%11.1f%11.1f%11.2f%10.1f",
+	    line->pid, line->proc_name, value->rpi, value->lpi,
+	    value->rl, value->cpi, value->cpu * 100);
 }
 
 /*
@@ -147,11 +143,11 @@ topnproc_str_build(char *buf, int size, int idx, void *pv)
  * (window type: "WIN_TYPE_TOPNPROC")
  */
 static void
-topnproc_line_get(win_reg_t *reg, int idx, char *line, int size)
+topnproc_line_get(win_reg_t *r, int idx, char *line, int size)
 {
 	topnproc_line_t *lines;
 
-	lines = (topnproc_line_t *)(reg->buf);
+	lines = (topnproc_line_t *)(r->buf);
 	topnproc_str_build(line, size, idx, (void *)lines);
 }
 
@@ -219,22 +215,15 @@ rawnum_data_build(char *buf, int size, topnproc_line_t *line)
 {
 	win_countvalue_t *value = &line->value;
 
-	if (plat_offcore_num() > 1) {
-		(void) snprintf(buf, size,
-		    "%6d%15s%11.1f%11.1f%11.1f%11.2f%10.1f",
-		    line->pid, line->proc_name, value->rma, value->lma,
-		    value->rl, value->cpi, value->cpu * 100);
-	} else {
-		(void) snprintf(buf, size,
-		    "%6d%15s%11.1f%11s%11s%11.2f%10.1f",
-		    line->pid, line->proc_name, value->rma, "-",
-		    "-", value->cpi, value->cpu * 100);		
-	}
+	(void) snprintf(buf, size,
+	    "%6d%15s%11.1f%11.1f%11.1f%11.2f%10.1f",
+	    line->pid, line->proc_name, value->rma, value->lma,
+	    value->rl, value->cpi, value->cpu * 100);
 }
 
 /*
  * Build the readable string of data line
- * (window type: "WIN_TYPE_RAW_NUM") 
+ * (window type: "WIN_TYPE_RAW_NUM")
  */
 static void
 rawnum_str_build(char *buf, int size, int idx, void *pv)
@@ -250,11 +239,11 @@ rawnum_str_build(char *buf, int size, int idx, void *pv)
  * (window type: "WIN_TYPE_RAW_NUM")
  */
 static void
-rawnum_line_get(win_reg_t *reg, int idx, char *line, int size)
+rawnum_line_get(win_reg_t *r, int idx, char *line, int size)
 {
 	topnproc_line_t *lines;
 
-	lines = (topnproc_line_t *)(reg->buf);
+	lines = (topnproc_line_t *)(r->buf);
 	rawnum_str_build(line, size, idx, (void *)lines);
 }
 
@@ -290,7 +279,8 @@ topnproc_dyn_create(int type)
 	}
 
 	reg_scroll_init(&dyn->data, B_TRUE);
-	reg_init(&dyn->hint, 0, i, g_scr_width, g_scr_height - i - 1, A_BOLD);
+	(void) reg_init(&dyn->hint, 0, i, g_scr_width,
+	    g_scr_height - i - 1, A_BOLD);
 	return (dyn);
 }
 
@@ -313,7 +303,7 @@ topnproc_win_destroy(dyn_win_t *win)
 		reg_win_destroy(&dyn->caption);
 		reg_win_destroy(&dyn->data);
 		reg_win_destroy(&dyn->hint);
-		free(dyn);		
+		free(dyn);
 	}
 }
 
@@ -330,7 +320,7 @@ win_countvalue_fill(win_countvalue_t *cv,
 	rma = node_countval_sum(countval_arr, cpuid_max, nid, COUNT_RMA);
 	lma = node_countval_sum(countval_arr, cpuid_max, nid, COUNT_LMA);
 	clk = node_countval_sum(countval_arr, cpuid_max, nid, COUNT_CLK);
-	ir = node_countval_sum(countval_arr, cpuid_max, nid, COUNT_IR);		
+	ir = node_countval_sum(countval_arr, cpuid_max, nid, COUNT_IR);
 
 	cv->rpi = ratio(rma * 1000, ir);
 	cv->lpi = ratio(lma * 1000, ir);
@@ -341,7 +331,7 @@ win_countvalue_fill(win_countvalue_t *cv,
 
 	d = (double)ms / MS_SEC;
 	all_clks = (uint64_t)(d * (double)g_clkofsec * (double)ncpus);
-	cv->cpu = ratio(clk, all_clks);	
+	cv->cpu = ratio(clk, all_clks);
 	return (0);
 }
 
@@ -358,22 +348,20 @@ topnproc_data_save(track_proc_t *proc, int intval, topnproc_line_t *line)
 	/*
 	 * Cut off the process name if it's too long.
 	 */
-	strncpy(line->proc_name, proc->name, sizeof (line->proc_name));
-	line->proc_name[sizeof (line->proc_name) - 1] = 0;
-
+	(void) strncpy(line->proc_name, proc->name, sizeof (line->proc_name));
 	line->proc_name[WIN_PROCNAME_SIZE - 1] = 0;
 	line->pid = proc->pid;
 	line->nlwp = proc_nlwp(proc);
 
-	win_countvalue_fill(&line->value, proc->countval_arr, proc->cpuid_max,
-		NODE_ALL, intval, g_ncpus);
+	(void) win_countvalue_fill(&line->value, proc->countval_arr,
+	    proc->cpuid_max, NODE_ALL, intval, g_ncpus);
 }
 
 static void
 topnproc_data_show(dyn_win_t *win)
 {
 	dyn_topnproc_t *dyn;
-	win_reg_t *reg, *data_reg;
+	win_reg_t *r, *data_reg;
 	char content[WIN_LINECHAR_MAX], intval_buf[16];
 	int nprocs, nlwps, i;
 	track_proc_t *proc;
@@ -387,9 +375,10 @@ topnproc_data_show(dyn_win_t *win)
 	proc_lwp_count(&nprocs, &nlwps);
 	nprocs = MIN(nprocs, WIN_NLINES_MAX);
 	data_reg->nlines_total = nprocs;
-	
+
 	/*
-	 * Convert the sampling interval (nanosecond) to a human readable string.
+	 * Convert the sampling interval (nanosecond) to
+	 * a human readable string.
 	 */
 	disp_intval(intval_buf, 16);
 
@@ -401,33 +390,34 @@ topnproc_data_show(dyn_win_t *win)
 	    "Monitoring %d processes and %d threads (interval: %s)",
 	    nprocs, nlwps, intval_buf);
 
-	reg = &dyn->summary;
-	reg_erase(reg);
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
+	r = &dyn->summary;
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
 	dump_write("\n*** %s\n", content);
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 
 	/*
 	 * Display the caption of table:
 	 * "PID PROC/NLWP RMA(K) LMA(K) CPI CPU%"
 	 */
-	reg = &dyn->caption;
+	r = &dyn->caption;
 	if (win->type == WIN_TYPE_TOPNPROC) {
 		topnproc_caption_build(content, sizeof (content));
 	} else {
 		rawnum_caption_build(content, sizeof (content));
 	}
 
-	reg_erase(reg);
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
 	dump_write("%s\n", content);
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 
 	reg_erase(data_reg);
 	lines = (topnproc_line_t *)(data_reg->buf);
 
 	/*
-	 * Sort the processes by specified metric which is indicated by g_sortkey
+	 * Sort the processes by specified metric which
+	 * is indicated by g_sortkey
 	 */
 	proc_group_lock();
 	proc_resort(g_sortkey);
@@ -445,7 +435,7 @@ topnproc_data_show(dyn_win_t *win)
 	}
 
 	/*
-	 * Display the processes with metrics in scrolling buffer 
+	 * Display the processes with metrics in scrolling buffer
 	 */
 	if (win->type == WIN_TYPE_TOPNPROC) {
 		reg_scroll_show(data_reg, (void *)lines, nprocs,
@@ -462,21 +452,23 @@ topnproc_data_show(dyn_win_t *win)
 	 * Dispaly hint message for window type
 	 * "WIN_TYPE_TOPNPROC" and "WIN_TYPE_RAW_NUM"
 	 */
-	reg = &dyn->hint;
-	reg_erase(reg);
+	r = &dyn->hint;
+	reg_erase(r);
 
 	if (win->type == WIN_TYPE_TOPNPROC) {
-		reg_line_write(reg, 1, ALIGN_LEFT,
-		    "<- Hotkey for sorting: 1(RPI), 2(LPI), 3(RMA/LMA), 4(CPI), 5(CPU%%) ->");
+		reg_line_write(r, 1, ALIGN_LEFT,
+		    "<- Hotkey for sorting: 1(RPI), 2(LPI), 3(RMA/LMA), "
+		    "4(CPI), 5(CPU%%) ->");
 	} else {
-		reg_line_write(reg, 1, ALIGN_LEFT,
-		    "<- Hotkey for sorting: 1(RMA), 2(LMA), 3(RMA/LMA), 4(CPI), 5(CPU%%) ->");
+		reg_line_write(r, 1, ALIGN_LEFT,
+		    "<- Hotkey for sorting: 1(RMA), 2(LMA), 3(RMA/LMA), "
+		    "4(CPI), 5(CPU%%) ->");
 	}
 
-	reg_line_write(reg, 2, ALIGN_LEFT,
+	reg_line_write(r, 2, ALIGN_LEFT,
 	    "CPU%% = system CPU utilization");
-	
-	reg_refresh_nout(reg);
+
+	reg_refresh_nout(r);
 }
 
 /*
@@ -486,22 +478,22 @@ static void
 load_msg_show(void)
 {
 	char content[64];
-	win_reg_t reg;
+	win_reg_t r;
 
 	(void) snprintf(content, sizeof (content), "Loading ...");
 
-	reg_init(&reg, 0, 1, g_scr_width, g_scr_height - 1, A_BOLD);
-	reg_erase(&reg);
-	reg_line_write(&reg, 1, ALIGN_LEFT, content);
-	reg_refresh(&reg);
-	reg_win_destroy(&reg);
+	(void) reg_init(&r, 0, 1, g_scr_width, g_scr_height - 1, A_BOLD);
+	reg_erase(&r);
+	reg_line_write(&r, 1, ALIGN_LEFT, content);
+	reg_refresh(&r);
+	reg_win_destroy(&r);
 }
 
 /*
  * Show the title "NumaTop v1.0, (C) 2012 Intel Corporation"
  */
-static void
-title_show(void)
+void
+win_title_show(void)
 {
 	reg_erase(&s_title_reg);
 	reg_line_write(&s_title_reg, 0, ALIGN_MIDDLE, NUMATOP_TITLE);
@@ -511,8 +503,8 @@ title_show(void)
 /*
  * Show the note information at the bottom of window"
  */
-static void
-note_show(char *note)
+void
+win_note_show(char *note)
 {
 	char *content;
 
@@ -529,12 +521,12 @@ note_show(char *note)
  */
 static boolean_t
 topnproc_win_draw(dyn_win_t *win)
-{	
-	title_show();
+{
+	win_title_show();
 	if (s_first_load) {
 		s_first_load = B_FALSE;
 		load_msg_show();
-		note_show(NULL);
+		win_note_show(NULL);
 		reg_update_all();
 		return (B_TRUE);
 	}
@@ -542,9 +534,9 @@ topnproc_win_draw(dyn_win_t *win)
 	topnproc_data_show(win);
 
 	if (win->type == WIN_TYPE_TOPNPROC) {
-		note_show(NOTE_TOPNPROC);
+		win_note_show(NOTE_TOPNPROC);
 	} else {
-		note_show(NOTE_TOPNPROC_RAW);
+		win_note_show(NOTE_TOPNPROC_RAW);
 	}
 
 	reg_update_all();
@@ -554,7 +546,7 @@ topnproc_win_draw(dyn_win_t *win)
 /*
  * The function would be called when user hits the <UP>/<DOWN> key
  * to scroll data line.
- * (window type: "WIN_TYPE_TOPNPROC" and "WIN_TYPE_RAW_NUM") 
+ * (window type: "WIN_TYPE_TOPNPROC" and "WIN_TYPE_RAW_NUM")
  */
 static void
 topnproc_win_scroll(dyn_win_t *win, int scroll_type)
@@ -567,14 +559,14 @@ topnproc_win_scroll(dyn_win_t *win, int scroll_type)
 /*
  * The function would be called when user hits the "ENTER" key
  * on selected data line.
- * (window type: "WIN_TYPE_TOPNPROC" and "WIN_TYPE_RAW_NUM") 
+ * (window type: "WIN_TYPE_TOPNPROC" and "WIN_TYPE_RAW_NUM")
  */
 static void
 topnproc_win_scrollenter(dyn_win_t *win)
 {
 	dyn_topnproc_t *dyn = (dyn_topnproc_t *)(win->dyn);
-	win_reg_t *reg = &dyn->data;
-	scroll_line_t *scroll = &reg->scroll;
+	win_reg_t *r = &dyn->data;
+	scroll_line_t *scroll = &r->scroll;
 	topnproc_line_t *lines;
 	cmd_monitor_t cmd_monitor;
 	boolean_t badcmd;
@@ -587,7 +579,7 @@ topnproc_win_scrollenter(dyn_win_t *win)
 	 * Construct a command to switch to next window
 	 * (WIN_TYPE_MONIPROC).
 	 */
-	lines = (topnproc_line_t *)(reg->buf);
+	lines = (topnproc_line_t *)(r->buf);
 	cmd_monitor.id = CMD_MONITOR_ID;
 	cmd_monitor.pid = lines[scroll->highlight].pid;
 	cmd_monitor.lwpid = 0;
@@ -616,17 +608,10 @@ moni_data_build(char *buf, int size, moni_line_t *line,
 {
 	win_countvalue_t *value = &line->value;
 
-	if (plat_offcore_num() > 1) {
-		(void) snprintf(buf, size,
-		    "%5d%10.1f%10.1f%11.1f%11.1f%10.1f%10.2f%9.1f",
-		    node->nid, value->rpi, value->lpi, value->rma, value->lma,
-		    value->rl, value->cpi, value->cpu * 100);
-	} else {
-		(void) snprintf(buf, size,
-		    "%5d%10.1f%10s%11.1f%11s%10s%10.2f%9.1f",
-		    node->nid, value->rpi, "-", value->rma, "-", 
-		    "-", value->cpi, value->cpu * 100);
-	}
+	(void) snprintf(buf, size,
+	    "%5d%10.1f%10.1f%11.1f%11.1f%10.1f%10.2f%9.1f",
+	    node->nid, value->rpi, value->lpi, value->rma, value->lma,
+	    value->rl, value->cpi, value->cpu * 100);
 }
 
 /*
@@ -639,7 +624,7 @@ moni_str_build(char *buf, int size, int idx, void *pv)
 	moni_line_t *lines = (moni_line_t *)pv;
 	moni_line_t *line = &lines[idx];
 	node_t *node;
-	
+
 	if ((node = node_valid_get(idx)) != NULL) {
 		moni_data_build(buf, size, line, node);
 	}
@@ -650,11 +635,11 @@ moni_str_build(char *buf, int size, int idx, void *pv)
  * (window type: "WIN_TYPE_MONIPROC"/"WIN_TYPE_MONILWP)
  */
 static void
-moni_line_get(win_reg_t *reg, int idx, char *line, int size)
+moni_line_get(win_reg_t *r, int idx, char *line, int size)
 {
 	moni_line_t *lines;
 
-	lines = (moni_line_t *)(reg->buf);
+	lines = (moni_line_t *)(r->buf);
 	moni_str_build(line, size, idx, (void *)lines);
 }
 
@@ -682,13 +667,15 @@ moniproc_dyn_create(pid_t pid)
 	dyn->pid = pid;
 
 	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
-	i = reg_init(&dyn->caption_cur, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE);
+	i = reg_init(&dyn->caption_cur, 0, i, g_scr_width, 2,
+	    A_BOLD | A_UNDERLINE);
 	i = reg_init(&dyn->data_cur, 0, i, g_scr_width, nnodes, 0);
 
 	reg_buf_init(&dyn->data_cur, buf_cur, moni_line_get);
 	reg_scroll_init(&dyn->data_cur, B_TRUE);
 
-	reg_init(&dyn->hint, 0, i, g_scr_width, g_scr_height - i - 1, A_BOLD);
+	(void) reg_init(&dyn->hint, 0, i, g_scr_width,
+	    g_scr_height - i - 1, A_BOLD);
 	return (dyn);
 }
 
@@ -717,13 +704,15 @@ monilwp_dyn_create(pid_t pid, id_t lwpid)
 	dyn->lwpid = lwpid;
 
 	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
-	i = reg_init(&dyn->caption_cur, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE);
+	i = reg_init(&dyn->caption_cur, 0, i, g_scr_width, 2,
+	    A_BOLD | A_UNDERLINE);
 	i = reg_init(&dyn->data_cur, 0, i, g_scr_width, nnodes, 0);
 
 	reg_buf_init(&dyn->data_cur, buf_cur, moni_line_get);
 	reg_scroll_init(&dyn->data_cur, B_TRUE);
 
-	reg_init(&dyn->hint, 0, i, g_scr_width, g_scr_height - i - 1, A_BOLD);
+	(void) reg_init(&dyn->hint, 0, i, g_scr_width,
+	    g_scr_height - i - 1, A_BOLD);
 	return (dyn);
 }
 
@@ -750,15 +739,24 @@ moniproc_data_save(track_proc_t *proc, int nid_idx, int nnodes,
 	ncpus = node_ncpus(node);
 	intval = proc_intval_get(proc);
 
-	win_countvalue_fill(&line->value, proc->countval_arr,
-		proc->cpuid_max, node->nid, intval, ncpus);
+	(void) win_countvalue_fill(&line->value, proc->countval_arr,
+	    proc->cpuid_max, node->nid, intval, ncpus);
+}
+
+void
+win_invalid_proc(void)
+{
+	win_warn_msg(WARN_INVALID_PID);
+	win_note_show(NOTE_INVALID_PID);
+	(void) sleep(GO_HOME_WAIT);
+	disp_go_home();
 }
 
 static boolean_t
 moniproc_data_show(dyn_win_t *win, boolean_t *note_out)
 {
 	dyn_moniproc_t *dyn;
-	win_reg_t *reg;
+	win_reg_t *r;
 	char content[WIN_LINECHAR_MAX], intval_buf[16];
 	pid_t pid;
 	track_proc_t *proc;
@@ -770,39 +768,38 @@ moniproc_data_show(dyn_win_t *win, boolean_t *note_out)
 
 	*note_out = B_FALSE;
 	if ((proc = proc_find(pid)) == NULL) {
-		win_warn_msg(WARN_INVALID_PID);
-		note_show(NOTE_INVALID_PID);
+		win_invalid_proc();
 		*note_out = B_TRUE;
 		return (B_FALSE);
 	}
 
-	reg = &dyn->msg;
+	r = &dyn->msg;
 	disp_intval(intval_buf, 16);
 	(void) snprintf(content, sizeof (content),
 	    "Monitoring the process \"%s\" (%d) (interval: %s)",
 	    proc->name, proc->pid, intval_buf);
 
-	reg_erase(reg);
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
 	dump_write("\n*** %s\n", content);
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 
 	/*
 	 * Display the caption of table:
 	 * "NODE RPI(K) LPI(K) RMA(K) LMA(K) RMA/LMA CPI CPU%
 	 */
 	moni_caption_build(content, sizeof (content));
-	reg = &dyn->caption_cur;
-	reg_erase(reg);
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
+	r = &dyn->caption_cur;
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
 	dump_write("%s\n", content);
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 
 	nnodes = node_num();
-	reg = &dyn->data_cur;
-	reg_erase(reg);
-	lines = (moni_line_t *)(reg->buf);
-	reg->nlines_total = nnodes;
+	r = &dyn->data_cur;
+	reg_erase(r);
+	lines = (moni_line_t *)(r->buf);
+	r->nlines_total = nnodes;
 
 	/*
 	 * Save the per-node data with metrics of a specified process
@@ -814,20 +811,20 @@ moniproc_data_show(dyn_win_t *win, boolean_t *note_out)
 
 	/*
 	 * Display the per-node data with metrics of a specified process
-	 * in scrolling buffer 
+	 * in scrolling buffer
 	 */
-	reg_scroll_show(reg, (void *)lines, nnodes, moni_str_build);
-	reg_refresh_nout(reg);
+	reg_scroll_show(r, (void *)lines, nnodes, moni_str_build);
+	reg_refresh_nout(r);
 	proc_refcount_dec(proc);
 
 	/*
 	 * Dispaly hint message for window type "WIN_TYPE_MONIPROC"
 	 */
-	reg = &dyn->hint;
-	reg_erase(reg);
-	reg_line_write(reg, reg->nlines_scr - 2, ALIGN_LEFT,
+	r = &dyn->hint;
+	reg_erase(r);
+	reg_line_write(r, r->nlines_scr - 2, ALIGN_LEFT,
 	    "CPU%% = per-node CPU utilization");
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 
 	return (B_TRUE);
 }
@@ -841,11 +838,11 @@ moniproc_win_draw(dyn_win_t *win)
 {
 	boolean_t note_out, ret;
 
-	title_show();
+	win_title_show();
 	ret = moniproc_data_show(win, &note_out);
 
 	if (!note_out) {
-		note_show(NOTE_MONIPROC);
+		win_note_show(NOTE_MONIPROC);
 	}
 
 	reg_update_all();
@@ -873,15 +870,24 @@ monilwp_data_save(track_lwp_t *lwp, int nid_idx, int nnodes,
 	line->nid = node->nid;
 	intval = lwp_intval_get(lwp);
 
-	win_countvalue_fill(&line->value, lwp->countval_arr,
-		lwp->cpuid_max, node->nid, intval, 1);
+	(void) win_countvalue_fill(&line->value, lwp->countval_arr,
+	    lwp->cpuid_max, node->nid, intval, 1);
+}
+
+void
+win_invalid_lwp(void)
+{
+	win_warn_msg(WARN_INVALID_LWPID);
+	win_note_show(NOTE_INVALID_LWPID);
+	(void) sleep(GO_HOME_WAIT);
+	disp_go_home();
 }
 
 static boolean_t
 monilwp_data_show(dyn_win_t *win, boolean_t *note_out)
 {
 	dyn_monilwp_t *dyn;
-	win_reg_t *reg;
+	win_reg_t *r;
 	char content[WIN_LINECHAR_MAX], intval_buf[16];
 	pid_t pid;
 	id_t lwpid;
@@ -896,73 +902,71 @@ monilwp_data_show(dyn_win_t *win, boolean_t *note_out)
 
 	*note_out = B_FALSE;
 	if ((proc = proc_find(pid)) == NULL) {
-		win_warn_msg(WARN_INVALID_PID);
-		note_show(NOTE_INVALID_PID);
+		win_invalid_proc();
 		*note_out = B_TRUE;
 		return (B_FALSE);
 	}
 
 	if ((lwp = proc_lwp_find(proc, lwpid)) == NULL) {
 		proc_refcount_dec(proc);
-		win_warn_msg(WARN_INVALID_LWPID);
-		note_show(NOTE_INVALID_LWPID);
+		win_invalid_lwp();
 		*note_out = B_TRUE;
 		return (B_FALSE);
 	}
 
-	reg = &dyn->msg;
+	r = &dyn->msg;
 	disp_intval(intval_buf, 16);
 	(void) snprintf(content, sizeof (content),
 	    "Monitoring the thread %d in \"%s\" (interval: %s)",
-		lwpid, proc->name, intval_buf);
+	    lwpid, proc->name, intval_buf);
 
-	reg_erase(reg);
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
 	dump_write("\n*** %s\n", content);
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 
 	/*
 	 * Display the caption of table:
 	 * "NODE RMA(K) LMA(K) RMA/LMA CPI CPU%
 	 */
 	moni_caption_build(content, sizeof (content));
-	reg = &dyn->caption_cur;
-	reg_erase(reg);
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
+	r = &dyn->caption_cur;
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
 	dump_write("%s\n", content);
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 
 	nnodes = node_num();
-	reg = &dyn->data_cur;
-	lines = (moni_line_t *)(reg->buf);
-	reg->nlines_total = nnodes;
-	reg_erase(reg);
+	r = &dyn->data_cur;
+	lines = (moni_line_t *)(r->buf);
+	r->nlines_total = nnodes;
+	reg_erase(r);
 
 	/*
 	 * Save the per-node data with metrics of a specified thread
 	 * in scrolling buffer.
 	 */
-	 for (i = 0; i < nnodes; i++) {
+	for (i = 0; i < nnodes; i++) {
 		monilwp_data_save(lwp, i, nnodes, &lines[i]);
 	}
 
 	/*
 	 * Display the per-node data with metrics of a specified thread
-	 * in scrolling buffer 
+	 * in scrolling buffer
 	 */
-	reg_scroll_show(reg, (void *)lines, nnodes, moni_str_build);
-	reg_refresh_nout(reg);
+	reg_scroll_show(r, (void *)lines, nnodes, moni_str_build);
+	reg_refresh_nout(r);
 	lwp_refcount_dec(lwp);
 	proc_refcount_dec(proc);
 
 	/*
 	 * Dispaly hint message for window type "WIN_TYPE_MONILWP"
 	 */
-	reg = &dyn->hint;
-	reg_erase(reg);
-	reg_line_write(reg, reg->nlines_scr - 2, ALIGN_LEFT,
+	r = &dyn->hint;
+	reg_erase(r);
+	reg_line_write(r, r->nlines_scr - 2, ALIGN_LEFT,
 	    "CPU%% = per-CPU CPU utilization");
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 
 	return (B_TRUE);
 }
@@ -976,11 +980,11 @@ monilwp_win_draw(dyn_win_t *win)
 {
 	boolean_t note_out, ret;
 
-	title_show();
+	win_title_show();
 	ret = monilwp_data_show(win, &note_out);
 
 	if (!note_out) {
-		note_show(NOTE_MONILWP);
+		win_note_show(NOTE_MONILWP);
 	}
 
 	reg_update_all();
@@ -1032,14 +1036,14 @@ moniproc_win_destroy(dyn_win_t *win)
 		reg_win_destroy(&dyn->caption_cur);
 		reg_win_destroy(&dyn->data_cur);
 		reg_win_destroy(&dyn->hint);
-		free(dyn);		
+		free(dyn);
 	}
 }
 
 /*
  * The function would be called when user hits the <UP>/<DOWN> key
  * to scroll data line.
- * (window type: "WIN_TYPE_MONIPROC") 
+ * (window type: "WIN_TYPE_MONIPROC")
  */
 static void
 moniproc_win_scroll(dyn_win_t *win, int scroll_type)
@@ -1052,14 +1056,14 @@ moniproc_win_scroll(dyn_win_t *win, int scroll_type)
 /*
  * The function would be called when user hits the "ENTER" key
  * on selected data line.
- * (window type: "WIN_TYPE_MONIPROC") 
+ * (window type: "WIN_TYPE_MONIPROC")
  */
 static void
 moniproc_win_scrollenter(dyn_win_t *win)
 {
 	dyn_moniproc_t *dyn = (dyn_moniproc_t *)(win->dyn);
-	win_reg_t *reg = &dyn->data_cur;
-	scroll_line_t *scroll = &reg->scroll;
+	win_reg_t *r = &dyn->data_cur;
+	scroll_line_t *scroll = &r->scroll;
 	moni_line_t *lines;
 	cmd_lwp_t cmd_lwp;
 	boolean_t badcmd;
@@ -1072,7 +1076,7 @@ moniproc_win_scrollenter(dyn_win_t *win)
 	 * Construct a command to switch to next window
 	 * "WIN_TYPE_TOPNLWP".
 	 */
-	lines = (moni_line_t *)(reg->buf);
+	lines = (moni_line_t *)(r->buf);
 	cmd_lwp.id = CMD_LWP_ID;
 	cmd_lwp.pid = lines[scroll->highlight].pid;
 
@@ -1104,7 +1108,7 @@ monilwp_win_destroy(dyn_win_t *win)
 /*
  * The function would be called when user hits the <UP>/<DOWN> key
  * to scroll data line.
- * (window type: "WIN_TYPE_MONILWP") 
+ * (window type: "WIN_TYPE_MONILWP")
  */
 static void
 monilwp_win_scroll(dyn_win_t *win, int scroll_type)
@@ -1136,17 +1140,10 @@ topnlwp_data_build(char *buf, int size, topnlwp_line_t *line)
 
 	(void) snprintf(tmp, sizeof (tmp), "%d", line->lwpid);
 
-	if (plat_offcore_num() > 1) {
-		(void) snprintf(buf, size,
-		    "%6s%10.1f%10.1f%11.1f%11.1f%10.1f%10.2f%9.1f",
-		    tmp, value->rpi, value->lpi, value->rma,
-		    value->lma, value->rl, value->cpi, value->cpu * 100);
-	} else {
-		(void) snprintf(buf, size,
-		    "%6s%10.1f%10s%11.1f%11s%10s%10.2f%9.1f",
-		    tmp, value->rpi, "-", value->rma,
-		    "-", "-", value->cpi, value->cpu * 100);		
-	}
+	(void) snprintf(buf, size,
+	    "%6s%10.1f%10.1f%11.1f%11.1f%10.1f%10.2f%9.1f",
+	    tmp, value->rpi, value->lpi, value->rma,
+	    value->lma, value->rl, value->cpi, value->cpu * 100);
 }
 
 /*
@@ -1167,11 +1164,11 @@ topnlwp_str_build(char *buf, int size, int idx, void *pv)
  * (window type: "WIN_TYPE_TOPNLWP")
  */
 static void
-topnlwp_line_get(win_reg_t *reg, int idx, char *line, int size)
+topnlwp_line_get(win_reg_t *r, int idx, char *line, int size)
 {
 	topnlwp_line_t *lines;
 
-	lines = (topnlwp_line_t *)(reg->buf);
+	lines = (topnlwp_line_t *)(r->buf);
 	topnlwp_str_build(line, size, idx, (void *)lines);
 }
 
@@ -1206,7 +1203,8 @@ topnlwp_dyn_create(page_t *page)
 	reg_buf_init(&dyn->data, buf, topnlwp_line_get);
 	reg_scroll_init(&dyn->data, B_TRUE);
 
-	reg_init(&dyn->hint, 0, i, g_scr_width, g_scr_height - i - 1, A_BOLD);
+	(void) reg_init(&dyn->hint, 0, i, g_scr_width,
+	    g_scr_height - i - 1, A_BOLD);
 	return (dyn);
 }
 
@@ -1244,15 +1242,15 @@ topnlwp_data_save(track_lwp_t *lwp, int intval, topnlwp_line_t *line)
 	line->pid = lwp->proc->pid;
 	line->lwpid = lwp->id;
 
-	win_countvalue_fill(&line->value, lwp->countval_arr,
-		lwp->cpuid_max, NODE_ALL, intval, 1);
+	(void) win_countvalue_fill(&line->value, lwp->countval_arr,
+	    lwp->cpuid_max, NODE_ALL, intval, 1);
 }
 
 static boolean_t
 topnlwp_data_show(dyn_win_t *win, boolean_t *note_out)
 {
 	dyn_topnlwp_t *dyn;
-	win_reg_t *reg;
+	win_reg_t *r;
 	char content[WIN_LINECHAR_MAX], intval_buf[16];
 	pid_t pid;
 	track_proc_t *proc;
@@ -1265,8 +1263,7 @@ topnlwp_data_show(dyn_win_t *win, boolean_t *note_out)
 	dyn = (dyn_topnlwp_t *)(win->dyn);
 	pid = dyn->pid;
 	if ((pid == -1) || ((proc = proc_find(pid)) == NULL)) {
-		win_warn_msg(WARN_INVALID_PID);
-		note_show(NOTE_INVALID_PID);
+		win_invalid_proc();
 		*note_out = B_TRUE;
 		return (B_FALSE);
 	}
@@ -1279,27 +1276,27 @@ topnlwp_data_show(dyn_win_t *win, boolean_t *note_out)
 	    "Monitoring all threads in \"%s\" (%d) (interval: %s)",
 	    proc->name, proc->pid, intval_buf);
 
-	reg = &dyn->msg;
-	reg_erase(reg);
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
+	r = &dyn->msg;
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
 	dump_write("\n*** %s\n", content);
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 
 	/*
 	 * Display the caption of data table:
 	 * "PID RPI LPI RMA(K) LMA(K) CPI CPU%"
 	 */
 	topnlwp_caption_build(content, sizeof (content));
-	reg = &dyn->caption;
-	reg_erase(reg);
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
+	r = &dyn->caption;
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
 	dump_write("%s\n", content);
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 
-	reg = &dyn->data;
-	reg_erase(reg);
-	reg->nlines_total = nlwps;
-	lines = (topnlwp_line_t *)(reg->buf);
+	r = &dyn->data;
+	reg_erase(r);
+	r->nlines_total = nlwps;
+	lines = (topnlwp_line_t *)(r->buf);
 	(void) pthread_mutex_lock(&proc->mutex);
 
 	/*
@@ -1320,21 +1317,21 @@ topnlwp_data_show(dyn_win_t *win, boolean_t *note_out)
 	}
 
 	/*
-	 * Display the threads with metrics in scrolling buffer 
+	 * Display the threads with metrics in scrolling buffer
 	 */
-	reg_scroll_show(reg, (void *)lines, nlwps, topnlwp_str_build);
+	reg_scroll_show(r, (void *)lines, nlwps, topnlwp_str_build);
 	(void) pthread_mutex_unlock(&proc->mutex);
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 	proc_refcount_dec(proc);
 
 	/*
 	 * Display hint message for window type "WIN_TYPE_TOPNLWP"
 	 */
-	reg = &dyn->hint;
-	reg_erase(reg);
-	reg_line_write(reg, reg->nlines_scr - 2, ALIGN_LEFT,
+	r = &dyn->hint;
+	reg_erase(r);
+	reg_line_write(r, r->nlines_scr - 2, ALIGN_LEFT,
 	    "CPU%% = per-CPU CPU utilization");
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 
 	return (B_TRUE);
 }
@@ -1348,10 +1345,10 @@ topnlwp_win_draw(dyn_win_t *win)
 {
 	boolean_t note_out, ret;
 
-	title_show();
+	win_title_show();
 	ret = topnlwp_data_show(win, &note_out);
 	if (!note_out) {
-		note_show(NOTE_TOPNLWP);
+		win_note_show(NOTE_TOPNLWP);
 	}
 
 	reg_update_all();
@@ -1361,7 +1358,7 @@ topnlwp_win_draw(dyn_win_t *win)
 /*
  * The function would be called when user hits the <UP>/<DOWN> key
  * to scroll data line.
- * (window type: "WIN_TYPE_TOPNLWP") 
+ * (window type: "WIN_TYPE_TOPNLWP")
  */
 static void
 topnlwp_win_scroll(dyn_win_t *win, int scroll_type)
@@ -1374,14 +1371,14 @@ topnlwp_win_scroll(dyn_win_t *win, int scroll_type)
 /*
  * The function would be called when user hits the "ENTER" key
  * on selected data line.
- * (window type: "WIN_TYPE_TOPNLWP") 
+ * (window type: "WIN_TYPE_TOPNLWP")
  */
 static void
 topnlwp_win_scrollenter(dyn_win_t *win)
 {
 	dyn_topnlwp_t *dyn = (dyn_topnlwp_t *)(win->dyn);
-	win_reg_t *reg = &dyn->data;
-	scroll_line_t *scroll = &reg->scroll;
+	win_reg_t *r = &dyn->data;
+	scroll_line_t *scroll = &r->scroll;
 	topnlwp_line_t *lines;
 	cmd_monitor_t cmd_monitor;
 	boolean_t badcmd;
@@ -1394,49 +1391,13 @@ topnlwp_win_scrollenter(dyn_win_t *win)
 	 * Construct a command to switch to next window
 	 * (WIN_TYPE_MONILWP)
 	 */
-	lines = (topnlwp_line_t *)(reg->buf);
+	lines = (topnlwp_line_t *)(r->buf);
 	cmd_monitor.id = CMD_MONITOR_ID;
 	cmd_monitor.pid = lines[scroll->highlight].pid;
 	cmd_monitor.lwpid = lines[scroll->highlight].lwpid;
 
 	/* LINTED E_BAD_PTR_CAST_ALIGN */
 	cmd_execute((cmd_t *)(&cmd_monitor), &badcmd);
-}
-
-/*
- * Build the readable string for caption line.
- * (window type: "WIN_TYPE_NODE_OVERVIEW")
- */
-static void
-nodeoverview_caption_build(char *buf, int size)
-{
-	(void) snprintf(buf, size,
-	    "%5s%12s%12s%11s%11s%11s%12s",
-	    CAPTION_NID, CAPTION_MEM_ALL, CAPTION_MEM_FREE,
-	    CAPTION_RMA, CAPTION_LMA, CAPTION_RL, CAPTION_CPU);
-}
-
-static void
-nodeoverview_data_build(char *buf, int size, nodeoverview_line_t *line,
-	node_t *node)
-{
-	win_countvalue_t *value = &line->value;
-	char mem_all[32], mem_free[32];
-
-	(void) snprintf(mem_all, sizeof (mem_all), "%.1fG", line->mem_all);
-	(void) snprintf(mem_free, sizeof (mem_free), "%.1fG", line->mem_free);
-
-	if (plat_offcore_num() > 1) {
-		(void) snprintf(buf, size,
-		    "%5d%12s%12s%11.1f%11.1f%11.1f%11.1f",
-		    node->nid, mem_all, mem_free, value->rma, value->lma,
-		    value->rl, value->cpu * 100);
-	} else {
-		(void) snprintf(buf, size,
-		    "%5d%12s%12s%11.1f%11s%11s%11.1f",
-		    node->nid, mem_all, mem_free, value->rma,
-		    "-", "-", value->cpu * 100);		
-	}
 }
 
 /*
@@ -1449,9 +1410,9 @@ nodeoverview_str_build(char *buf, int size, int idx, void *pv)
 	nodeoverview_line_t *lines = (nodeoverview_line_t *)pv;
 	nodeoverview_line_t *line = &lines[idx];
 	node_t *node;
-	
+
 	if ((node = node_valid_get(idx)) != NULL) {
-		nodeoverview_data_build(buf, size, line, node);
+		os_nodeoverview_data_build(buf, size, line, node);
 	}
 }
 
@@ -1460,11 +1421,11 @@ nodeoverview_str_build(char *buf, int size, int idx, void *pv)
  * (window type: "WIN_TYPE_NODE_OVERVIEW")
  */
 static void
-nodeoverview_line_get(win_reg_t *reg, int idx, char *line, int size)
+nodeoverview_line_get(win_reg_t *r, int idx, char *line, int size)
 {
 	nodeoverview_line_t *lines;
 
-	lines = (nodeoverview_line_t *)(reg->buf);
+	lines = (nodeoverview_line_t *)(r->buf);
 	nodeoverview_str_build(line, size, idx, (void *)lines);
 }
 
@@ -1490,13 +1451,15 @@ nodeoverview_dyn_create(void)
 	}
 
 	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
-	i = reg_init(&dyn->caption_cur, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE);
+	i = reg_init(&dyn->caption_cur, 0, i, g_scr_width, 2,
+	    A_BOLD | A_UNDERLINE);
 	i = reg_init(&dyn->data_cur, 0, i, g_scr_width, nnodes, 0);
 
 	reg_buf_init(&dyn->data_cur, buf_cur, nodeoverview_line_get);
 	reg_scroll_init(&dyn->data_cur, B_TRUE);
 
-	reg_init(&dyn->hint, 0, i, g_scr_width, g_scr_height - i - 1, A_BOLD);
+	(void) reg_init(&dyn->hint, 0, i, g_scr_width,
+	    g_scr_height - i - 1, A_BOLD);
 	return (dyn);
 }
 
@@ -1522,8 +1485,8 @@ nodeoverview_win_destroy(dyn_win_t *win)
 	}
 }
 
-static void
-node_win_countvalue(node_t *node, win_countvalue_t *cv)
+void
+win_node_countvalue(node_t *node, win_countvalue_t *cv)
 {
 	double d;
 	uint64_t rma, lma, clk, ir, all_clks;
@@ -1541,7 +1504,8 @@ node_win_countvalue(node_t *node, win_countvalue_t *cv)
 	cv->rl = ratio(rma, lma);
 
 	d = (double)node_intval_get() / MS_SEC;
-	all_clks = (uint64_t)(d * (double)g_clkofsec * (double)node_ncpus(node));
+	all_clks = (uint64_t)(d * (double)g_clkofsec *
+	    (double)node_ncpus(node));
 	cv->cpu = ratio(clk, all_clks);
 }
 
@@ -1555,28 +1519,28 @@ static void
 nodeoverview_data_save(int nid_idx, int nnodes, nodeoverview_line_t *line)
 {
 	node_t *node;
-	meminfo_t meminfo;
-	
+	node_meminfo_t meminfo;
+
 	(void) memset(line, 0, sizeof (nodeoverview_line_t));
 	if ((node = node_valid_get(nid_idx)) == NULL) {
 		return;
 	}
 
 	node_meminfo(node->nid, &meminfo);
-	
-	node_win_countvalue(node, &line->value);
+
+	win_node_countvalue(node, &line->value);
 	line->nid = node->nid;
 	line->mem_all = (double)((double)(meminfo.mem_total) /
-		(double)(GB_BYTES));
+	    (double)(GB_BYTES));
 	line->mem_free = (double)((double)(meminfo.mem_free) /
-		(double)(GB_BYTES));
+	    (double)(GB_BYTES));
 }
 
 static boolean_t
 nodeoverview_data_show(dyn_win_t *win, boolean_t *note_out)
 {
 	dyn_nodeoverview_t *dyn;
-	win_reg_t *reg;
+	win_reg_t *r;
 	char content[WIN_LINECHAR_MAX], intval_buf[16];
 	int i, nnodes;
 	nodeoverview_line_t *lines;
@@ -1586,30 +1550,29 @@ nodeoverview_data_show(dyn_win_t *win, boolean_t *note_out)
 
 	disp_intval(intval_buf, 16);
 	(void) snprintf(content, sizeof (content),
-		"Node Overview (interval: %s)", intval_buf);
+	    "Node Overview (interval: %s)", intval_buf);
 
-	reg = &dyn->msg;
-	reg_erase(reg);
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
-	reg_refresh_nout(reg);
+	r = &dyn->msg;
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
+	reg_refresh_nout(r);
 	dump_write("\n*** %s\n", content);
 
 	/*
 	 * Display the caption of table:
-	 * "NODE MEM.ALL MEM.FREE RMA(K) LMA(K) CPU%
 	 */
-	nodeoverview_caption_build(content, sizeof (content));
-	reg = &dyn->caption_cur;
-	reg_erase(reg);
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
+	os_nodeoverview_caption_build(content, sizeof (content));
+	r = &dyn->caption_cur;
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
 	dump_write("%s\n", content);
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 
 	nnodes = node_num();
-	reg = &dyn->data_cur;
-	reg_erase(reg);
-	lines = (nodeoverview_line_t *)(reg->buf);
-	reg->nlines_total = nnodes;
+	r = &dyn->data_cur;
+	reg_erase(r);
+	lines = (nodeoverview_line_t *)(r->buf);
+	r->nlines_total = nnodes;
 
 	/*
 	 * Save the per-node data with metrics in scrolling buffer.
@@ -1619,19 +1582,19 @@ nodeoverview_data_show(dyn_win_t *win, boolean_t *note_out)
 	}
 
 	/*
-	 * Display the per-node data in scrolling buffer 
+	 * Display the per-node data in scrolling buffer
 	 */
-	reg_scroll_show(reg, (void *)lines, nnodes, nodeoverview_str_build);
-	reg_refresh_nout(reg);
+	reg_scroll_show(r, (void *)lines, nnodes, nodeoverview_str_build);
+	reg_refresh_nout(r);
 
 	/*
 	 * Dispaly hint message for window type "WIN_TYPE_NODE_OVERVIEW"
 	 */
-	reg = &dyn->hint;
-	reg_erase(reg);
-	reg_line_write(reg, reg->nlines_scr - 2, ALIGN_LEFT,
+	r = &dyn->hint;
+	reg_erase(r);
+	reg_line_write(r, r->nlines_scr - 2, ALIGN_LEFT,
 	    "CPU%% = per-node CPU utilization");
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 
 	return (B_TRUE);
 }
@@ -1645,13 +1608,13 @@ nodeoverview_win_draw(dyn_win_t *win)
 {
 	boolean_t note_out, ret;
 
-	title_show();
+	win_title_show();
 	node_group_lock();
 	ret = nodeoverview_data_show(win, &note_out);
 	node_group_unlock();
 
 	if (!note_out) {
-		note_show(NOTE_NODEOVERVIEW);
+		win_note_show(NOTE_NODEOVERVIEW);
 	}
 
 	reg_update_all();
@@ -1661,7 +1624,7 @@ nodeoverview_win_draw(dyn_win_t *win)
 /*
  * The function would be called when user hits the <UP>/<DOWN> key
  * to scroll data line.
- * (window type: "WIN_TYPE_NODE_OVERVIEW") 
+ * (window type: "WIN_TYPE_NODE_OVERVIEW")
  */
 static void
 nodeoverview_win_scroll(dyn_win_t *win, int scroll_type)
@@ -1674,14 +1637,14 @@ nodeoverview_win_scroll(dyn_win_t *win, int scroll_type)
 /*
  * The function would be called when user hits the "ENTER" key
  * on selected data line.
- * (window type: "WIN_TYPE_NODE_OVERVIEW") 
+ * (window type: "WIN_TYPE_NODE_OVERVIEW")
  */
 static void
 nodeoverview_win_scrollenter(dyn_win_t *win)
 {
 	dyn_nodeoverview_t *dyn = (dyn_nodeoverview_t *)(win->dyn);
-	win_reg_t *reg = &dyn->data_cur;
-	scroll_line_t *scroll = &reg->scroll;
+	win_reg_t *r = &dyn->data_cur;
+	scroll_line_t *scroll = &r->scroll;
 	nodeoverview_line_t *lines;
 	cmd_node_detail_t cmd;
 	boolean_t badcmd;
@@ -1694,9 +1657,9 @@ nodeoverview_win_scrollenter(dyn_win_t *win)
 	 * Construct a command to switch to next window
 	 * "WIN_TYPE_NODE_DETAIL".
 	 */
-	lines = (nodeoverview_line_t *)(reg->buf);
+	lines = (nodeoverview_line_t *)(r->buf);
 	cmd.id = CMD_NODE_DETAIL_ID;
-	cmd.nid = lines[scroll->highlight].nid;	
+	cmd.nid = lines[scroll->highlight].nid;
 
 	/* LINTED E_BAD_PTR_CAST_ALIGN */
 	cmd_execute((cmd_t *)(&cmd), &badcmd);
@@ -1716,261 +1679,53 @@ nodedetail_dyn_create(page_t *page)
 	if ((dyn = zalloc(sizeof (dyn_nodedetail_t))) == NULL) {
 		return (NULL);
 	}
-	
-	dyn->nid = CMD_NODE_DETAIL(&page->cmd)->nid;	
+
+	dyn->nid = CMD_NODE_DETAIL(&page->cmd)->nid;
 	node = node_get(dyn->nid);
 	if (!NODE_VALID(node)) {
 		free(dyn);
 		win_warn_msg(WARN_INVALID_NID);
-		return (NULL);	
+		return (NULL);
 	}
 
 	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD | A_UNDERLINE);
-	i = reg_init(&dyn->node_data, 0, i, g_scr_width, g_scr_height - i - 4, 0);
-	reg_init(&dyn->hint, 0, i, g_scr_width, 3, A_BOLD);
+	i = reg_init(&dyn->node_data, 0, i, g_scr_width,
+	    g_scr_height - i - 4, 0);
+	(void) reg_init(&dyn->hint, 0, i, g_scr_width, 3, A_BOLD);
 	return (dyn);
-}
-
-static int
-cpuid_cmp(const void *a, const void *b)
-{
-	int *id1 = (int *)a;
-	int *id2 = (int *)b;
-
-	if (*id1 > *id2) {
-		return (1);
-	}
-	
-	if (*id1 < *id2) {
-		return (-1);
-	}
-	
-	return (0);
-}
-
-/*
- * Build a readable string of CPU ID and try to reduce the string length. e.g.
- * For cpu1, cpu2, cpu3, cpu4, the string is "CPU(1-4)",
- * For cpu1, cpu3, cpu5, cpu7, the string is "CPU(1 3 5 7)"
- */
-static void
-node_cpu_string(node_t *node, char *s1, int size)
-{
-	char s2[128], s3[128];
-	int i, j, k, l, cpuid_start;
-	int *cpuid_arr;
-	int ncpus;
-	perf_cpu_t *cpus = node_cpus(node);
-
-	s1[0] = 0;
-	if ((ncpus = node->ncpus) == 0) {
-		strncpy(s1, "-", size);
-		return;
-	}
-
-	if ((cpuid_arr = zalloc(sizeof (int) * ncpus)) == NULL) {
-		return;
-	}
-
-	j = 0;
-	for (i = 0; (i < NCPUS_NODE_MAX) && (j < ncpus); i++) {
-		if ((cpus[i].cpuid != INVALID_CPUID) && (!cpus[i].hotremove)) {
-			cpuid_arr[j++] = cpus[i].cpuid;
-		}
-	}
-
-	qsort(cpuid_arr, ncpus, sizeof (int), cpuid_cmp);
-	cpuid_start = cpuid_arr[0];
-
-	if (ncpus == 1) {
-		(void) snprintf(s2, sizeof (s2), "%d", cpuid_start);
-        (void) strncat(s1, s2, strlen(s2));
-        free(cpuid_arr);
-		return;
-	}
-
-	l = 1;
-	k = 1;
-
-	for (j = 1; j < ncpus; j++) {
-		k++;
-		if (cpuid_arr[j] != cpuid_start + l) {
-			if (k < ncpus) {
-				if (l == 1) {
-					(void) snprintf(s2, sizeof (s2), "%d ", cpuid_start);
-				} else {
-					(void) snprintf(s2, sizeof (s2),
-						"%d-%d ", cpuid_start, cpuid_start + l - 1);
-				}
-          	} else {
-				if (l == 1) {
-					(void) snprintf(s2, sizeof (s2), "%d",
-						cpuid_start);
-				} else {
-					(void) snprintf(s2, sizeof (s2), "%d-%d",
-						cpuid_start, cpuid_start + l - 1);
-				}
-
-				(void) snprintf(s3, sizeof (s3), " %d",
-					cpuid_arr[j]);
-	          	(void) strncat(s2, s3, strlen(s3));
-			}
-
-          	(void) strncat(s1, s2, strlen(s2));
-          	cpuid_start = cpuid_arr[j];
-           	l = 1;
-		} else {
-        	if (k == ncpus) {
-            	(void) snprintf(s2, sizeof (s2), "%d-%d",
-                	cpuid_start, cpuid_start + l);
-         		(void) strncat(s1, s2, strlen(s2));
-       		} else {
-            	l++;
-       		}
-       	}
-	}
-	
-	free(cpuid_arr);
-}
-
-static void
-nodedetail_line_show(win_reg_t *seg, char *title, char *value, int line)
-{
-	char s1[256];
-
-	snprintf(s1, sizeof (s1), "%-20s%15s", title, value);
-	reg_line_write(seg, line, ALIGN_LEFT, s1);
-	dump_write("%s\n", s1);
-}
-
-/*
- * Display the performance statistics per node.
- */
-static void
-nodedetail_data(dyn_nodedetail_t *dyn, win_reg_t *seg)
-{
-	char s1[256];
-	node_t *node;
-	win_countvalue_t value;
-	meminfo_t meminfo;
-	int i = 1;
-
-	reg_erase(seg);
-	node = node_get(dyn->nid);
-	node_win_countvalue(node, &value);
-	node_meminfo(node->nid, &meminfo);
-
-	/*
-	 * Display the CPU
-	 */
-	node_cpu_string(node, s1, sizeof (s1));
-	nodedetail_line_show(seg, "CPU:", s1, i++);
-
-	/*
-	 * Display the CPU utilization
-	 */
-	(void) snprintf(s1, sizeof (s1), "%.1f%%", value.cpu * 100.0);	
-	nodedetail_line_show(seg, "CPU%:", s1, i++);
-
-	/*
-	 * Display the number of RMA
-	 */
-	(void) snprintf(s1, sizeof (s1), "%.1fK", value.rma);	
-	nodedetail_line_show(seg, "RMA:", s1, i++);
-
-	/*
-	 * Display the number of LMA if platform supports
-	 */
-	if (plat_offcore_num() > 1) {
-		(void) snprintf(s1, sizeof (s1), "%.1fK", value.lma);	
-	} else {
-		(void) snprintf(s1, sizeof (s1), "%s", "-");	
-	}
-
-	nodedetail_line_show(seg, "LMA:", s1, i++);
-
-	/*
-	 * Display the size of total memory
-	 */
-	(void) snprintf(s1, sizeof (s1), "%.1fG",
-		(double)((double)(meminfo.mem_total) / (double)(GB_BYTES)));
-	nodedetail_line_show(seg, "MEM total:", s1, i++);
-
-	/*
-	 * Display the size of free memory
-	 */
-	(void) snprintf(s1, sizeof (s1), "%.1fG",
-		(double)((double)(meminfo.mem_free) / (double)(GB_BYTES)));
-	nodedetail_line_show(seg, "MEM free:", s1, i++);
-
-	/*
-	 * Display the size of active memory.
-	 */
-	(void) snprintf(s1, sizeof (s1), "%.2fG",
-		(double)((double)(meminfo.active) / (double)(GB_BYTES)));	
-	nodedetail_line_show(seg, "MEM active:", s1, i++);
-
-	/*
-	 * Display the size of inactive memory.
-	 */
-	(void) snprintf(s1, sizeof (s1), "%.2fG",
-		(double)((double)(meminfo.inactive) / (double)(GB_BYTES)));
-	nodedetail_line_show(seg, "MEM inactive:", s1, i++);
-
-	/*
-	 * Display the size of dirty memory.
-	 */
-	(void) snprintf(s1, sizeof (s1), "%.2fG",
-		(double)((double)(meminfo.dirty) / (double)(GB_BYTES)));
-	nodedetail_line_show(seg, "Dirty:", s1, i++);
-
-	/*
-	 * Display the size of writeback memory.
-	 */
-	(void) snprintf(s1, sizeof (s1), "%.2fG",
-		(double)((double)(meminfo.dirty) / (double)(GB_BYTES)));
-	nodedetail_line_show(seg, "Writeback:", s1, i++);
-
-	/*
-	 * Display the size of mapped memory.
-	 */
-	(void) snprintf(s1, sizeof (s1), "%.2fG",
-		(double)((double)(meminfo.mapped) / (double)(GB_BYTES)));
-	nodedetail_line_show(seg, "Mapped:", s1, i++);
-
-	reg_refresh_nout(seg);
 }
 
 static boolean_t
 nodedetail_data_show(dyn_win_t *win, boolean_t *note_out)
 {
 	dyn_nodedetail_t *dyn;
-	win_reg_t *reg;
+	win_reg_t *r;
 	char content[WIN_LINECHAR_MAX], intval_buf[16];
 
 	*note_out = B_FALSE;
 	dyn = (dyn_nodedetail_t *)(win->dyn);
 
 	/*
-	 * Convert the sampling interval (nanosecond) to a human readable string.
+	 * Convert the sampling interval (nanosecond) to
+	 * a human readable string.
 	 */
 	disp_intval(intval_buf, 16);
 	(void) snprintf(content, sizeof (content),
-		"Node%d information (interval: %s)", dyn->nid, intval_buf);
+	    "Node%d information (interval: %s)", dyn->nid, intval_buf);
 
-	reg = &dyn->msg;
-	reg_erase(reg);
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
-	reg_refresh_nout(reg);
+	r = &dyn->msg;
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
+	reg_refresh_nout(r);
 	dump_write("\n*** %s\n", content);
 
-	nodedetail_data((dyn_nodedetail_t *)(win->dyn), &dyn->node_data);
+	os_nodedetail_data((dyn_nodedetail_t *)(win->dyn), &dyn->node_data);
 
-	reg = &dyn->hint;
- 	reg_erase(reg);
-	reg_line_write(reg, 1, ALIGN_LEFT,
+	r = &dyn->hint;
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT,
 	    "CPU%% = per-node CPU utilization");
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 
 	return (B_FALSE);
 }
@@ -1984,12 +1739,12 @@ nodedetail_win_draw(dyn_win_t *win)
 {
 	boolean_t note_out = B_FALSE, ret;
 
-	title_show();
+	win_title_show();
 	node_group_lock();
 	ret = nodedetail_data_show(win, &note_out);
 	node_group_unlock();
 	if (!note_out) {
-		note_show(NOTE_NODEDETAIL);
+		win_note_show(NOTE_NODEDETAIL);
 	}
 
 	reg_update_all();
@@ -2012,28 +1767,28 @@ nodedetail_win_destroy(dyn_win_t *win)
 	}
 }
 
-static void
-callchain_str_build(char *buf, int size, int idx, void *pv)
+void
+win_callchain_str_build(char *buf, int size, int idx, void *pv)
 {
 	callchain_line_t *lines = (callchain_line_t *)pv;
 	callchain_line_t *line = &lines[idx];
 
 	if (strlen(line->content) > 0) {
-		strncpy(buf, line->content, size);
+		(void) strncpy(buf, line->content, size);
 	} else {
-		strncpy(buf, " ", size);
+		(void) strncpy(buf, " ", size);
 	}
 
 	buf[size - 1] = 0;
 }
 
-static void
-callchain_line_get(win_reg_t *reg, int idx, char *line, int size)
+void
+win_callchain_line_get(win_reg_t *r, int idx, char *line, int size)
 {
 	callchain_line_t *lines;
 
-	lines = (callchain_line_t *)(reg->buf);
-	callchain_str_build(line, size, idx, (void *)lines);
+	lines = (callchain_line_t *)(r->buf);
+	win_callchain_str_build(line, size, idx, (void *)lines);
 }
 
 /*
@@ -2053,15 +1808,16 @@ callchain_dyn_create(page_t *page)
 
 	dyn->pid = cmd_callchain->pid;
 	dyn->lwpid = cmd_callchain->lwpid;
-	dyn->keeprun_id = COUNT_RMA;
+	dyn->countid = COUNT_RMA;
 
 	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
 	i = reg_init(&dyn->caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE);
 	i = reg_init(&dyn->pad, 0, i, g_scr_width, 1, 0);
 	i = reg_init(&dyn->data, 0, i, g_scr_width, g_scr_height - i - 4, 0);
-	reg_buf_init(&dyn->data, NULL, callchain_line_get);
+	reg_buf_init(&dyn->data, NULL, win_callchain_line_get);
 	reg_scroll_init(&dyn->data, B_TRUE);
-	reg_init(&dyn->hint, 0, i, g_scr_width, g_scr_height - i - 1, A_BOLD);
+	(void) reg_init(&dyn->hint, 0, i, g_scr_width,
+	    g_scr_height - i - 1, A_BOLD);
 	return (dyn);
 }
 
@@ -2089,138 +1845,28 @@ callchain_win_destroy(dyn_win_t *win)
 }
 
 static void
-callchain_keeprun_event(count_id_t count_id, char *buf, int size)
+callchain_event_name(count_id_t count_id, char *buf, int size)
 {
 	switch (count_id) {
 	case COUNT_RMA:
-		strncpy(buf, "RMA", size);
+		(void) strncpy(buf, "RMA", size);
 		break;
-	
+
 	case COUNT_CLK:
-		strncpy(buf, "Cycle", size);
+		(void) strncpy(buf, "Cycle", size);
 		break;
-	
+
 	case COUNT_IR:
-		strncpy(buf, "IR", size);
+		(void) strncpy(buf, "IR", size);
 		break;
-		
+
 	case COUNT_LMA:
-		strncpy(buf, "LMA", size);
+		(void) strncpy(buf, "LMA", size);
 		break;
-		
+
 	default:
-		strncpy(buf, "-", size);
-	}	
-
-	buf[size - 1] = 0;
-}
-
-static int
-chainlist_show(sym_chainlist_t *chainlist, win_reg_t *reg)
-{
-	sym_callchain_t *chain;
-	int nentry, nchain;
-	int i, j = 0, k, nlines;
-	char content[WIN_LINECHAR_MAX];
-	callchain_line_t *buf, *line;
-
-	sym_callchain_resort(chainlist);
-	nentry = sym_chainlist_nentry(chainlist, &nchain);
-
-	reg_erase(reg);
-	if (nentry == 0) {
-		snprintf(content, WIN_LINECHAR_MAX,
-			"<- Detecting call-chain ... -> ");
-		reg_line_write(reg, 0, ALIGN_LEFT, content);
-		dump_write("%s\n", content);
-		reg_refresh_nout(reg);
-		return (0);
+		(void) strncpy(buf, "-", size);
 	}
-	
-	nlines = nentry + 2 * nchain;
-	if ((buf = zalloc(nlines * sizeof (callchain_line_t))) == NULL) {
-		return (-1);
-	}
-	
-	for (i = 0; i < nchain; i++) {
-		if ((chain = sym_callchain_detach(chainlist)) == NULL) {
-			break;
-		}
-		
-		line = &buf[j++];
-		snprintf(line->content, WIN_LINECHAR_MAX,
-			"<- call-chain %d: ->", i + 1);
-
-		for (k = 0; k < chain->nentry; k++) {
-			line = &buf[j++];			
-			strncpy(line->content, chain->entry_arr[k].name, WIN_LINECHAR_MAX);
-			line->content[WIN_LINECHAR_MAX - 1] = 0;
-		}
-
-		line = &buf[j++];
-		strcpy(line->content, "");
-		sym_callchain_free(chain);
-	}
-
-	if (reg->buf != NULL) {
-		free(reg->buf);
-	}
-
-	reg->buf = (void *)buf;
-	reg->nlines_total = nlines - 1;
-	reg_scroll_show(reg, (void *)(reg->buf), nlines - 1, callchain_str_build);
-	reg_refresh_nout(reg);
-	sym_chainlist_free(chainlist);
-	return (0);
-}
-
-static int
-callchain_list_show(dyn_callchain_t *dyn, track_proc_t *proc,
-	track_lwp_t *lwp)
-{
-	perf_countchain_t *count_chain;
-	perf_chainrecgrp_t *rec_grp;
-	perf_chainrec_t *rec_arr;
-	sym_chainlist_t chainlist;
-	win_reg_t *reg;
-	char content[WIN_LINECHAR_MAX];
-	int i;
-
-	reg = &dyn->caption;
-	reg_erase(reg);	
-	snprintf(content, WIN_LINECHAR_MAX, "Call-chain list:");
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
-	dump_write("%s\n", content);
-	reg_refresh_nout(reg);
-
-	reg = &dyn->pad;
-	reg_erase(reg);	
-	dump_write("\n");
-	reg_refresh_nout(reg);
-
-	if (lwp != NULL) {
-		count_chain = &lwp->count_chain;
-	} else {
-		count_chain = &proc->count_chain;
-	}
-
-	if (sym_load(proc, SYM_TYPE_FUNC) != 0) {
-		debug_print(NULL, 2, "Failed to load the process symbol "
-			"(pid = %d)\n", proc->pid);
-		return (-1);
-	}
-
-	memset(&chainlist, 0, sizeof (sym_chainlist_t));
-	rec_grp = &count_chain->chaingrps[dyn->keeprun_id];
-	rec_arr = rec_grp->rec_arr;
-	
-	for (i = 0; i < rec_grp->nrec_cur; i++) {
-		sym_callchain_add(&proc->sym, rec_arr[i].callchain.ips,
-			rec_arr[i].callchain.ip_num, &chainlist);		
-	}
-
-	chainlist_show(&chainlist, &dyn->data);
-	return (0);
 }
 
 static void
@@ -2231,67 +1877,65 @@ callchain_data_show(dyn_win_t *win, boolean_t *note_out)
 	int lwpid;
 	track_proc_t *proc;
 	track_lwp_t *lwp = NULL;
-	win_reg_t *reg;
+	win_reg_t *r;
 	char content[WIN_LINECHAR_MAX], event_name[32], intval_buf[16];
 
 	dyn = (dyn_callchain_t *)(win->dyn);
 	pid = dyn->pid;
 	lwpid = dyn->lwpid;
 	*note_out = B_FALSE;
-	
+
 	if ((proc = proc_find(pid)) == NULL) {
-		win_warn_msg(WARN_INVALID_PID);
-		note_show(NOTE_INVALID_PID);
+		win_invalid_proc();
 		*note_out = B_TRUE;
 		return;
 	}
 
 	if ((lwpid > 0) && ((lwp = proc_lwp_find(proc, lwpid)) == NULL)) {
 		proc_refcount_dec(proc);
-		win_warn_msg(WARN_INVALID_LWPID);
-		note_show(NOTE_INVALID_LWPID);
+		win_invalid_lwp();
 		*note_out = B_TRUE;
 		return;
 	}
 
-	reg = &dyn->msg;
-	reg_erase(reg);
-	callchain_keeprun_event(dyn->keeprun_id, event_name, 32);
+	r = &dyn->msg;
+	reg_erase(r);
+	callchain_event_name(dyn->countid, event_name, 32);
 	disp_intval(intval_buf, 16);
 	if (lwpid == 0) {
 		(void) snprintf(content, WIN_LINECHAR_MAX,
-			"Call-chain when process generates "
-	    	"\"%s\" (pid: %d, interval: %s)",
-			event_name, pid, intval_buf);
+		    "Call-chain when process generates "
+		    "\"%s\" (pid: %d, interval: %s)",
+		    event_name, pid, intval_buf);
 	} else {
 		(void) snprintf(content, WIN_LINECHAR_MAX,
-	    	"Call-chain when thread generates "
-	    	"\"%s\" (lwpid: %d, interval: %s)",
-			event_name, lwpid, intval_buf);
+		    "Call-chain when thread generates "
+		    "\"%s\" (lwpid: %d, interval: %s)",
+		    event_name, lwpid, intval_buf);
 	}
 
 	dump_write("\n*** %s\n", content);
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
-	reg_refresh_nout(reg);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
+	reg_refresh_nout(r);
 
 	/*
 	 * Display the call-chain.
 	 */
-	callchain_list_show(dyn, proc, lwp);
+	os_callchain_list_show(dyn, proc, lwp);
 
 	/*
 	 * Display hint message for window type "WIN_TYPE_CALLCHAIN"
 	 */
-	reg = &dyn->hint;
-	reg_erase(reg);
-	reg_line_write(reg, 1, ALIGN_LEFT,
-		"Switch call-chain by: 1(RMA), 2(LMA), 3(CYCLE), 4(IR)");
-	reg_refresh_nout(reg);
-	
+	r = &dyn->hint;
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT,
+	    "Switch call-chain by: 1(RMA), 2(LMA), 3(CYCLE), 4(IR)");
+	reg_refresh_nout(r);
+
 	if (lwp != NULL) {
 		lwp_refcount_dec(lwp);
 	}
-	
+
 	proc_refcount_dec(proc);
 }
 
@@ -2304,10 +1948,10 @@ callchain_win_draw(dyn_win_t *win)
 {
 	boolean_t note_out;
 
-	title_show();
+	win_title_show();
 	callchain_data_show(win, &note_out);
 	if (!note_out) {
-		note_show(NOTE_CALLCHAIN);
+		win_note_show(NOTE_CALLCHAIN);
 	}
 
 	reg_update_all();
@@ -2326,8 +1970,8 @@ callchain_win_scroll(dyn_win_t *win, int scroll_type)
 	reg_line_scroll(&dyn->data, scroll_type);
 }
 
-static void
-size2str(uint64_t size, char *buf, int bufsize)
+void
+win_size2str(uint64_t size, char *buf, int bufsize)
 {
 	uint64_t i, j;
 
@@ -2337,9 +1981,19 @@ size2str(uint64_t size, char *buf, int bufsize)
 	if ((i = (size / KB_BYTES)) < KB_BYTES) {
 		(void) snprintf(buf, bufsize, "%luK", i);
 	} else if ((j = i / KB_BYTES) < KB_BYTES) {
-		(void) snprintf(buf, bufsize, "%luM", j);
+		if ((i % KB_BYTES) == 0) {
+			(void) snprintf(buf, bufsize, "%luM", j);
+		} else {
+			(void) snprintf(buf, bufsize, "%.1fM",
+			    (double)i / (double)KB_BYTES);
+		}
 	} else {
-		(void) snprintf(buf, bufsize, "%luG", j / KB_BYTES);
+		if ((j % KB_BYTES) == 0) {
+			(void) snprintf(buf, bufsize, "%luG", j / KB_BYTES);
+		} else {
+			(void) snprintf(buf, bufsize, "%.1fG",
+			    (double)j / (double)KB_BYTES);
+		}
 	}
 }
 
@@ -2347,8 +2001,8 @@ size2str(uint64_t size, char *buf, int bufsize)
  * Build the readable string of data line which contains buffer address,
  * buffer size, access%, latency (nanosecond) and buffer description.
  */
-static void
-lat_str_build(char *buf, int size, int idx, void *pv)
+void
+win_lat_str_build(char *buf, int size, int idx, void *pv)
 {
 	lat_line_t *lines = (lat_line_t *)pv;
 	lat_line_t *line = &lines[idx];
@@ -2364,31 +2018,32 @@ lat_str_build(char *buf, int size, int idx, void *pv)
 		lat = (line->latency) / (line->naccess);
 	}
 
-	size2str(line->bufaddr.size, size_str, sizeof (size_str));
+	win_size2str(line->bufaddr.size, size_str, sizeof (size_str));
 
 	if (!line->nid_show) {
-		snprintf(buf, size, "%16lX%8s%10.1f%11lu%34s",
+		(void) snprintf(buf, size, "%16lX%8s%10.1f%11lu%34s",
 		    line->bufaddr.addr, size_str, hit * 100.0, cyc2ns(lat),
 		    line->desc);
 	} else {
 		if (line->nid < 0) {
-			snprintf(buf, size, "%16lX%8s%8s%10.1f%11lu",
-			    line->bufaddr.addr, size_str, "-", hit * 100.0, cyc2ns(lat));
-		} else {
-			snprintf(buf, size, "%16lX%8s%8d%10.1f%11lu",
-			    line->bufaddr.addr, size_str, line->nid, hit * 100.0,
+			(void) snprintf(buf, size, "%16lX%8s%8s%10.1f%11lu",
+			    line->bufaddr.addr, size_str, "-", hit * 100.0,
 			    cyc2ns(lat));
-		}		
+		} else {
+			(void) snprintf(buf, size, "%16lX%8s%8d%10.1f%11lu",
+			    line->bufaddr.addr, size_str, line->nid,
+			    hit * 100.0, cyc2ns(lat));
+		}
 	}
 }
 
 static void
-lat_line_get(win_reg_t *reg, int idx, char *line, int size)
+lat_line_get(win_reg_t *r, int idx, char *line, int size)
 {
 	lat_line_t *lines;
 
-	lines = (lat_line_t *)(reg->buf);
-	lat_str_build(line, size, idx, (void *)lines);
+	lines = (lat_line_t *)(r->buf);
+	win_lat_str_build(line, size, idx, (void *)lines);
 }
 
 /*
@@ -2408,7 +2063,7 @@ lat_dyn_create(page_t *page, win_type_t *type)
 
 	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
 	i = reg_init(&dyn->caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE);
-	reg_init(&dyn->data, 0, i, g_scr_width, g_scr_height - i - 2, 0);
+	(void) reg_init(&dyn->data, 0, i, g_scr_width, g_scr_height - i - 2, 0);
 
 	reg_buf_init(&dyn->data, NULL, lat_line_get);
 	reg_scroll_init(&dyn->data, B_TRUE);
@@ -2458,7 +2113,7 @@ bufdesc_cut(char *dst_desc, int dst_size, char *src_desc)
 	char *start, *end;
 
 	if ((src_len = strlen(src_desc)) < dst_size) {
-		strcpy(dst_desc, src_desc);
+		(void) strcpy(dst_desc, src_desc);
 		if ((src_len == 0) && (dst_size > 0)) {
 			dst_desc[0] = 0;
 		}
@@ -2466,28 +2121,27 @@ bufdesc_cut(char *dst_desc, int dst_size, char *src_desc)
 		return;
 	}
 
+	start = src_desc + (src_len - dst_size + 1) + 2;
 	end = src_desc + src_len;
-	start = end - dst_size;
-
 	while ((start < end) && (*start != '/')) {
 		start++;
 	}
 
 	if (start < end) {
-		snprintf(dst_desc, dst_size, "..%s", start);
-	} else {
-		strncpy(dst_desc, src_desc, dst_size);
+		(void) snprintf(dst_desc, dst_size, "..%s", start);
 		dst_desc[dst_size - 1] = 0;
+	} else {
+		dst_desc[0] = 0;
 	}
 }
 
 /*
  * copyout the maps data to a new buffer.
  */
-static lat_line_t *
-lat_buf_create(track_proc_t *proc, int lwpid, int *nlines)
+lat_line_t *
+win_lat_buf_create(track_proc_t *proc, int lwpid, int *nlines)
 {
-	map_t *map = &proc->map;
+	map_proc_t *map = &proc->map;
 	map_entry_t *entry;
 	lat_line_t *buf;
 	int i;
@@ -2498,7 +2152,7 @@ lat_buf_create(track_proc_t *proc, int lwpid, int *nlines)
 	}
 
 	for (i = 0; i < *nlines; i++) {
-		entry = &map->arr[i];		
+		entry = &map->arr[i];
 		buf[i].pid = proc->pid;
 		buf[i].lwpid = lwpid;
 		buf[i].bufaddr.addr = entry->start_addr;
@@ -2511,68 +2165,20 @@ lat_buf_create(track_proc_t *proc, int lwpid, int *nlines)
 }
 
 /*
- * The callback function used in bsearch() to compare the linear address.
- */
-static int
-bufaddr_cmp(const void *p1, const void *p2)
-{
-	uint64_t addr = (uint64_t)p1;
-	bufaddr_t *bufaddr = (bufaddr_t *)p2;
-
-	if (addr < bufaddr->addr) {
-		return (-1);
-	}
-
-	if (addr >= bufaddr->addr + bufaddr->size) {
-		return (1);
-	}
-
-	return (0);
-}
-
-/*
- * "lat_buf" points to an array which contains the process address mapping.
- * Each item in array represents a buffer in process address space. "rec"
- * points to a SMPL record. The function is responsible for checking and
- * comparing the record with the process address mapping.
- */
-static void
-lat_buf_hit(lat_line_t *lat_buf, int nlines, perf_llrec_t *rec,
-	uint64_t *total_lat, uint64_t *total_sample)
-{
-	lat_line_t *line;
-	
-	/*
-	 * Check if the linear address is located in a buffer in
-	 * process address space.
-	 */
-	if ((line = bsearch((void *)(rec->addr), lat_buf, nlines,
-		sizeof (lat_line_t), bufaddr_cmp)) != NULL) {
-		/*
-		 * If the linear address is located in, that means this
-		 * buffer is accessed, so update the statistics of accessing.
-		 */
-		line->naccess++;
-		line->latency += rec->latency;
-		*total_lat += rec->latency;
-		*total_sample += 1;
-	}
-}
-
-/*
  * Get the LL sampling data, check if the record hits one buffer in
  * process address space. If so, update the accessing statistics for
  * this buffer.
  */
-static void
-lat_buf_fill(lat_line_t *lat_buf, int nlines, track_proc_t *proc,
+void
+win_lat_buf_fill(lat_line_t *lat_buf, int nlines, track_proc_t *proc,
     track_lwp_t *lwp, int *lat)
 {
 	perf_llrecgrp_t *grp;
-	perf_llrec_t *rec;
+	os_perf_llrec_t *rec;
 	uint64_t total_sample = 0, total_lat = 0;
 	int i;
-	
+
+	(void) pthread_mutex_lock(&proc->mutex);
 	if (lwp == NULL) {
 		grp = &proc->llrec_grp;
 	} else {
@@ -2581,22 +2187,24 @@ lat_buf_fill(lat_line_t *lat_buf, int nlines, track_proc_t *proc,
 
 	for (i = 0; i < grp->nrec_cur; i++) {
 		rec = &grp->rec_arr[i];
-		lat_buf_hit(lat_buf, nlines, rec, &total_lat, &total_sample);
-	}
-	
-	for (i = 0; i < nlines; i++) {
-		lat_buf[i].nsamples = total_sample;		
+		os_lat_buf_hit(lat_buf, nlines, rec, &total_lat, &total_sample);
 	}
 
-	*lat = (total_sample > 0) ? (total_lat / total_sample) : 0;		
+	(void) pthread_mutex_unlock(&proc->mutex);
+
+	for (i = 0; i < nlines; i++) {
+		lat_buf[i].nsamples = total_sample;
+	}
+
+	*lat = (total_sample > 0) ? (total_lat / total_sample) : 0;
 }
 
 /*
- * The callback function used in qsort() to compare the number of 
+ * The callback function used in qsort() to compare the number of
  * buffer accessing.
  */
-static int
-lat_cmp(const void *p1, const void *p2)
+int
+win_lat_cmp(const void *p1, const void *p2)
 {
 	lat_line_t *l1 = (lat_line_t *)p1;
 	lat_line_t *l2 = (lat_line_t *)p2;
@@ -2628,23 +2236,24 @@ lat_data_get(track_proc_t *proc, track_lwp_t *lwp, dyn_lat_t *dyn, int *lat)
 	reg_refresh_nout(&dyn->data);
 
 	if (lwp != NULL) {
-		lwpid = lwp->id;		
+		lwpid = lwp->id;
 	}
 
-	if ((lat_buf = lat_buf_create(proc, lwpid, &nlines)) == NULL) {
-		debug_print(NULL, 2, "lat_buf_create failed (pid = %d)\n", proc->pid);
+	if ((lat_buf = win_lat_buf_create(proc, lwpid, &nlines)) == NULL) {
+		debug_print(NULL, 2, "win_lat_buf_create failed (pid = %d)\n",
+		    proc->pid);
 		return (-1);
 	}
 
 	/*
 	 * Fill in the memory access information.
 	 */
-	lat_buf_fill(lat_buf, nlines, proc, lwp, lat);
+	win_lat_buf_fill(lat_buf, nlines, proc, lwp, lat);
 
 	/*
 	 * Sort the "lat_buf" according to the number of buffer accessing.
 	 */
-	qsort(lat_buf, nlines, sizeof (lat_line_t), lat_cmp);
+	qsort(lat_buf, nlines, sizeof (lat_line_t), win_lat_cmp);
 
 	/*
 	 * Display the caption of data table:
@@ -2672,27 +2281,29 @@ lat_data_get(track_proc_t *proc, track_lwp_t *lwp, dyn_lat_t *dyn, int *lat)
 	 */
 	dyn->data.buf = (void *)lat_buf;
 	reg_scroll_show(&dyn->data, (void *)(dyn->data.buf),
-	    nlines, lat_str_build);
+	    nlines, win_lat_str_build);
 	reg_refresh_nout(&dyn->data);
 
 	return (0);
 }
 
-static boolean_t
-lat_data_show(track_proc_t *proc, dyn_lat_t *dyn, boolean_t *note_out)
+boolean_t
+win_lat_data_show(track_proc_t *proc, dyn_lat_t *dyn, boolean_t *note_out)
 {
-	win_reg_t *reg;
+	win_reg_t *r;
 	int lat;
 	track_lwp_t *lwp = NULL;
-	char content[WIN_LINECHAR_MAX], intval_buf[16];	
+	char content[WIN_LINECHAR_MAX], intval_buf[16];
 
 	*note_out = B_FALSE;
-	if ((dyn->lwpid != 0) &&
-	    (lwp = proc_lwp_find(proc, dyn->lwpid)) == NULL) {
-		win_warn_msg(WARN_INVALID_LWPID);
-		note_show(NOTE_INVALID_LWPID);
-		*note_out = B_TRUE;
-		return (B_FALSE);
+
+	if (dyn->lwpid != 0) {
+		if (((lwp = proc_lwp_find(proc, dyn->lwpid)) == NULL) ||
+		    (!os_procfs_lwp_valid(proc->pid, dyn->lwpid))) {
+			win_invalid_lwp();
+			*note_out = B_TRUE;
+			return (B_FALSE);
+		}
 	}
 
 	dump_cache_enable();
@@ -2703,7 +2314,8 @@ lat_data_show(track_proc_t *proc, dyn_lat_t *dyn, boolean_t *note_out)
 	if (lwp == NULL) {
 		(void) snprintf(content, sizeof (content),
 		    "Monitoring memory areas (pid: %d, "
-		    "AVG.LAT: %luns, interval: %s)", proc->pid, cyc2ns(lat), intval_buf);
+		    "AVG.LAT: %luns, interval: %s)",
+		    proc->pid, cyc2ns(lat), intval_buf);
 	} else {
 		(void) snprintf(content, sizeof (content),
 		    "Monitoring memory areas (lwpid: %d, "
@@ -2711,11 +2323,11 @@ lat_data_show(track_proc_t *proc, dyn_lat_t *dyn, boolean_t *note_out)
 		    lwp->id, cyc2ns(lat), intval_buf);
 	}
 
-	reg = &dyn->msg;
-	reg_erase(reg);
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
+	r = &dyn->msg;
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
 	dump_write("\n*** %s\n", content);
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 
 	dump_cache_flush();
 
@@ -2724,47 +2336,6 @@ lat_data_show(track_proc_t *proc, dyn_lat_t *dyn, boolean_t *note_out)
 	}
 
 	return (B_TRUE);
-}
-
-/*
- * The implementation of displaying window on screen for
- * window type "WIN_TYPE_LAT_PROC" and "WIN_TYPE_LAT_LWP"
- */
-static boolean_t
-lat_win_draw(dyn_win_t *win)
-{
-	dyn_lat_t *dyn = (dyn_lat_t *)(win->dyn);
-	track_proc_t *proc;
-	boolean_t note_out, ret;
-
-	if (!perf_ll_started()) {		
-		win_warn_msg(WARN_LL_NOT_SUPPORT);
-		note_show(NOTE_LAT);
-		return (B_FALSE);
-	}
-
-	if ((proc = proc_find(dyn->pid)) == NULL) {
-		win_warn_msg(WARN_INVALID_PID);
-		note_show(NOTE_INVALID_PID);
-		return (B_FALSE);
-	}
-
-	if (map_load(proc) != 0) {
-		proc_refcount_dec(proc);
-		win_warn_msg(WARN_INVALID_MAP);
-		note_show(NOTE_INVALID_MAP);
-		return (B_FALSE);
-	}
-
-	title_show();
-	ret = lat_data_show(proc, dyn, &note_out);
-	if (!note_out) {
-		note_show(NOTE_LAT);
-	}
-
-	proc_refcount_dec(proc);
-	reg_update_all();
-	return (ret);
 }
 
 /*
@@ -2788,8 +2359,8 @@ static void
 lat_win_scrollenter(dyn_win_t *win)
 {
 	dyn_lat_t *dyn = (dyn_lat_t *)(win->dyn);
-	win_reg_t *reg = &dyn->data;
-	scroll_line_t *scroll = &reg->scroll;
+	win_reg_t *r = &dyn->data;
+	scroll_line_t *scroll = &r->scroll;
 	lat_line_t *lines;
 	cmd_latnode_t cmd;
 	boolean_t badcmd;
@@ -2802,7 +2373,7 @@ lat_win_scrollenter(dyn_win_t *win)
 	 * Construct a command to switch to next window
 	 * "WIN_TYPE_LATNODE_PROC" / "WIN_TYPE_LATNODE_LWP"
 	 */
-	lines = (lat_line_t *)(reg->buf);
+	lines = (lat_line_t *)(r->buf);
 	cmd.id = CMD_LATNODE_ID;
 	cmd.pid = lines[scroll->highlight].pid;
 	cmd.lwpid = lines[scroll->highlight].lwpid;
@@ -2842,7 +2413,7 @@ latnode_dyn_create(page_t *page, win_type_t *type)
 	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
 	i = reg_init(&dyn->note, 0, i, g_scr_width, 2, A_BOLD);
 	i = reg_init(&dyn->caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE);
-	reg_init(&dyn->data, 0, i, g_scr_width, g_scr_height - i - 2, 0);
+	(void) reg_init(&dyn->data, 0, i, g_scr_width, g_scr_height - i - 2, 0);
 
 	reg_buf_init(&dyn->data, NULL, lat_line_get);
 	reg_scroll_init(&dyn->data, B_TRUE);
@@ -2881,198 +2452,6 @@ latnode_win_destroy(dyn_win_t *win)
 	}
 }
 
-static lat_line_t *
-latnode_buf_create(track_proc_t *proc, int lwpid, uint64_t addr,
-	uint64_t size, int *nlines)
-{
-	map_entry_t *entry;
-	numa_entry_t *numa_entry;
-	numa_map_t *numa_map;
-	lat_line_t *buf;
-	int i;
-
-	if ((entry = map_entry_find(proc, addr, size)) == NULL) {
-		return (NULL);
-	}
-	
-	numa_map = &entry->numa_map;
-	*nlines = numa_map->nentry_cur;
-	if ((buf = zalloc(sizeof (lat_line_t) * (*nlines))) == NULL) {
-		return (NULL);
-	}
-
-	for (i = 0; i < *nlines; i++) {
-		numa_entry = &numa_map->arr[i];
-		buf[i].pid = proc->pid;
-		buf[i].lwpid = lwpid;
-		buf[i].nid_show = B_TRUE;
-		buf[i].bufaddr.addr = numa_entry->start_addr;
-		buf[i].bufaddr.size = numa_entry->end_addr - numa_entry->start_addr;
-		buf[i].nid = numa_entry->nid;		
-	}
-
-	return (buf);
-}
-
-static int
-latnode_data_get(track_proc_t *proc, track_lwp_t *lwp, dyn_latnode_t *dyn)
-{
-	lat_line_t *buf;
-	char content[WIN_LINECHAR_MAX];
-	int nlines, lwpid = 0, lat = 0;
-
-	reg_erase(&dyn->caption);
-	reg_refresh_nout(&dyn->caption);
-	reg_erase(&dyn->data);
-	reg_refresh_nout(&dyn->data);
-
-	if (lwp != NULL) {
-		lwpid = lwp->id;		
-	}
-
-	if ((buf = latnode_buf_create(proc, lwpid, dyn->addr,
-		dyn->size, &nlines)) == NULL) {
-		reg_line_write(&dyn->caption, 1, ALIGN_LEFT,
-		    "Failed to get the process NUMA mapping!");
-		reg_refresh_nout(&dyn->caption);
-		return (-1);
-	}
-
-	lat_buf_fill(buf, nlines, proc, lwp, &lat);
-
-	/*
-	 * Sort by the number of buffer accessing.
-	 */
-	qsort(buf, nlines, sizeof (lat_line_t), lat_cmp);
-
-	/*
-	 * Display the caption of data table:
-	 * "ADDR SIZE NODE ACCESS% LAT(ns) DESC"
-	 */
-	(void) snprintf(content, sizeof (content),
-	    "%16s%8s%8s%11s%11s",
-	    CAPTION_ADDR, CAPTION_SIZE, CAPTION_NID, CAPTION_BUFHIT,
-	    CAPTION_AVGLAT);
-
-	reg_line_write(&dyn->caption, 1, ALIGN_LEFT, content);
-	reg_refresh_nout(&dyn->caption);
-
-	/*
-	 * Save data of buffer statistics in scrolling buffer.
-	 */
-	dyn->data.nlines_total = nlines;
-	if (dyn->data.buf != NULL) {
-		free(dyn->data.buf);
-	}
-
-	/*
-	 * Display the buffer with statistics in scrolling buffer
-	 */
-	dyn->data.buf = (void *)buf;
-	reg_scroll_show(&dyn->data, (void *)(dyn->data.buf),
-	    nlines, lat_str_build);
-	reg_refresh_nout(&dyn->data);
-
-	return (0);
-}
-
-static boolean_t
-latnode_data_show(track_proc_t *proc, dyn_latnode_t *dyn, map_entry_t *entry,
-	boolean_t *note_out)
-{
-	win_reg_t *reg;
-	track_lwp_t *lwp = NULL;
-	char content[WIN_LINECHAR_MAX], intval_buf[16], size_str[32];
-
-	*note_out = B_FALSE;
-
-	if ((dyn->lwpid != 0) &&
-	    (lwp = proc_lwp_find(proc, dyn->lwpid)) == NULL) {
-		win_warn_msg(WARN_INVALID_LWPID);
-		note_show(NOTE_INVALID_LWPID);
-		*note_out = B_TRUE;
-		return (B_FALSE);
-	}
-
-	reg = &dyn->msg;
-	reg_erase(reg);
-	disp_intval(intval_buf, 16);
-	(void) snprintf(content, sizeof (content),
-	    "Break down of memory area for physical memory on node (interval: %s)",
-	    intval_buf);
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
-	dump_write("\n*** %s\n", content);
-	reg_refresh_nout(reg);
-
-	reg = &dyn->note;
-	reg_erase(reg);	
-	size2str(dyn->size, size_str, sizeof (size_str));
-	if (lwp != NULL) {
-		(void) snprintf(content, sizeof (content),
-		    "Memory area(%lX, %s), thread(%d)",
-		    dyn->addr, size_str, lwp->id);
-	} else {
-		(void) snprintf(content, sizeof (content),
-		    "Memory area(%lX, %s), process(%d)",
-		    dyn->addr, size_str, proc->pid);
-	}
-
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
-	dump_write("\n*** %s\n", content);
-	reg_refresh_nout(reg);
-
-	latnode_data_get(proc, lwp, dyn);
-
-	if (lwp != NULL) {
-		lwp_refcount_dec(lwp);
-	}
-
-	return (B_TRUE);
-}
-
-/*
- * The implementation of displaying window on screen for
- * window type "WIN_TYPE_LATNODE_PROC" and "WIN_TYPE_LATNODE_LWP"
- */
-static boolean_t
-latnode_win_draw(dyn_win_t *win)
-{
-	dyn_latnode_t *dyn = (dyn_latnode_t *)(win->dyn);
-	track_proc_t *proc;
-	map_entry_t *entry;
-	boolean_t note_out, ret;
-
-	if ((proc = proc_find(dyn->pid)) == NULL) {
-		win_warn_msg(WARN_INVALID_PID);
-		note_show(NOTE_INVALID_PID);
-		return (B_FALSE);
-	}
-
-	if ((entry = map_entry_find(proc, dyn->addr, dyn->size)) == NULL) {
-		proc_refcount_dec(proc);
-		win_warn_msg(WARN_INVALID_MAP);
-		note_show(NOTE_INVALID_MAP);
-		return (B_FALSE);
-	}
-
-	if (map_map2numa(proc, entry) != 0) {
-		proc_refcount_dec(proc);
-		win_warn_msg(WARN_INVALID_NUMAMAP);
-		note_show(NOTE_INVALID_NUMAMAP);
-		return (B_FALSE);		
-	}
-
-	title_show();
-	ret = latnode_data_show(proc, dyn, entry, &note_out);
-	if (!note_out) {
-		note_show(NOTE_LATNODE);
-	}
-
-	proc_refcount_dec(proc);
-	reg_update_all();
-	return (ret);
-}
-
 /*
  * Build the readable string for data line.
  * (window type: "WIN_TYPE_ACCDST_PROC" and "WIN_TYPE_ACCDST_LWP")
@@ -3083,8 +2462,8 @@ accdst_str_build(char *buf, int size, int idx, void *pv)
 	accdst_line_t *lines = (accdst_line_t *)pv;
 	accdst_line_t *line = &lines[idx];
 
-	snprintf(buf, size, "%5d%14.1f%15lu",
-		line->nid, line->access_ratio * 100.0, cyc2ns(line->latency));
+	(void) snprintf(buf, size, "%5d%14.1f%15lu",
+	    line->nid, line->access_ratio * 100.0, cyc2ns(line->latency));
 }
 
 /*
@@ -3092,11 +2471,11 @@ accdst_str_build(char *buf, int size, int idx, void *pv)
  * (window type: "WIN_TYPE_ACCDST_PROC" and "WIN_TYPE_ACCDST_LWP")
  */
 static void
-accdst_line_get(win_reg_t *reg, int idx, char *line, int size)
+accdst_line_get(win_reg_t *r, int idx, char *line, int size)
 {
 	accdst_line_t *lines;
 
-	lines = (accdst_line_t *)(reg->buf);
+	lines = (accdst_line_t *)(r->buf);
 	accdst_str_build(line, size, idx, (void *)lines);
 }
 
@@ -3128,18 +2507,20 @@ accdst_dyn_create(page_t *page, win_type_t *type)
 	if ((dyn = zalloc(sizeof (dyn_accdst_t))) == NULL) {
 		return (NULL);
 	}
-	
+
 	if ((buf = zalloc(sizeof (accdst_line_t) * nnodes)) == NULL) {
 		free(dyn);
 		return (NULL);
 	}
 
 	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
-	i = reg_init(&dyn->caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE);
+	i = reg_init(&dyn->caption, 0, i, g_scr_width, 2,
+	    A_BOLD | A_UNDERLINE);
 	i = reg_init(&dyn->data, 0, i, g_scr_width, nnodes, 0);
 	reg_buf_init(&dyn->data, buf, accdst_line_get);
 	reg_scroll_init(&dyn->data, B_TRUE);
-	reg_init(&dyn->hint, 0, i, g_scr_width, g_scr_height - i - 1, A_BOLD);
+	(void) reg_init(&dyn->hint, 0, i, g_scr_width,
+	    g_scr_height - i - 1, A_BOLD);
 
 	dyn->pid = cmd_accdst->pid;
 	if ((dyn->lwpid = cmd_accdst->lwpid) != 0) {
@@ -3180,39 +2561,46 @@ llrec2addr(track_proc_t *proc, track_lwp_t *lwp, void ***addr_arr,
 	perf_llrecgrp_t *grp;
 	void **addr_buf;
 	int *lat_buf;
-	int i;
-	
+	int i, ret = -1;
+
+	(void) pthread_mutex_lock(&proc->mutex);
+
 	if (lwp == NULL) {
 		grp = &proc->llrec_grp;
 	} else {
 		grp = &lwp->llrec_grp;
 	}
-	
+
 	if (grp->nrec_cur == 0) {
 		*addr_arr = NULL;
 		*lat_arr = NULL;
-		*addr_num = 0;	
-		return (0);
+		*addr_num = 0;
+		ret = 0;
+		goto L_EXIT;
 	}
-	
+
 	if ((addr_buf = zalloc(sizeof (void *) * grp->nrec_cur)) == NULL) {
-		return (-1);
+		goto L_EXIT;
 	}
-	
+
 	if ((lat_buf = zalloc(sizeof (int) * grp->nrec_cur)) == NULL) {
 		free(addr_buf);
-		return (-1);
+		goto L_EXIT;
 	}
-	
+
 	for (i = 0; i < grp->nrec_cur; i++) {
 		addr_buf[i] = (void *)(grp->rec_arr[i].addr);
-		lat_buf[i] = grp->rec_arr[i].latency;		
+		lat_buf[i] = grp->rec_arr[i].latency;
 	}
-	
+
 	*addr_arr = addr_buf;
 	*lat_arr = lat_buf;
 	*addr_num = grp->nrec_cur;
-	return (0);
+	ret = 0;
+
+L_EXIT:
+	(void) pthread_mutex_unlock(&proc->mutex);
+	return (ret);
 }
 
 static void
@@ -3221,8 +2609,8 @@ accdst_data_save(map_nodedst_t *nodedst_arr, int nnodes_max, int naccess_total,
 {
 	node_t *node;
 	int naccess;
-	
-	memset(line, 0, sizeof (accdst_line_t));
+
+	(void) memset(line, 0, sizeof (accdst_line_t));
 	if ((node = node_valid_get(nid_idx)) == NULL) {
 		return;
 	}
@@ -3230,10 +2618,10 @@ accdst_data_save(map_nodedst_t *nodedst_arr, int nnodes_max, int naccess_total,
 	if ((node->nid < 0) || (node->nid >= nnodes_max)) {
 		return;
 	}
-	
+
 	line->nid = node->nid;
 	naccess = nodedst_arr[node->nid].naccess;
-	
+
 	if (naccess_total > 0) {
 		line->access_ratio = (double)naccess / (double)naccess_total;
 	}
@@ -3246,7 +2634,7 @@ accdst_data_save(map_nodedst_t *nodedst_arr, int nnodes_max, int naccess_total,
 static boolean_t
 accdst_data_show(track_proc_t *proc, dyn_accdst_t *dyn, boolean_t *note_out)
 {
-	win_reg_t *reg;
+	win_reg_t *r;
 	track_lwp_t *lwp = NULL;
 	void **addr_arr = NULL;
 	int *lat_arr = NULL;
@@ -3260,8 +2648,7 @@ accdst_data_show(track_proc_t *proc, dyn_accdst_t *dyn, boolean_t *note_out)
 
 	if ((dyn->lwpid != 0) &&
 	    (lwp = proc_lwp_find(proc, dyn->lwpid)) == NULL) {
-		win_warn_msg(WARN_INVALID_LWPID);
-		note_show(NOTE_INVALID_LWPID);
+		win_invalid_lwp();
 		*note_out = B_TRUE;
 		return (B_FALSE);
 	}
@@ -3270,34 +2657,36 @@ accdst_data_show(track_proc_t *proc, dyn_accdst_t *dyn, boolean_t *note_out)
 		goto L_EXIT;
 	}
 
-	memset(nodedst_arr, 0, sizeof (map_nodedst_t) * NNODES_MAX);
+	(void) memset(nodedst_arr, 0, sizeof (map_nodedst_t) * NNODES_MAX);
 	if (addr_num > 0) {
 		if (map_addr2nodedst(proc->pid, addr_arr, lat_arr, addr_num,
-			nodedst_arr, NNODES_MAX, &naccess_total) != 0) {
+		    nodedst_arr, NNODES_MAX, &naccess_total) != 0) {
 			goto L_EXIT;
 		}
 	}
 
-	reg = &dyn->msg;
-	reg_erase(reg);
+	r = &dyn->msg;
+	reg_erase(r);
 	disp_intval(intval_buf, 16);
 
 	if (lwp == NULL) {
 		(void) snprintf(content, sizeof (content),
-		    "Memory access node distribution overview (pid: %d, interval: %s)",
+		    "Memory access node distribution overview "
+		    "(pid: %d, interval: %s)",
 		    proc->pid, intval_buf);
 	} else {
 		(void) snprintf(content, sizeof (content),
-		    "Memory access node distribution overview (lwpid: %d, interval: %s)",
+		    "Memory access node distribution overview "
+		    "(lwpid: %d, interval: %s)",
 		    lwp->id, intval_buf);
 	}
 
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
 	dump_write("\n*** %s\n", content);
-	reg_refresh_nout(reg);		
+	reg_refresh_nout(r);
 
-	reg = &dyn->caption;
-	reg_erase(reg);
+	r = &dyn->caption;
+	reg_erase(r);
 
 	/*
 	 * Display the caption of table:
@@ -3306,33 +2695,33 @@ accdst_data_show(track_proc_t *proc, dyn_accdst_t *dyn, boolean_t *note_out)
 	(void) snprintf(content, sizeof (content), "%5s%15s%15s",
 	    CAPTION_NID, CAPTION_BUFHIT, CAPTION_AVGLAT);
 
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
 	dump_write("%s\n", content);
-	reg_refresh_nout(reg);
+	reg_refresh_nout(r);
 
 	nnodes = node_num();
-	reg = &dyn->data;
-	reg_erase(reg);
-	lines = (accdst_line_t *)(reg->buf);
-	reg->nlines_total = nnodes;
+	r = &dyn->data;
+	reg_erase(r);
+	lines = (accdst_line_t *)(r->buf);
+	r->nlines_total = nnodes;
 
 	/*
 	 * Save the per-node data with metrics in scrolling buffer.
 	 */
 	for (i = 0; i < nnodes; i++) {
 		accdst_data_save(nodedst_arr, NNODES_MAX, naccess_total, i,
-			&lines[i]);
+		    &lines[i]);
 	}
-	
+
 	/*
-	 * Display the per-node data in scrolling buffer 
+	 * Display the per-node data in scrolling buffer
 	 */
-	reg_scroll_show(reg, (void *)lines, nnodes, accdst_str_build);
-	reg_refresh_nout(reg);
-	
-	reg = &dyn->hint;
-	reg_erase(reg);
-	reg_refresh_nout(reg);	
+	reg_scroll_show(r, (void *)lines, nnodes, accdst_str_build);
+	reg_refresh_nout(r);
+
+	r = &dyn->hint;
+	reg_erase(r);
+	reg_refresh_nout(r);
 
 L_EXIT:
 	if (lwp != NULL) {
@@ -3342,7 +2731,7 @@ L_EXIT:
 	if (addr_arr != NULL) {
 		free(addr_arr);
 	}
-	
+
 	if (lat_arr != NULL) {
 		free(lat_arr);
 	}
@@ -3362,15 +2751,14 @@ accdst_win_draw(dyn_win_t *win)
 	boolean_t note_out, ret;
 
 	if ((proc = proc_find(dyn->pid)) == NULL) {
-		win_warn_msg(WARN_INVALID_PID);
-		note_show(NOTE_INVALID_PID);
+		win_invalid_proc();
 		return (B_FALSE);
 	}
 
-	title_show();
+	win_title_show();
 	ret = accdst_data_show(proc, dyn, &note_out);
 	if (!note_out) {
-		note_show(NOTE_ACCDST);
+		win_note_show(NOTE_ACCDST);
 	}
 
 	proc_refcount_dec(proc);
@@ -3379,279 +2767,18 @@ accdst_win_draw(dyn_win_t *win)
 }
 
 /*
- * Initialize the display layout.
- * (window type: "WIN_TYPE_LLCALLCHAIN")
- */
-static dyn_llcallchain_t *
-llcallchain_dyn_create(page_t *page)
-{
-	dyn_llcallchain_t *dyn;
-	cmd_llcallchain_t *cmd = CMD_LLCALLCHAIN(&page->cmd);
-	int i;
-
-	if ((dyn = zalloc(sizeof (dyn_llcallchain_t))) == NULL) {
-		return (NULL);
-	}
-
-	dyn->pid = cmd->pid;
-	dyn->lwpid = cmd->lwpid;
-	dyn->addr = cmd->addr;
-	dyn->size = cmd->size;
-	strncpy(dyn->desc, cmd->desc, WIN_DESCBUF_SIZE);
-	dyn->desc[WIN_DESCBUF_SIZE - 1] = 0;
-
-	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
-	i = reg_init(&dyn->buf_caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE);
-	i = reg_init(&dyn->buf_data, 0, i, g_scr_width, 1, 0);
-	i = reg_init(&dyn->chain_caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE);
-	i = reg_init(&dyn->pad, 0, i, g_scr_width, 1, 0);
-	reg_init(&dyn->chain_data, 0, i, g_scr_width, g_scr_height - i - 2, 0);
-	reg_buf_init(&dyn->chain_data, NULL, callchain_line_get);
-	reg_scroll_init(&dyn->chain_data, B_TRUE);
-
-	return (dyn);
-}
-
-/*
- * Release the resources of window.
- * (window type: "WIN_TYPE_LLCALLCHAIN")
- */
-static void
-llcallchain_win_destroy(dyn_win_t *win)
-{
-	dyn_llcallchain_t *dyn;
-
-	if ((dyn = win->dyn) != NULL) {
-		if (dyn->chain_data.buf != NULL) {
-			free(dyn->chain_data.buf);
-		}
-
-		reg_win_destroy(&dyn->msg);
-		reg_win_destroy(&dyn->buf_caption);
-		reg_win_destroy(&dyn->buf_data);
-		reg_win_destroy(&dyn->chain_caption);
-		reg_win_destroy(&dyn->pad);		
-		reg_win_destroy(&dyn->chain_data);
-		free(dyn);
-	}
-}
-
-static int
-llcallchain_bufinfo_show(dyn_llcallchain_t *dyn, track_proc_t *proc,
-	track_lwp_t *lwp)
-{
-	char content[WIN_LINECHAR_MAX];
-	lat_line_t *lat_buf, *line;
-	win_reg_t *reg;
-	int lwpid = 0, nlines, lat;
-	
-	/*
-	 * Display the caption of data table:
-	 * "ADDR SIZE ACCESS% LAT(ns) DESC"
-	 */
-	reg = &dyn->buf_caption;
-	reg_erase(reg);	
-	(void) snprintf(content, sizeof (content),
-	    "%16s%8s%11s%11s%34s",
-	    CAPTION_ADDR, CAPTION_SIZE, CAPTION_BUFHIT,
-	    CAPTION_AVGLAT, CAPTION_DESC);
-	reg_line_write(&dyn->buf_caption, 1, ALIGN_LEFT, content);
-	dump_write("%s\n", content);
-	reg_refresh_nout(reg);
-	
-	/*
-	 * Get the stat of buffer.
-	 */	
-	reg = &dyn->buf_data;
-	reg_erase(reg);	
-
-	if (lwp != NULL) {
-		lwpid = lwp->id;	
-	}
-	 
-	if ((lat_buf = lat_buf_create(proc, lwpid, &nlines)) == NULL) {
-		return (-1);
-	}
-
-	/*
-	 * Fill in the memory access information.
-	 */
-	lat_buf_fill(lat_buf, nlines, proc, lwp, &lat);
-	
-	/*
-	 * Check if the linear address is located in a buffer in
-	 * process address space.
-	 */ 
-	if ((line = bsearch((void *)(dyn->addr), lat_buf, nlines,
-		sizeof (lat_line_t), bufaddr_cmp)) != NULL) {
-		lat_str_build(content, WIN_LINECHAR_MAX, 0, line);
-		reg_line_write(reg, 0, ALIGN_LEFT, content);
-		dump_write("%s\n", content);
-	}
-	
-	reg_refresh_nout(reg);
-	free(lat_buf);
-	return (0);
-}
-
-static int
-llcallchain_list_show(dyn_llcallchain_t *dyn, track_proc_t *proc,
-	track_lwp_t *lwp)
-{
-	perf_llrecgrp_t *llrec_grp;
-	char content[WIN_LINECHAR_MAX];
-	perf_llrec_t *rec_arr;
-	sym_chainlist_t chainlist;
-	win_reg_t *reg;
-	int i;
-
-	reg = &dyn->chain_caption;
-	reg_erase(reg);	
-	snprintf(content, WIN_LINECHAR_MAX, "Call-chain list:");
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
-	dump_write("%s\n", content);
-	reg_refresh_nout(reg);
-
-	reg = &dyn->pad;
-	reg_erase(reg);	
-	dump_write("\n");
-	reg_refresh_nout(reg);
-
-	if (lwp != NULL) {
-		llrec_grp = &lwp->llrec_grp;
-	} else {
-		llrec_grp = &proc->llrec_grp;
-	}
-
-	if (sym_load(proc, SYM_TYPE_FUNC) != 0) {
-		debug_print(NULL, 2, "Failed to load the process symbol "
-			"(pid = %d)\n", proc->pid);
-		return (-1);
-	}
-
-	memset(&chainlist, 0, sizeof (sym_chainlist_t));
-	rec_arr = llrec_grp->rec_arr;
-	
-	for (i = 0; i < llrec_grp->nrec_cur; i++) {
-		if ((rec_arr[i].addr < dyn->addr) ||
-			(rec_arr[i].addr >= dyn->addr + dyn->size)) {
-			continue;
-		}
-
-		sym_callchain_add(&proc->sym, rec_arr[i].callchain.ips,
-			rec_arr[i].callchain.ip_num, &chainlist);		
-	}
-
-	chainlist_show(&chainlist, &dyn->chain_data);
-	return (0);
-}
-
-static void
-llcallchain_data_show(dyn_win_t *win, boolean_t *note_out)
-{
-	dyn_llcallchain_t *dyn;
-	pid_t pid;
-	int lwpid;
-	uint64_t size;
-	track_proc_t *proc;
-	track_lwp_t *lwp = NULL;
-	win_reg_t *reg;
-	char content[WIN_LINECHAR_MAX], intval_buf[16];
-	char size_str[32];
-
-	dyn = (dyn_llcallchain_t *)(win->dyn);
-	pid = dyn->pid;
-	lwpid = dyn->lwpid;
-	size = dyn->size;
-	*note_out = B_FALSE;
-
-	if ((proc = proc_find(pid)) == NULL) {
-		win_warn_msg(WARN_INVALID_PID);
-		note_show(NOTE_INVALID_PID);
-		*note_out = B_TRUE;
-		return;
-	}
-
-	if ((lwpid > 0) && ((lwp = proc_lwp_find(proc, lwpid)) == NULL)) {
-		proc_refcount_dec(proc);
-		win_warn_msg(WARN_INVALID_LWPID);
-		note_show(NOTE_INVALID_LWPID);
-		*note_out = B_TRUE;
-		return;
-	}
-
-	reg = &dyn->msg;
-	reg_erase(reg);	
-	disp_intval(intval_buf, 16);
-	size2str(size, size_str, sizeof (size_str));
-
-	if (lwp == NULL) {
-		(void) snprintf(content, WIN_LINECHAR_MAX,
-			"Call-chain when process accesses the memory area (pid: %d)"
-	    	" (interval: %s)", pid, intval_buf);
-	} else {
-		(void) snprintf(content, WIN_LINECHAR_MAX,
-			"Call-chain when thread accesses the memory area (lwpid: %d)"
-	    	" (interval: %s)", lwpid, intval_buf);
-	}
-
-	dump_write("\n*** %s\n", content);
-	reg_line_write(reg, 1, ALIGN_LEFT, content);
-	reg_refresh_nout(reg);
-
-	llcallchain_bufinfo_show(dyn, proc, lwp);
-	llcallchain_list_show(dyn, proc, lwp);
-	
-	if (lwp != NULL) {
-		lwp_refcount_dec(lwp);
-	}
-
-	proc_refcount_dec(proc);
-}
-
-/*
- * Display window on screen.
- * (window type: "WIN_TYPE_LLCALLCHAIN")
- */
-static boolean_t
-llcallchain_win_draw(dyn_win_t *win)
-{
-	boolean_t note_out;
-
-	title_show();
-	llcallchain_data_show(win, &note_out);
-	if (!note_out) {
-		note_show(NOTE_LLCALLCHAIN);
-	}
-
-	reg_update_all();
-	return (B_TRUE);
-}
-
-/*
- * The callback function for "WIN_TYPE_LLCALLCHAIN" would be called
- * when user hits the <UP>/<DOWN> key to scroll data line.
- */
-static void
-llcallchain_win_scroll(dyn_win_t *win, int scroll_type)
-{
-	dyn_llcallchain_t *dyn = (dyn_llcallchain_t *)(win->dyn);
-
-	reg_line_scroll(&dyn->chain_data, scroll_type);
-}
-
-/*
  * The common entry for all warning messages.
  */
 void
-win_warn_msg(win_type_t warn_type)
+win_warn_msg(warn_type_t warn_type)
 {
 	dyn_warn_t dyn;
 	char content[WIN_LINECHAR_MAX];
 	int i;
 
 	i = reg_init(&dyn.msg, 0, 1, g_scr_width, 4, A_BOLD);
-	reg_init(&dyn.pad, 0, i, g_scr_width, g_scr_height - i - 2, 0);		
+	(void) reg_init(&dyn.pad, 0, i, g_scr_width,
+	    g_scr_height - i - 2, 0);
 
 	reg_erase(&dyn.pad);
 	reg_line_write(&dyn.pad, 0, ALIGN_LEFT, "");
@@ -3660,52 +2787,67 @@ win_warn_msg(win_type_t warn_type)
 	reg_erase(&dyn.msg);
 	switch (warn_type) {
 	case WARN_PERF_DATA_FAIL:
-		strncpy(content, "Perf event counting is failed!", WIN_LINECHAR_MAX);
+		(void) strncpy(content, "Perf event counting is failed!",
+		    WIN_LINECHAR_MAX);
 		break;
 
 	case WARN_INVALID_PID:
-		strncpy(content, "Invalid process id, process exited.", WIN_LINECHAR_MAX);
+		(void) strncpy(content, "Process exists, "
+		    "return to home window ...",
+		    WIN_LINECHAR_MAX);
 		break;
 
 	case WARN_INVALID_LWPID:
-		strncpy(content, "Invalid lwp id, thread exited.", WIN_LINECHAR_MAX);
+		(void) strncpy(content, "Thread exists, "
+		    "return to home window ...",
+		    WIN_LINECHAR_MAX);
 		break;
 
 	case WARN_WAIT:
-		strncpy(content, "Please wait ...", WIN_LINECHAR_MAX);
+		(void) strncpy(content, "Please wait ...",
+		    WIN_LINECHAR_MAX);
 		break;
 
 	case WARN_WAIT_PERF_LL_RESULT:
-		strncpy(content, "Retrieving latency data ...", WIN_LINECHAR_MAX);
+		(void) strncpy(content, "Retrieving latency data ...",
+		    WIN_LINECHAR_MAX);
 		break;
 
 	case WARN_NOT_IMPL:
-		strncpy(content, "Function is not implemented yet!", WIN_LINECHAR_MAX);
-		break;
-
-	case WARN_GO_HOME:
-		strncpy(content, "Return to the Home window...", WIN_LINECHAR_MAX);
+		(void) strncpy(content, "Function is not implemented yet!",
+		    WIN_LINECHAR_MAX);
 		break;
 
 	case WARN_INVALID_NID:
-		strncpy(content, "Invalid node id, node might be offlined.", WIN_LINECHAR_MAX);
+		(void) strncpy(content, "Invalid node id, node might "
+		    "be offlined.",
+		    WIN_LINECHAR_MAX);
 		break;
 
 	case WARN_INVALID_MAP:
-		strncpy(content, "Cannot retrieve process address-space mapping.", WIN_LINECHAR_MAX);
+		(void) strncpy(content, "Cannot retrieve process "
+		    "address-space mapping.",
+		    WIN_LINECHAR_MAX);
 		break;
 
 	case WARN_INVALID_NUMAMAP:
-		strncpy(content, "Cannot retrieve process memory NUMA mapping.", WIN_LINECHAR_MAX);
+		(void) strncpy(content, "Cannot retrieve process "
+		    "memory NUMA mapping.",
+		    WIN_LINECHAR_MAX);
 		break;
 
-	case WARN_LL_NOT_SUPPORT:		
-		strncpy(content, "PEBS (load latency) is unsupported or broken on the platform.",
-			WIN_LINECHAR_MAX);
+	case WARN_LL_NOT_SUPPORT:
+		(void) strncpy(content, "Sampling isn't working properly.",
+		    WIN_LINECHAR_MAX);
+		break;
+
+	case WARN_STOP:
+		(void) strncpy(content, "Stopping ...",
+		    WIN_LINECHAR_MAX);
 		break;
 
 	default:
-		content[0] = 0;
+		content[0] = '\0';
 	}
 
 	content[WIN_LINECHAR_MAX - 1] = 0;
@@ -3724,8 +2866,9 @@ win_warn_msg(win_type_t warn_type)
 void
 win_fix_init(void)
 {
-	reg_init(&s_note_reg, 0, g_scr_height - 1, g_scr_width, 1, A_REVERSE | A_BOLD);
-	reg_init(&s_title_reg, 0, 0, g_scr_width, 1, 0);
+	(void) reg_init(&s_note_reg, 0, g_scr_height - 1,
+	    g_scr_width, 1, A_REVERSE | A_BOLD);
+	(void) reg_init(&s_title_reg, 0, 0, g_scr_width, 1, 0);
 	reg_update_all();
 }
 
@@ -3775,7 +2918,7 @@ win_dyn_init(void *p)
 		win->destroy = topnproc_win_destroy;
 		break;
 
-	case CMD_HOME_ID:		
+	case CMD_HOME_ID:
 		if ((win->dyn = topnproc_dyn_create(
 		    WIN_TYPE_RAW_NUM)) == NULL) {
 			goto L_EXIT;
@@ -3838,7 +2981,7 @@ win_dyn_init(void *p)
 		win->destroy = nodedetail_win_destroy;
 		break;
 
-	case CMD_CALLCHAIN_ID:
+	case CMD_CALLCHAIN_ID:		
 		if ((win->dyn = callchain_dyn_create(page)) == NULL) {
 			goto L_EXIT;
 		}
@@ -3854,22 +2997,22 @@ win_dyn_init(void *p)
 			goto L_EXIT;
 		}
 
-		win->draw = lat_win_draw;
+		win->draw = os_lat_win_draw;
 		win->destroy = lat_win_destroy;
 		win->scroll = lat_win_scroll;
 		win->scroll_enter = lat_win_scrollenter;
 		break;
-		
+
 	case CMD_LATNODE_ID:
 		if ((win->dyn = latnode_dyn_create(page, &win->type)) == NULL) {
 			goto L_EXIT;
 		}
 
-		win->draw = latnode_win_draw;
+		win->draw = os_latnode_win_draw;
 		win->destroy = latnode_win_destroy;
 		win->scroll = latnode_win_scroll;
 		break;
-		
+
 	case CMD_ACCDST_ID:
 		if ((win->dyn = accdst_dyn_create(page, &win->type)) == NULL) {
 			goto L_EXIT;
@@ -3879,22 +3022,22 @@ win_dyn_init(void *p)
 		win->destroy = accdst_win_destroy;
 		win->scroll = accdst_win_scroll;
 		break;
-
+		
 	case CMD_LLCALLCHAIN_ID:
-		if ((win->dyn = llcallchain_dyn_create(page)) == NULL) {
+		if ((win->dyn = os_llcallchain_dyn_create(page)) == NULL) {
 			goto L_EXIT;
 		}
 
 		win->type = WIN_TYPE_LLCALLCHAIN;
-		win->draw = llcallchain_win_draw;
-		win->destroy = llcallchain_win_destroy;
-		win->scroll = llcallchain_win_scroll;
+		win->draw = os_llcallchain_win_draw;
+		win->destroy = os_llcallchain_win_destroy;
+		win->scroll = os_llcallchain_win_scroll;
 		break;
 
 	default:
 		goto L_EXIT;
 	}
-	
+
 	win->inited = B_TRUE;
 	ret = 0;
 

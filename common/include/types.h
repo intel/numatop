@@ -29,14 +29,11 @@
 #ifndef _NUMATOP_TYPES_H
 #define	_NUMATOP_TYPES_H
 
+#include "./os/os_types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef enum {
-	B_FALSE = 0,
-	B_TRUE
-} boolean_t;
 
 typedef enum {
 	PRECISE_NORMAL = 0,
@@ -82,14 +79,31 @@ typedef enum {
 #define	GB_BYTES	1024*1024*1024
 #define	KB_BYTES	1024
 #define TIME_NSEC_MAX	2147483647
-#define KERNEL_ADDR_START	0xffffffff80000000
-#define IP_NUM		32
 
-#ifdef PATH_MAX
-#undef PATH_MAX
+#ifndef PATH_MAX
+#define	PATH_MAX	2048
 #endif
 
-#define	PATH_MAX	4096
+#define SCRIPT_SIZE	4096
+
+#define SMPL_PERIOD_INFINITE			0XFFFFFFFFFFFFFFULL
+#define SMPL_PERIOD_RMA_DEFAULT			10000
+#define SMPL_PERIOD_LMA_DEFAULT			10000
+#define SMPL_PERIOD_CLK_DEFAULT			10000000
+#define SMPL_PERIOD_CORECLK_DEFAULT		SMPL_PERIOD_INFINITE
+#define SMPL_PERIOD_IR_DEFAULT			10000000
+
+#define SMPL_PERIOD_RMA_MIN				5000
+#define SMPL_PERIOD_LMA_MIN				5000
+#define SMPL_PERIOD_CLK_MIN				1000000
+#define SMPL_PERIOD_CORECLK_MIN			SMPL_PERIOD_INFINITE
+#define SMPL_PERIOD_IR_MIN				1000000
+
+#define SMPL_PERIOD_RMA_MAX				100000
+#define SMPL_PERIOD_LMA_MAX				100000
+#define SMPL_PERIOD_CLK_MAX				100000000
+#define SMPL_PERIOD_CORECLK_MAX			SMPL_PERIOD_INFINITE
+#define SMPL_PERIOD_IR_MAX				100000000
 
 typedef enum {
 	COUNT_INVALID = -1,
@@ -97,7 +111,7 @@ typedef enum {
 	COUNT_RMA,
 	COUNT_CLK,
 	COUNT_IR,
-	COUNT_LMA	/* COUNT_LMA must be the last field, it may be dropped */
+	COUNT_LMA
 } count_id_t;
 
 #define COUNT_NUM		5
@@ -111,20 +125,6 @@ typedef enum {
 typedef struct _count_value {
 	uint64_t counts[COUNT_NUM];
 } count_value_t;
-
-#define INVALID_FD	-1
-#define INVALID_CODE_UMASK	(uint64_t)(-1)
-#define INVALID_CONFIG	(uint64_t)(-1)
-
-typedef struct _meminfo {
-	uint64_t mem_total;
-	uint64_t mem_free;
-	uint64_t active;
-	uint64_t inactive;
-	uint64_t dirty;
-	uint64_t writeback;
-	uint64_t mapped;
-} meminfo_t;
 
 typedef struct _bufaddr {
 	uint64_t addr;

@@ -30,6 +30,8 @@
 #define	_NUMATOP_REG_H
 
 #include <sys/types.h>
+#include <sys/time.h>
+#include <inttypes.h>
 #include "types.h"
 
 #ifdef __cplusplus
@@ -65,23 +67,22 @@ typedef struct _win_reg {
 	scroll_line_t scroll;
 } win_reg_t;
 
-int reg_init(win_reg_t *, int, int, int, int, unsigned int);
-void reg_buf_init(win_reg_t *, void *,
+extern int reg_init(win_reg_t *, int, int, int, int, unsigned int);
+extern void reg_buf_init(win_reg_t *, void *,
 	void (*line_get)(win_reg_t *, int, char *, int));
-void reg_scroll_init(win_reg_t *, boolean_t);
-void reg_erase(win_reg_t *);
-void reg_refresh(win_reg_t *);
-void reg_refresh_nout(win_reg_t *);
-void reg_update_all(void);
-void reg_win_destroy(win_reg_t *seg);
-void reg_line_write(win_reg_t *, int, reg_align_t, char *);
-void reg_highlight_write(win_reg_t *, int, int, char *);
-void reg_line_scroll(win_reg_t *, int);
-void reg_scroll_show(win_reg_t *, void *, int,
+extern void reg_scroll_init(win_reg_t *, boolean_t);
+extern void reg_erase(win_reg_t *);
+extern void reg_refresh(win_reg_t *);
+extern void reg_refresh_nout(win_reg_t *);
+extern void reg_update_all(void);
+extern void reg_win_destroy(win_reg_t *seg);
+extern void reg_line_write(win_reg_t *, int, reg_align_t, char *);
+extern void reg_highlight_write(win_reg_t *, int, int, char *);
+extern void reg_line_scroll(win_reg_t *, int);
+extern void reg_scroll_show(win_reg_t *, void *, int,
 	void (*str_build_func)(char *, int, int, void *));
-boolean_t reg_curses_init(boolean_t);
-void reg_curses_fini(void);
-void reg_win_clear(void);
+extern boolean_t reg_curses_init(boolean_t);
+extern void reg_curses_fini(void);
 
 #ifdef __cplusplus
 }

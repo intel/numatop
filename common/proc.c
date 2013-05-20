@@ -36,14 +36,16 @@
 #include <pthread.h>
 #include <time.h>
 #include <ctype.h>
+#include <signal.h>
 #include <string.h>
 #include "include/types.h"
 #include "include/lwp.h"
 #include "include/proc.h"
-#include "include/node.h"
 #include "include/disp.h"
 #include "include/util.h"
 #include "include/perf.h"
+#include "include/os/node.h"
+#include "include/os/os_util.h"
 
 static proc_group_t s_proc_group;
 
@@ -67,12 +69,13 @@ proc_group_init(void)
 	return (0);
 }
 
+/* ARGSUSED */
 static int
 lwp_free_walk(track_lwp_t *lwp, void *arg, boolean_t *end)
 {
 	*end = B_FALSE;
-	lwp_free(lwp);
-	return (0);	
+	(void) lwp_free(lwp);
+	return (0);
 }
 
 /*
@@ -93,26 +96,26 @@ proc_free(track_proc_t *proc)
 	proc_lwp_traverse(proc, lwp_free_walk, NULL);
 	s_proc_group.nprocs--;
 	s_proc_group.nlwps -= list->nlwps;
-	
+
 	if (list->id_arr != NULL) {
 		free(list->id_arr);
 	}
 
 	if (list->sort_arr != NULL) {
-		free(list->sort_arr);	
+		free(list->sort_arr);
 	}
 
 	if (proc->countval_arr != NULL) {
 		free(proc->countval_arr);
 	}
 
-	map_fini(&proc->map);
+	(void) map_proc_fini(proc);
 	sym_free(&proc->sym);
 	perf_countchain_reset(&proc->count_chain);
 	perf_llrecgrp_reset(&proc->llrec_grp);
 
 	(void) pthread_mutex_unlock(&proc->mutex);
-	(void) pthread_mutex_destroy(&proc->mutex);	
+	(void) pthread_mutex_destroy(&proc->mutex);
 	free(proc);
 }
 
@@ -141,19 +144,20 @@ proc_traverse(int (*func)(track_proc_t *, void *, boolean_t *), void *arg)
 
 			proc = hash_next;
 		}
-		
+
 		if (j == s_proc_group.nprocs) {
 			return;
-		}			
+		}
 	}
 }
 
+/* ARGSUSED */
 static int
 proc_free_walk(track_proc_t *proc, void *arg, boolean_t *end)
 {
 	*end = B_FALSE;
 	proc_free(proc);
-	return (0);	
+	return (0);
 }
 
 /*
@@ -257,7 +261,8 @@ proc_alloc(void)
 		return (NULL);
 	}
 
-	if ((countval_arr = zalloc(cpuid_max * sizeof (count_value_t))) == NULL) {
+	if ((countval_arr = zalloc(cpuid_max *
+	    sizeof (count_value_t))) == NULL) {
 		return (NULL);
 	}
 
@@ -284,11 +289,11 @@ lwp_id_cmp(const void *a, const void *b)
 {
 	track_lwp_t *lwp1 = (track_lwp_t *)a;
 	track_lwp_t *lwp2 = *((track_lwp_t **)b);
-	
+
 	if (lwp1->id > lwp2->id) {
 		return (1);
 	}
-	
+
 	if (lwp1->id < lwp2->id) {
 		return (-1);
 	}
@@ -307,12 +312,15 @@ proc_lwp_find(track_proc_t *proc, id_t lwpid)
 
 	lwp_key.id = lwpid;
 	(void) pthread_mutex_lock(&proc->mutex);
-	if ((p = bsearch(&lwp_key, (void *)(list->id_arr), list->nlwps,
-		sizeof (track_lwp_t *), lwp_id_cmp)) != NULL) {					
+	if ((p = bsearch(&lwp_key, (void *)(list->id_arr),
+	    list->nlwps, sizeof (track_lwp_t *),
+	    lwp_id_cmp)) != NULL) {
+
 		lwp = *p;
 		if (lwp_refcount_inc(lwp) != 0) {
 			/*
-			 * The lwp is being removed by other threads.
+			 * The lwp is being removed by other threads or
+			 * the thread is quitting.
 			 */
 			lwp = NULL;
 		}
@@ -331,7 +339,7 @@ lwp_key_cmp(const void *a, const void *b)
 	if (lwp1->key > lwp2->key) {
 		return (-1);
 	}
-	
+
 	if (lwp1->key < lwp2->key) {
 		return (1);
 	}
@@ -349,12 +357,13 @@ proc_lwp_sortkey(track_proc_t *proc)
 		free(list->sort_arr);
 		list->sort_arr = NULL;
 	}
-	
+
 	if ((sort_arr = zalloc(sizeof (track_lwp_t *) * list->nlwps)) == NULL) {
 		return;
 	}
 
-	memcpy(sort_arr, list->id_arr, sizeof (track_lwp_t *) * list->nlwps);
+	(void) memcpy(sort_arr, list->id_arr,
+	    sizeof (track_lwp_t *) * list->nlwps);
 	qsort(sort_arr, list->nlwps, sizeof (track_lwp_t *), lwp_key_cmp);
 	list->sort_arr = sort_arr;
 	list->sort_idx = 0;
@@ -404,7 +413,7 @@ static uint64_t
 count_value_get(track_proc_t *proc, count_id_t count_id)
 {
 	return (node_countval_sum(proc->countval_arr, proc->cpuid_max,
-		NODE_ALL, count_id));
+	    NODE_ALL, count_id));
 }
 
 /*
@@ -419,13 +428,13 @@ proc_key_compute(track_proc_t *proc, void *arg, boolean_t *end)
 
 	switch (sortkey) {
 	case SORT_KEY_CPU:
-		proc->key = count_value_get(proc, COUNT_CLK);		
+		proc->key = count_value_get(proc, COUNT_CLK);
 		break;
 
 	case SORT_KEY_PID:
 		proc->key = proc->pid;
 		break;
-		
+
 	case SORT_KEY_RPI:
 		rma = count_value_get(proc, COUNT_RMA);
 		ir = count_value_get(proc, COUNT_IR);
@@ -475,7 +484,7 @@ proc_key_cmp(const void *a, const void *b)
 	if (proc1->key > proc2->key) {
 		return (-1);
 	}
-	
+
 	if (proc1->key < proc2->key) {
 		return (1);
 	}
@@ -492,7 +501,7 @@ proc_pid_cmp(const void *a, const void *b)
 	if (proc1->pid > proc2->pid) {
 		return (1);
 	}
-	
+
 	if (proc1->pid < proc2->pid) {
 		return (-1);
 	}
@@ -518,18 +527,21 @@ proc_sortkey(void)
 
 	for (i = 0; i < PROC_HASHTBL_SIZE; i++) {
 		proc = s_proc_group.hashtbl[i];
-		while (proc != NULL) {			
+		while (proc != NULL) {
 			sort_arr[j++] = proc;
 			proc = proc->hash_next;
 		}
-			
+
 		if (j == s_proc_group.nprocs) {
 			break;
-		}		
+		}
 	}
 
-	qsort(sort_arr, s_proc_group.nprocs, sizeof (track_proc_t *), proc_pid_cmp);
-	qsort(sort_arr, s_proc_group.nprocs, sizeof (track_proc_t *), proc_key_cmp);
+	qsort(sort_arr, s_proc_group.nprocs,
+	    sizeof (track_proc_t *), proc_pid_cmp);
+
+	qsort(sort_arr, s_proc_group.nprocs,
+	    sizeof (track_proc_t *), proc_key_cmp);
 
 	s_proc_group.sort_arr = sort_arr;
 	s_proc_group.sort_idx = 0;
@@ -563,8 +575,8 @@ proc_sort_next(void)
 	if (idx < s_proc_group.nprocs) {
 		s_proc_group.sort_idx++;
 		return (s_proc_group.sort_arr[idx]);
-	}	
-	
+	}
+
 	return (NULL);
 }
 
@@ -659,11 +671,11 @@ pid_cmp(const void *a, const void *b)
 	if (*pid1 > *pid2) {
 		return (1);
 	}
-	
+
 	if (*pid1 < *pid2) {
 		return (-1);
 	}
-	
+
 	return (0);
 }
 
@@ -671,25 +683,27 @@ static pid_t *
 pid_find(pid_t pid, pid_t *pid_arr, int num)
 {
 	pid_t *p;
-	
+
 	p = bsearch(&pid, (void *)pid_arr, num, sizeof (pid_t), pid_cmp);
 	return (p);
 }
 
+/* ARGSUSED */
 static int
 proc_lwp_refresh(track_proc_t *proc, void *arg, boolean_t *end)
 {
 	*end = B_FALSE;
 	lwp_enum_update(proc);
-	return (0);	
+	return (0);
 }
 
+/* ARGSUSED */
 static int
 proc_nlwps_sum(track_proc_t *proc, void *arg, boolean_t *end)
 {
 	*end = B_FALSE;
 	s_proc_group.nlwps += proc_nlwp(proc);
-	return (0);	
+	return (0);
 }
 
 /*
@@ -705,25 +719,27 @@ proc_group_refresh(pid_t *procs_new, int nproc_new)
 	int i, j;
 	boolean_t *exist_arr;
 
-	if ((exist_arr = zalloc (sizeof (boolean_t) * nproc_new)) == NULL) {
+	if ((exist_arr = zalloc(sizeof (boolean_t) * nproc_new)) == NULL) {
 		return;
 	}
 
 	qsort(procs_new, nproc_new, sizeof (pid_t), pid_cmp);
-				
+
 	(void) pthread_mutex_lock(&s_proc_group.mutex);
 	for (i = 0; i < PROC_HASHTBL_SIZE; i++) {
 		proc = s_proc_group.hashtbl[i];
 		while (proc != NULL) {
 			hash_next = proc->hash_next;
-			if ((p = pid_find(proc->pid, procs_new, nproc_new)) == NULL) {
-				proc_group_remove(proc);				
+			if ((p = pid_find(proc->pid, procs_new,
+			    nproc_new)) == NULL) {
+				proc_group_remove(proc);
 				proc_free(proc);
-			} else {		
-				j = ((uint64_t)p - (uint64_t)procs_new) / sizeof (pid_t);
+			} else {
+				j = ((uint64_t)p - (uint64_t)procs_new) /
+				    sizeof (pid_t);
 				exist_arr[j] = B_TRUE;
 			}
-			
+
 			proc = hash_next;
 		}
 	}
@@ -732,8 +748,9 @@ proc_group_refresh(pid_t *procs_new, int nproc_new)
 		if (!exist_arr[i]) {
 			if ((proc = proc_alloc()) != NULL) {
 				proc->pid = procs_new[i];
-				procfs_pname_get(proc->pid, proc->name, PROC_NAME_SIZE);
-				proc_group_add(proc);
+				(void) os_procfs_pname_get(proc->pid,
+				    proc->name, PROC_NAME_SIZE);
+				(void) proc_group_add(proc);
 			}
 		}
 	}
@@ -756,7 +773,7 @@ proc_enum_update(pid_t pid)
 	int nproc_new;
 
 	if (pid > 0) {
-		if (!procfs_proc_valid(pid)) {
+		if (kill(pid, 0) == -1) {
 			/* The process is obsolete. */
 			proc_obsolete(pid);
 		}
@@ -849,18 +866,18 @@ proc_countval_update(track_proc_t *proc, int cpu, count_id_t count_id,
 	count_value_t *countval, *arr_new;
 	int cpuid_max = node_cpuid_max();
 
-	/* 
+	/*
 	 * Check if new cpu hotadd/online
 	 */
 	if (cpu >= proc->cpuid_max) {
 		ASSERT(cpuid_max > proc->cpuid_max);
 		if ((arr_new = realloc(proc->countval_arr,
-			sizeof (count_value_t) * cpuid_max)) == NULL) {
+		    sizeof (count_value_t) * cpuid_max)) == NULL) {
 			return (-1);
 		}
-		
-		memset(&arr_new[proc->cpuid_max], 0,
-			sizeof (count_value_t) * (cpuid_max - proc->cpuid_max));
+
+		(void) memset(&arr_new[proc->cpuid_max], 0,
+		    sizeof (count_value_t) * (cpuid_max - proc->cpuid_max));
 
 		proc->countval_arr = arr_new;
 		proc->cpuid_max = cpuid_max;
@@ -899,22 +916,24 @@ proc_intval_get(track_proc_t *proc)
 	return (proc->intval_ms);
 }
 
+/* ARGSUSED */
 static int
 lwp_profiling_clear(track_lwp_t *lwp, void *arg, boolean_t *end)
 {
 	*end = B_FALSE;
-	memset(lwp->countval_arr, 0, sizeof (count_value_t) * lwp->cpuid_max);
-	perf_countchain_reset(&lwp->count_chain);
+	(void) memset(lwp->countval_arr, 0,
+	    sizeof (count_value_t) * lwp->cpuid_max);
 	return (0);
 }
 
+/* ARGSUSED */
 static int
 profiling_clear(track_proc_t *proc, void *arg, boolean_t *end)
 {
 	*end = B_FALSE;
 	proc_lwp_traverse(proc, lwp_profiling_clear, NULL);
-	memset(proc->countval_arr, 0, sizeof (count_value_t) * proc->cpuid_max);
-	perf_countchain_reset(&proc->count_chain);
+	(void) memset(proc->countval_arr, 0,
+	    sizeof (count_value_t) * proc->cpuid_max);
 	return (0);
 }
 
@@ -924,6 +943,32 @@ proc_profiling_clear(void)
 	proc_traverse(profiling_clear, NULL);
 }
 
+/* ARGSUSED */
+static int
+lwp_callchain_clear(track_lwp_t *lwp, void *arg, boolean_t *end)
+{
+	*end = B_FALSE;
+	perf_countchain_reset(&lwp->count_chain);
+	return (0);
+}
+
+/* ARGSUSED */
+static int
+callchain_clear(track_proc_t *proc, void *arg, boolean_t *end)
+{
+	*end = B_FALSE;
+	proc_lwp_traverse(proc, lwp_callchain_clear, NULL);
+	perf_countchain_reset(&proc->count_chain);
+	return (0);
+}
+
+void
+proc_callchain_clear(void)
+{
+	proc_traverse(callchain_clear, NULL);
+}
+
+/* ARGSUSED */
 static int
 lwp_ll_clear(track_lwp_t *lwp, void *arg, boolean_t *end)
 {
@@ -935,14 +980,19 @@ lwp_ll_clear(track_lwp_t *lwp, void *arg, boolean_t *end)
 static int
 ll_clear(track_proc_t *proc, void *arg, boolean_t *end)
 {
-	*end = B_FALSE;
-	proc_lwp_traverse(proc, lwp_ll_clear, NULL);
-	perf_llrecgrp_reset(&proc->llrec_grp);
-	return (0);
+        *end = B_FALSE;
+        proc_lwp_traverse(proc, lwp_ll_clear, NULL);
+        perf_llrecgrp_reset(&proc->llrec_grp);
+        return (0);
 }
 
 void
-proc_ll_clear(void)
+proc_ll_clear(track_proc_t *proc)
 {
-	proc_traverse(ll_clear, NULL);
+	if (proc != NULL) {
+		proc_lwp_traverse(proc, lwp_ll_clear, NULL);
+		perf_llrecgrp_reset(&proc->llrec_grp);
+	} else {
+		proc_traverse(ll_clear, NULL);
+	}
 }

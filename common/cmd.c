@@ -40,8 +40,8 @@
 #include "include/page.h"
 #include "include/win.h"
 #include "include/disp.h"
-
-static switch_t s_switch[WIN_TYPE_NUM][CMD_NUM];
+#include "include/os/os_page.h"
+#include "include/os/os_cmd.h"
 
 static int s_rawnum_sortkey[] = {
 	SORT_KEY_RMA,
@@ -59,111 +59,71 @@ static int s_topnproc_sortkey[] = {
 	SORT_KEY_CPU
 };
 
-static int s_keeyrun_countid[] = {
-	COUNT_RMA,
-	COUNT_LMA,
-	COUNT_CLK,
-	COUNT_IR
-};
-
-static int
-preop_switch2ll(cmd_t *cmd, boolean_t *smpl)
-{
-	*smpl = B_FALSE;
-	if (!perf_ll_started()) {
-		perf_allstop();
-		if (perf_ll_start() != 0) {
-			return (-1);
-		}
-
-		*smpl = B_TRUE;
-	}
-
-	return (0);	
-}
+static switch_t s_switch[WIN_TYPE_NUM][CMD_NUM];
 
 static int
 preop_switch2profiling(cmd_t *cmd, boolean_t *smpl)
 {
-	*smpl = B_FALSE;
-	if (!perf_profiling_started()) {
-		perf_allstop();
-		if (perf_profiling_start() != 0) {
-			return (-1);	
-		}
+	return (os_preop_switch2profiling(cmd, smpl));
+}
 
-		*smpl = B_TRUE;
-	}
+static int
+preop_switch2ll(cmd_t *cmd, boolean_t *smpl)
+{
+	return (os_preop_switch2ll(cmd, smpl));
+}
 
-	return (0);
+static int
+preop_llrefresh(cmd_t *cmd, boolean_t *smpl)
+{
+	return (os_preop_llrefresh(cmd, smpl));
+}
+
+static int
+preop_llmap_get(cmd_t *cmd, boolean_t *smpl)
+{
+	return (os_preop_llmap_get(cmd, smpl));
+}
+
+static int
+preop_switch2ln(cmd_t *cmd, boolean_t *smpl)
+{
+	return (os_preop_switch2ln(cmd, smpl));
+}
+
+static int
+preop_lnrefresh(cmd_t *cmd, boolean_t *smpl)
+{
+	return (os_preop_lnrefresh(cmd, smpl));
+}
+
+static int
+preop_lnmap_get(cmd_t *cmd, boolean_t *smpl)
+{
+	return (os_preop_lnmap_get(cmd, smpl));
+}
+
+static int
+preop_back2ll(cmd_t *cmd, boolean_t *smpl)
+{
+	return (os_preop_back2ll(cmd, smpl));
 }
 
 static int
 preop_switch2callchain(cmd_t *cmd, boolean_t *smpl)
 {
-	page_t *cur = page_current_get();
-	win_type_t type = PAGE_WIN_TYPE(cur);
-
-	switch (type) {
-	case WIN_TYPE_MONIPROC:
-		CMD_CALLCHAIN(cmd)->pid = DYN_MONI_PROC(cur)->pid;
-		CMD_CALLCHAIN(cmd)->lwpid = 0;
-		break;
-		
-	case WIN_TYPE_MONILWP:
-		CMD_CALLCHAIN(cmd)->pid = DYN_MONI_LWP(cur)->pid;
-		CMD_CALLCHAIN(cmd)->lwpid = DYN_MONI_LWP(cur)->lwpid;
-		break;
-
-	default:
-		return (-1);
-	}	
-
-	*smpl = B_TRUE;
-	return (perf_profiling_partpause(COUNT_RMA));
-}
-
-static int
-preop_leavecallchain(cmd_t *cmd, boolean_t *smpl)
-{
-	page_t *cur = page_current_get();
-	count_id_t keeprun_id;
-	
-	if ((keeprun_id = DYN_CALLCHAIN(cur)->keeprun_id) != 0) {		
-		perf_profiling_restore(keeprun_id);
-	}
-
-	*smpl = B_TRUE;
-	return (0);
+	return (os_preop_switch2callchain(cmd, smpl));
 }
 
 static int
 preop_switch2accdst(cmd_t *cmd, boolean_t *smpl)
 {
-	page_t *cur = page_current_get();
-	win_type_t type = PAGE_WIN_TYPE(cur);
-
-	switch (type) {
-	case WIN_TYPE_LAT_PROC:
-		CMD_ACCDST(cmd)->pid = DYN_LAT(cur)->pid;
-		CMD_ACCDST(cmd)->lwpid = 0;
-		break;
-		
-	case WIN_TYPE_LAT_LWP:
-		CMD_ACCDST(cmd)->pid = DYN_LAT(cur)->pid;
-		CMD_ACCDST(cmd)->lwpid = DYN_LAT(cur)->lwpid;
-		break;
-
-	default:
-		return (-1);
-	}
-	
-	return (0);
+	return (os_preop_switch2accdst(cmd, smpl));
 }
 
-static int
+int
 op_page_next(cmd_t *cmd, boolean_t smpl)
-{
+{	
 	/*
 	 * Create a new page and append it after the current page in page
 	 * list. The new page is showed in page_next_execute().
@@ -177,12 +137,18 @@ op_page_next(cmd_t *cmd, boolean_t smpl)
 	return (-1);
 }
 
+static int
+preop_leavecallchain(cmd_t *cmd, boolean_t *smpl)
+{
+	return (os_preop_leavecallchain(cmd, smpl));
+}
+
 /* ARGSUSED */
 static int
 op_page_prev(cmd_t *cmd, boolean_t smpl)
 {
 	page_t *prev;
-	
+
 	if ((prev = page_curprev_get()) != NULL) {
 		page_drop_next(prev);
 		(void) page_current_set(prev);
@@ -196,22 +162,34 @@ op_page_prev(cmd_t *cmd, boolean_t smpl)
 }
 
 /* ARGSUSED */
-static int
+int
 op_refresh(cmd_t *cmd, boolean_t smpl)
 {
 	page_t *cur = page_current_get();
 
 	page_next_set(cur);
-	if (!page_smpl_start(cur)) {
+	if (!os_page_smpl_start(cur)) {
 		/*
 		 * Refresh the current page by the latest sampling data.
 		 */
 		if (!page_next_execute(B_FALSE)) {
-			return (-1);	
+			return (-1);
 		}
-	}	
+	}
 
 	return (0);
+}
+
+static int
+op_llmap_stop(cmd_t *cmd, boolean_t smpl)
+{
+	return (os_op_llmap_stop(cmd, smpl));
+}
+
+static int
+op_lnmap_stop(cmd_t *cmd, boolean_t smpl)
+{
+	return (os_op_lnmap_stop(cmd, smpl));
 }
 
 static void
@@ -231,6 +209,7 @@ sortkey_set(int cmd_id, page_t *page)
 	}
 }
 
+/* ARGSUSED */
 static int
 op_sort(cmd_t *cmd, boolean_t smpl)
 {
@@ -240,16 +219,15 @@ op_sort(cmd_t *cmd, boolean_t smpl)
 	if ((cur = page_current_get()) != NULL) {
 		cmd_id = CMD_ID(cmd);
 		sortkey_set(cmd_id, cur);
-		op_refresh(cmd, B_FALSE);
+		(void) op_refresh(cmd, B_FALSE);
 	}
 
 	return (0);
 }
 
-/* ARGSUSED */
 static int
 op_home(cmd_t *cmd, boolean_t smpl)
-{	
+{
 	page_list_fini();
 	return (op_page_next(cmd, smpl));
 }
@@ -257,87 +235,19 @@ op_home(cmd_t *cmd, boolean_t smpl)
 static int
 op_switch2ll(cmd_t *cmd, boolean_t smpl)
 {
-	page_t *cur = page_current_get();
-	int type = PAGE_WIN_TYPE(cur);
-
-	switch (type) {
-	case WIN_TYPE_MONIPROC:
-		CMD_LAT(cmd)->pid = DYN_MONI_PROC(cur)->pid;
-		CMD_LAT(cmd)->lwpid = 0;
-		break;
-		
-	case WIN_TYPE_MONILWP:
-		CMD_LAT(cmd)->pid = DYN_MONI_LWP(cur)->pid;
-		CMD_LAT(cmd)->lwpid = DYN_MONI_LWP(cur)->lwpid;
-		break;
-
-	default:
-		return (-1);
-	}
-
-	return (op_page_next(cmd, smpl));
-}
-
-static count_id_t
-keeprun_event_set(int cmd_id, page_t *page)
-{
-	dyn_callchain_t *dyn = (dyn_callchain_t *)(page->dyn_win.dyn);
-	
-	if ((cmd_id >= CMD_1_ID) && (cmd_id <= CMD_4_ID)) {
-		dyn->keeprun_id = s_keeyrun_countid[cmd_id - CMD_1_ID];
-	} else {
-		dyn->keeprun_id = COUNT_INVALID;		
-	}
-
-	return (dyn->keeprun_id);
+	return (os_op_switch2ll(cmd, smpl));
 }
 
 static int
-op_callchain_event(cmd_t *cmd, boolean_t smpl)
+op_callchain_count(cmd_t *cmd, boolean_t smpl)
 {
-	page_t *cur;
-	count_id_t keeprun_id;
-	int cmd_id;
-
-	if ((cur = page_current_get()) != NULL) {
-		cmd_id = CMD_ID(cmd);
-		if ((keeprun_id = keeprun_event_set(cmd_id, cur)) == COUNT_INVALID) {
-			return (0);	
-		}
-
-		perf_profiling_partpause(keeprun_id);
-		op_refresh(cmd, smpl);
-	}
-
-	return (0);
+	return (os_op_callchain_count(cmd, smpl));
 }
 
 static int
-op_switch2llcallchain(cmd_t *cmd1, boolean_t smpl)
+op_switch2llcallchain(cmd_t *cmd, boolean_t smpl)
 {
-	cmd_llcallchain_t *cmd = (cmd_llcallchain_t *)cmd1;
-	page_t *cur = page_current_get();
-	dyn_lat_t *dyn;
-	win_reg_t *data_reg;
-	lat_line_t *lines;
-	int i;
-
-	dyn = (dyn_lat_t *)(cur->dyn_win.dyn);
-	data_reg = &dyn->data;
-	if ((lines = (lat_line_t *)(data_reg->buf)) == NULL) {
-		return (-1);
-	}
-		
-	if ((i = data_reg->scroll.highlight) == -1) {
-		return (-1);
-	}
-		
-	cmd->pid = dyn->pid;
-	cmd->lwpid = dyn->lwpid;
-	cmd->addr = lines[i].bufaddr.addr;
-	cmd->size = lines[i].bufaddr.size;
-	
-	return (op_page_next(cmd1, smpl));
+	return (os_op_switch2llcallchain(cmd, smpl));	
 }
 
 /*
@@ -348,14 +258,15 @@ switch_table_init(void)
 {
 	int i;
 
-	memset(s_switch, 0, sizeof (s_switch));
+	(void) memset(s_switch, 0, sizeof (s_switch));
 	for (i = 0; i < WIN_TYPE_NUM; i++) {
 		s_switch[i][CMD_RESIZE_ID].op = op_refresh;
 		s_switch[i][CMD_REFRESH_ID].op = op_refresh;
 		s_switch[i][CMD_BACK_ID].op = op_page_prev;
 		s_switch[i][CMD_HOME_ID].preop = preop_switch2profiling;
 		s_switch[i][CMD_HOME_ID].op = op_home;
-		s_switch[i][CMD_NODE_OVERVIEW_ID].preop = preop_switch2profiling;
+		s_switch[i][CMD_NODE_OVERVIEW_ID].preop =
+		    preop_switch2profiling;
 		s_switch[i][CMD_NODE_OVERVIEW_ID].op = op_page_next;
 	}
 
@@ -387,7 +298,8 @@ switch_table_init(void)
 	s_switch[WIN_TYPE_MONIPROC][CMD_LAT_ID].preop = preop_switch2ll;
 	s_switch[WIN_TYPE_MONIPROC][CMD_LAT_ID].op = op_switch2ll;
 	s_switch[WIN_TYPE_MONIPROC][CMD_LWP_ID].op = op_page_next;
-	s_switch[WIN_TYPE_MONIPROC][CMD_CALLCHAIN_ID].preop = preop_switch2callchain;
+	s_switch[WIN_TYPE_MONIPROC][CMD_CALLCHAIN_ID].preop =
+	    preop_switch2callchain;
 	s_switch[WIN_TYPE_MONIPROC][CMD_CALLCHAIN_ID].op = op_page_next;
 
 	/*
@@ -400,52 +312,73 @@ switch_table_init(void)
 	 */
 	s_switch[WIN_TYPE_MONILWP][CMD_LAT_ID].preop = preop_switch2ll;
 	s_switch[WIN_TYPE_MONILWP][CMD_LAT_ID].op = op_switch2ll;
-	s_switch[WIN_TYPE_MONILWP][CMD_CALLCHAIN_ID].preop = preop_switch2callchain;
+	s_switch[WIN_TYPE_MONILWP][CMD_CALLCHAIN_ID].preop =
+	    preop_switch2callchain;
 	s_switch[WIN_TYPE_MONILWP][CMD_CALLCHAIN_ID].op = op_page_next;
 
 	/*
 	 * Initialize for window type "WIN_TYPE_LAT_PROC"
-	 */
+	 */	
+	s_switch[WIN_TYPE_LAT_PROC][CMD_REFRESH_ID].preop = preop_llrefresh;
 	s_switch[WIN_TYPE_LAT_PROC][CMD_BACK_ID].preop = preop_switch2profiling;
 	s_switch[WIN_TYPE_LAT_PROC][CMD_LLCALLCHAIN_ID].op = op_switch2llcallchain;
+	s_switch[WIN_TYPE_LAT_PROC][CMD_LATNODE_ID].preop = preop_switch2ln;
 	s_switch[WIN_TYPE_LAT_PROC][CMD_LATNODE_ID].op = op_page_next;
 	s_switch[WIN_TYPE_LAT_PROC][CMD_ACCDST_ID].preop = preop_switch2accdst;
 	s_switch[WIN_TYPE_LAT_PROC][CMD_ACCDST_ID].op = op_page_next;
+	s_switch[WIN_TYPE_LAT_PROC][CMD_MAP_GET_ID].preop = preop_llmap_get;
+	s_switch[WIN_TYPE_LAT_PROC][CMD_MAP_GET_ID].op = op_refresh;
+	s_switch[WIN_TYPE_LAT_PROC][CMD_MAP_STOP_ID].op = op_llmap_stop;
 	s_switch[WIN_TYPE_LAT_PROC][CMD_NODE_OVERVIEW_ID].preop = NULL;
 	s_switch[WIN_TYPE_LAT_PROC][CMD_NODE_OVERVIEW_ID].op = NULL;
-	
+
 	/*
 	 * Initialize for window type "WIN_TYPE_LAT_LWP"
-	 */	
+	 */
+	s_switch[WIN_TYPE_LAT_LWP][CMD_REFRESH_ID].preop = preop_llrefresh;
 	s_switch[WIN_TYPE_LAT_LWP][CMD_BACK_ID].preop = preop_switch2profiling;
 	s_switch[WIN_TYPE_LAT_LWP][CMD_LLCALLCHAIN_ID].op = op_switch2llcallchain;
+	s_switch[WIN_TYPE_LAT_LWP][CMD_LATNODE_ID].preop = preop_switch2ln;
 	s_switch[WIN_TYPE_LAT_LWP][CMD_LATNODE_ID].op = op_page_next;
 	s_switch[WIN_TYPE_LAT_LWP][CMD_ACCDST_ID].preop = preop_switch2accdst;
 	s_switch[WIN_TYPE_LAT_LWP][CMD_ACCDST_ID].op = op_page_next;
+	s_switch[WIN_TYPE_LAT_LWP][CMD_MAP_GET_ID].preop = preop_llmap_get;
+	s_switch[WIN_TYPE_LAT_LWP][CMD_MAP_GET_ID].op = op_refresh;
+	s_switch[WIN_TYPE_LAT_LWP][CMD_MAP_STOP_ID].op = op_llmap_stop;
 	s_switch[WIN_TYPE_LAT_LWP][CMD_NODE_OVERVIEW_ID].preop = NULL;
 	s_switch[WIN_TYPE_LAT_LWP][CMD_NODE_OVERVIEW_ID].op = NULL;
 
 	/*
 	 * Initialize for window type "WIN_TYPE_LATNODE_PROC"
-	 */	
+	 */
+	s_switch[WIN_TYPE_LATNODE_PROC][CMD_REFRESH_ID].preop = preop_lnrefresh;
+	s_switch[WIN_TYPE_LATNODE_PROC][CMD_BACK_ID].preop = preop_back2ll;
+	s_switch[WIN_TYPE_LATNODE_PROC][CMD_MAP_GET_ID].preop = preop_lnmap_get;
+	s_switch[WIN_TYPE_LATNODE_PROC][CMD_MAP_GET_ID].op = op_refresh;
+	s_switch[WIN_TYPE_LATNODE_PROC][CMD_MAP_STOP_ID].op = op_lnmap_stop;
 	s_switch[WIN_TYPE_LATNODE_PROC][CMD_NODE_OVERVIEW_ID].preop = NULL;
 	s_switch[WIN_TYPE_LATNODE_PROC][CMD_NODE_OVERVIEW_ID].op = NULL;
 
 	/*
 	 * Initialize for window type "WIN_TYPE_LATNODE_LWP"
 	 */
+	s_switch[WIN_TYPE_LATNODE_LWP][CMD_REFRESH_ID].preop = preop_lnrefresh;
+	s_switch[WIN_TYPE_LATNODE_LWP][CMD_BACK_ID].preop = preop_back2ll;
+	s_switch[WIN_TYPE_LATNODE_LWP][CMD_MAP_GET_ID].preop = preop_lnmap_get;
+	s_switch[WIN_TYPE_LATNODE_LWP][CMD_MAP_GET_ID].op = op_refresh;
+	s_switch[WIN_TYPE_LATNODE_LWP][CMD_MAP_STOP_ID].op = op_lnmap_stop;
 	s_switch[WIN_TYPE_LATNODE_LWP][CMD_NODE_OVERVIEW_ID].preop = NULL;
 	s_switch[WIN_TYPE_LATNODE_LWP][CMD_NODE_OVERVIEW_ID].op = NULL;
 
 	/*
 	 * Initialize for window type "WIN_TYPE_ACCDST_PROC"
-	 */	
+	 */
 	s_switch[WIN_TYPE_ACCDST_PROC][CMD_NODE_OVERVIEW_ID].preop = NULL;
 	s_switch[WIN_TYPE_ACCDST_PROC][CMD_NODE_OVERVIEW_ID].op = NULL;
 
 	/*
 	 * Initialize for window type "WIN_TYPE_ACCDST_LWP"
-	 */	
+	 */
 	s_switch[WIN_TYPE_ACCDST_LWP][CMD_NODE_OVERVIEW_ID].preop = NULL;
 	s_switch[WIN_TYPE_ACCDST_LWP][CMD_NODE_OVERVIEW_ID].op = NULL;
 
@@ -460,17 +393,19 @@ switch_table_init(void)
 	/*
 	 * Initialize for window type "WIN_TYPE_CALLCHAIN"
 	 */
-	s_switch[WIN_TYPE_CALLCHAIN][CMD_BACK_ID].preop = preop_leavecallchain;
-	s_switch[WIN_TYPE_CALLCHAIN][CMD_HOME_ID].preop = preop_leavecallchain;
+	s_switch[WIN_TYPE_CALLCHAIN][CMD_BACK_ID].preop =
+	    preop_leavecallchain;;
+	s_switch[WIN_TYPE_CALLCHAIN][CMD_HOME_ID].preop =
+	    preop_leavecallchain;;
 	s_switch[WIN_TYPE_CALLCHAIN][CMD_NODE_OVERVIEW_ID].preop = NULL;
 	s_switch[WIN_TYPE_CALLCHAIN][CMD_NODE_OVERVIEW_ID].op = NULL;
-	s_switch[WIN_TYPE_CALLCHAIN][CMD_1_ID].op = op_callchain_event;
-	s_switch[WIN_TYPE_CALLCHAIN][CMD_2_ID].op = op_callchain_event;
-	s_switch[WIN_TYPE_CALLCHAIN][CMD_3_ID].op = op_callchain_event;
-	s_switch[WIN_TYPE_CALLCHAIN][CMD_4_ID].op = op_callchain_event;
+	s_switch[WIN_TYPE_CALLCHAIN][CMD_1_ID].op = op_callchain_count;
+	s_switch[WIN_TYPE_CALLCHAIN][CMD_2_ID].op = op_callchain_count;
+	s_switch[WIN_TYPE_CALLCHAIN][CMD_3_ID].op = op_callchain_count;
+	s_switch[WIN_TYPE_CALLCHAIN][CMD_4_ID].op = op_callchain_count;
 
-	/*
-	 * Initialize for window type "WIN_TYPE_LLCALLCHAIN"
+	/*	 
+	 * Initialize for window type "WIN_TYPE_LLCALLCHAIN"	 
 	 */
 	s_switch[WIN_TYPE_LLCALLCHAIN][CMD_NODE_OVERVIEW_ID].preop = NULL;
 	s_switch[WIN_TYPE_LLCALLCHAIN][CMD_NODE_OVERVIEW_ID].op = NULL;
@@ -496,7 +431,7 @@ callchain_id_get(void)
 
 	default:
 		return (CMD_INVALID_ID);
-	}		
+	}
 }
 
 /*
@@ -533,6 +468,12 @@ cmd_id_get(char ch)
 	case CMD_CALLCHAIN_CHAR:
 		return (callchain_id_get());
 
+	case CMD_MAP_GET_CHAR:
+		return (CMD_MAP_GET_ID);
+
+	case CMD_MAP_STOP_CHAR:
+		return (CMD_MAP_STOP_ID);
+
 	case CMD_1_CHAR:
 		return (CMD_1_ID);
 
@@ -563,18 +504,17 @@ cmd_execute(cmd_t *cmd, boolean_t *badcmd)
 	win_type_t type;
 	page_t *cur;
 	switch_t *s;
-	boolean_t smpl = B_FALSE;
-	
+	boolean_t b = B_TRUE, smpl = B_FALSE;
+
 	if ((cmd_id = CMD_ID(cmd)) == CMD_INVALID_ID) {
-		*badcmd = B_TRUE;
-		return;
-	} else {
-		*badcmd = B_FALSE;
+		goto L_EXIT;
 	}
+
+	b = B_FALSE;
 
 	if ((cur = page_current_get()) == NULL) {
 		/* It's the first window. */
-		type = WIN_TYPE_RAW_NUM;			
+		type = WIN_TYPE_RAW_NUM;
 	} else {
 		type = PAGE_WIN_TYPE(cur);
 	}
@@ -586,5 +526,10 @@ cmd_execute(cmd_t *cmd, boolean_t *badcmd)
 
 	if (s->op != NULL) {
 		(void) s->op(cmd, smpl);
+	}
+
+L_EXIT:
+	if (badcmd != NULL) {
+		*badcmd = b;
 	}
 }

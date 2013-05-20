@@ -35,10 +35,10 @@
 #include <pthread.h>
 #include "types.h"
 #include "lwp.h"
-#include "node.h"
 #include "perf.h"
-#include "sym.h"
-#include "map.h"
+#include "./os/node.h"
+#include "./os/map.h"
+#include "./os/sym.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,7 +71,7 @@ typedef struct _track_proc {
 	proc_lwplist_t lwp_list;
 	int intval_ms;
 	uint64_t key;
-	map_t map;
+	map_proc_t map;
 	sym_t sym;
 	count_value_t *countval_arr;
 	perf_countchain_t count_chain;
@@ -114,7 +114,8 @@ extern int proc_countval_update(track_proc_t *, int, count_id_t, uint64_t);
 extern void proc_intval_update(int);
 extern int proc_intval_get(track_proc_t *);
 extern void proc_profiling_clear(void);
-extern void proc_ll_clear(void);
+extern void proc_callchain_clear(void);
+extern void proc_ll_clear(track_proc_t *);
 
 #ifdef __cplusplus
 }

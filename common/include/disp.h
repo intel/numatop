@@ -50,12 +50,14 @@ typedef enum {
 	DISP_FLAG_QUIT,
 	DISP_FLAG_PROFILING_DATA_READY,
 	DISP_FLAG_PROFILING_DATA_FAIL,
+	DISP_FLAG_CALLCHAIN_DATA_READY,
+	DISP_FLAG_CALLCHAIN_DATA_FAIL,
 	DISP_FLAG_LL_DATA_READY,
 	DISP_FLAG_LL_DATA_FAIL,
 	DISP_FLAG_CMD,
 	DISP_FLAG_SCROLLUP,
 	DISP_FLAG_SCROLLDOWN,
-	DISP_FLAG_SCROLLENTER,
+	DISP_FLAG_SCROLLENTER
 } disp_flag_t;
 
 typedef struct _disp_ctl {
@@ -84,12 +86,15 @@ extern void disp_cons_ctl_fini(void);
 extern void disp_consthr_quit(void);
 extern void disp_profiling_data_ready(int);
 extern void disp_profiling_data_fail(void);
+extern void disp_callchain_data_ready(int);
+extern void disp_callchain_data_fail(void);
 extern void disp_ll_data_ready(int);
 extern void disp_ll_data_fail(void);
 extern void disp_on_resize(int);
 extern void disp_intval(char *, int);
 extern void disp_dispthr_quit_wait(void);
 extern void disp_dispthr_quit_start(void);
+extern void disp_go_home(void);
 
 #ifdef __cplusplus
 }

@@ -35,7 +35,7 @@
 #include <pthread.h>
 #include "types.h"
 #include "reg.h"
-#include "perf.h"
+#include "./os/os_win.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,40 +44,45 @@ extern "C" {
 #define	NUMATOP_TITLE	"NumaTOP v1.0, (C) 2013 Intel Corporation"
 #define	CMD_CAPTION		"Command: "
 #define	WIN_PROCNAME_SIZE	12
-#define WIN_DESCBUF_SIZE	32
-#define WIN_CALLCHAIN_NUM	5
+#define	WIN_DESCBUF_SIZE	32
+#define	WIN_CALLCHAIN_NUM	5
 #define	WIN_LINECHAR_MAX	1024
-#define WIN_NLINES_MAX		4096
+#define	WIN_NLINES_MAX		4096
+
+#define	GO_HOME_WAIT	3
 
 #define	NOTE_DEFAULT \
 	"Q: Quit; H: Home; B: Back; R: Refresh; N: Node"
+
 #define	NOTE_TOPNPROC_RAW \
 	"Q: Quit; H: Home; R: Refresh; I: IR Normalize; N: Node"
+
 #define	NOTE_TOPNPROC	NOTE_DEFAULT
 #define	NOTE_TOPNLWP	NOTE_DEFAULT
+
 #define	NOTE_MONIPROC \
-	"Q: Quit; H: Home; B: Back; R: Refresh; N: Node; L: Latency; C: Call-Chain"
+	"Q: Quit; H: Home; B: Back; R: Refresh; " \
+	"N: Node; L: Latency; C: Call-Chain"
+
 #define	NOTE_MONILWP 	NOTE_MONIPROC
-#define	NOTE_LAT \
-	"Q: Quit; H: Home; B: Back; R: Refresh; A: Access Distribution; C: Call-Chain"
-#define	NOTE_LATNODE \
+
+#define	NOTE_NONODE \
 	"Q: Quit; H: Home; B: Back; R: Refresh"
-#define	NOTE_ACCDST \
-	"Q: Quit; H: Home; B: Back; R: Refresh"	
-#define	NOTE_NODEOVERVIEW \
-	"Q: Quit; H: Home; B: Back; R: Refresh"
-#define	NOTE_NODEDETAIL \
-	"Q: Quit; H: Home; B: Back; R: Refresh"
-#define NOTE_CALLCHAIN	\
-	"Q: Quit; H: Home; B: Back; R: Refresh"	
-#define NOTE_LLCALLCHAIN	\
-	"Q: Quit; H: Home; B: Back; R: Refresh"	
+
+#define	NOTE_ACCDST	NOTE_NONODE
+#define	NOTE_NODEOVERVIEW NOTE_NONODE
+#define	NOTE_NODEDETAIL NOTE_NONODE
+#define	NOTE_CALLCHAIN	NOTE_NONODE
+
 #define	NOTE_INVALID_PID \
 	"Invalid process id! (Q: Quit; H: Home)"
+
 #define	NOTE_INVALID_LWPID \
 	"Invalid lwp id! (Q: Quit; H: Home)"
+
 #define	NOTE_INVALID_MAP \
 	"No memory mapping found! (Q: Quit; H: Home; B: Back)"
+
 #define	NOTE_INVALID_NUMAMAP \
 	"No memory NUMA mapping found! (Q: Quit; H: Home; B: Back)"
 
@@ -93,12 +98,12 @@ extern "C" {
 #define	CAPTION_SIZE		"SIZE"
 #define	CAPTION_RMA			"RMA(K)"
 #define	CAPTION_LMA			"LMA(K)"
-#define CAPTION_RL			"RMA/LMA"
+#define	CAPTION_RL			"RMA/LMA"
 #define	CAPTION_DESC		"DESC"
 #define	CAPTION_BUFHIT		"ACCESS%%"
 #define	CAPTION_AVGLAT		"LAT(ns)"
-#define CAPTION_MEM_ALL		"MEM.ALL"
-#define CAPTION_MEM_FREE	"MEM.FREE"
+#define	CAPTION_MEM_ALL		"MEM.ALL"
+#define	CAPTION_MEM_FREE	"MEM.FREE"
 
 typedef enum {
 	WIN_TYPE_RAW_NUM = 0,
@@ -115,10 +120,10 @@ typedef enum {
 	WIN_TYPE_CALLCHAIN,
 	WIN_TYPE_LLCALLCHAIN,
 	WIN_TYPE_ACCDST_PROC,
-	WIN_TYPE_ACCDST_LWP,
+	WIN_TYPE_ACCDST_LWP
 } win_type_t;
 
-#define WIN_TYPE_NUM		15
+#define	WIN_TYPE_NUM		15
 
 typedef enum {
 	WARN_INVALID = 0,
@@ -132,7 +137,8 @@ typedef enum {
 	WARN_INVALID_NID,
 	WARN_INVALID_MAP,
 	WARN_INVALID_NUMAMAP,
-	WARN_LL_NOT_SUPPORT
+	WARN_LL_NOT_SUPPORT,
+	WARN_STOP
 } warn_type_t;
 
 typedef struct _dyn_win {
@@ -212,7 +218,6 @@ typedef struct _topnlwp_line {
 typedef struct _dyn_lat {
 	pid_t pid;
 	int lwpid;
-	boolean_t created;
 	win_reg_t msg;
 	win_reg_t caption;
 	win_reg_t data;
@@ -280,13 +285,17 @@ typedef struct _dyn_nodedetail {
 typedef struct _dyn_callchain {
 	pid_t pid;
 	int lwpid;
-	count_id_t keeprun_id;
+	count_id_t countid;
 	win_reg_t msg;
 	win_reg_t caption;
 	win_reg_t pad;
 	win_reg_t data;
 	win_reg_t hint;
 } dyn_callchain_t;
+
+typedef struct _callchain_line {
+	char content[WIN_LINECHAR_MAX];
+} callchain_line_t;
 
 typedef struct _dyn_llcallchain {
 	pid_t pid;
@@ -301,10 +310,6 @@ typedef struct _dyn_llcallchain {
 	win_reg_t pad;
 	win_reg_t chain_data;
 } dyn_llcallchain_t;
-
-typedef struct _callchain_line {
-	char content[WIN_LINECHAR_MAX];
-} callchain_line_t;
 
 typedef struct _dyn_warn {
 	win_reg_t msg;
@@ -322,6 +327,9 @@ typedef struct _dyn_warn {
 
 #define	DYN_LATNODE(page) \
 	((dyn_latnode_t *)((page)->dyn_win.dyn))
+
+#define	DYN_ACCDST(page) \
+	((dyn_accdst_t *)((page)->dyn_win.dyn))
 
 #define	DYN_NODEOVERVIEW(page) \
 	((dyn_nodeoverview_t *)((page)->dyn_win.dyn))
@@ -342,17 +350,31 @@ extern int g_scr_width;
 /* CPU unhalted cycles in a second */
 extern uint64_t g_clkofsec;
 
-/* Number of CPU cores */
+/* Number of online CPUs */
 extern int g_ncpus;
 
 /* The sorting key */
 extern int g_sortkey;
 
-void win_fix_init(void);
-void win_fix_fini(void);
-void win_warn_msg(win_type_t);
-int win_dyn_init(void *);
-void win_dyn_fini(void *);
+extern void win_fix_init(void);
+extern void win_fix_fini(void);
+extern void win_warn_msg(warn_type_t);
+extern int win_dyn_init(void *);
+extern void win_dyn_fini(void *);
+extern void win_node_countvalue(node_t *, win_countvalue_t *);
+extern void win_callchain_str_build(char *, int, int, void *);
+extern void win_invalid_proc(void);
+extern void win_invalid_lwp(void);
+extern void win_note_show(char *);
+extern void win_title_show(void);
+extern boolean_t win_lat_data_show(track_proc_t *, dyn_lat_t *, boolean_t *);
+extern lat_line_t* win_lat_buf_create(track_proc_t *, int, int *);
+extern void win_lat_buf_fill(lat_line_t *, int, track_proc_t *,
+    track_lwp_t *, int *);
+extern int win_lat_cmp(const void *, const void *);
+extern void win_lat_str_build(char *, int, int, void *);
+extern void win_size2str(uint64_t, char *, int);
+extern void win_callchain_line_get(win_reg_t *, int, char *, int);
 
 #ifdef __cplusplus
 }

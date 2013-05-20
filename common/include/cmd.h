@@ -51,7 +51,9 @@ extern "C" {
 #define	CMD_4_CHAR		'4'
 #define CMD_5_CHAR		'5'
 #define CMD_CALLCHAIN_CHAR	'c'
-#define CMD_ACCDST_CHAR	'a'
+#define CMD_ACCDST_CHAR	'd'
+#define CMD_MAP_GET_CHAR	'm'
+#define CMD_MAP_STOP_CHAR	's'
 
 typedef enum {
 	CMD_INVALID_ID = 0,
@@ -66,6 +68,8 @@ typedef enum {
 	CMD_CALLCHAIN_ID,
 	CMD_LLCALLCHAIN_ID,
 	CMD_ACCDST_ID,
+	CMD_MAP_GET_ID,
+	CMD_MAP_STOP_ID,
 	CMD_1_ID,
 	CMD_2_ID,
 	CMD_3_ID,
@@ -77,7 +81,7 @@ typedef enum {
 	CMD_RESIZE_ID
 } cmd_id_t;
 
-#define CMD_NUM	21
+#define CMD_NUM	23
 
 typedef struct _cmd_home {
 	cmd_id_t id;
@@ -199,6 +203,8 @@ extern int g_sortkey;
 extern void switch_table_init(void);
 extern int cmd_id_get(char);
 extern void cmd_execute(cmd_t *, boolean_t *);
+extern int op_refresh(cmd_t *, boolean_t);
+extern int op_page_next(cmd_t *, boolean_t);
 
 #ifdef __cplusplus
 }

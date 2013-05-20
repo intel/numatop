@@ -45,11 +45,12 @@
 #include "include/types.h"
 #include "include/util.h"
 #include "include/proc.h"
-#include "include/node.h"
 #include "include/disp.h"
-#include "include/plat.h"
 #include "include/perf.h"
-#include "include/sym.h"
+#include "include/util.h"
+#include "include/os/plat.h"
+#include "include/os/node.h"
+#include "include/os/os_util.h"
 
 static void sigint_handler(int sig);
 static void print_usage(const char *exec_name);
@@ -59,8 +60,9 @@ int g_sortkey;
 precise_type_t g_precise;
 pid_t g_numatop_pid;
 struct timeval g_tvbase;
+
+/* For automated test. */
 int g_run_secs;
-int g_pagesize;
 
 /*
  * The main function.
@@ -70,19 +72,12 @@ main(int argc, char *argv[])
 {
 	int ret = 1, debug_level = 0;
 	FILE *log = NULL, *dump = NULL;
+	boolean_t locked;
 	char c;
 
-	/*
-	 * The numatop requires some authorities to setup perf and increase the hard limit of
-	 * fd. So either the user runs as root or following condtions need to be satisfied.
-	 *
-	 * 1. Set "-1" in /proc/sys/kernel/perf_event_paranoid to let the non-root be able to
-	 *    setup perf. e.g.
-	 *    echo -1 > /proc/sys/kernel/perf_event_paranoid
-	 *
-	 * 2. The CAP_SYS_RESOURCE capability is required to user for increasing the hard
-	 *    limit of fd.
-	 */
+	if (!os_authorized()) {
+		return (1);		
+	}
 
 	g_sortkey = SORT_KEY_CPU;
 	g_precise = PRECISE_NORMAL;
@@ -193,29 +188,25 @@ main(int argc, char *argv[])
 	}
 
 	/*
-	 * It could be failed if user doesn't have authority.
+	 * Support only one numatop instance running.
 	 */
-	(void) ulimit_expand(PERF_FD_NUM);
-
-	/*
-	 * Get the number of online cores in system.
-	 */
-	if ((g_ncpus = sysfs_online_ncpus()) == -1) {
-		stderr_print("Platform is not supported "
-		    "(numatop supports up to %d CPUs)\n", NCPUS_MAX);
+	if (os_numatop_lock(&locked) != 0) {
+		stderr_print("Fail to lock numatop!\n");
 		goto L_EXIT0;
 	}
 
-	pagesize_init();
-	gettimeofday(&g_tvbase, 0);
+	if (locked) {
+		stderr_print("Another numatop instance is running!\n");
+		goto L_EXIT0;
+	}
+
+	(void) gettimeofday(&g_tvbase, 0);
 
 	if (debug_init(debug_level, log) != 0) {
 		goto L_EXIT1;
 	}
 
-	debug_print(NULL, 2, "Detected %d online CPU.\n", g_ncpus);
 	log = NULL;
-	sym_init();
 
 	if (dump_init(dump) != 0) {
 		goto L_EXIT2;
@@ -226,7 +217,11 @@ main(int argc, char *argv[])
 	/*
 	 * Calculate how many nanoseconds for a TSC cycle.
 	 */
-	calibrate();
+	os_calibrate();
+
+	if (map_init() != 0) {
+		goto L_EXIT3;
+	}
 
 	/*
 	 * Initialize for the "window-switching" table.
@@ -234,18 +229,21 @@ main(int argc, char *argv[])
 	switch_table_init();
 
 	if (proc_group_init() != 0) {
-		goto L_EXIT3;
+		goto L_EXIT4;
 	}
 
 	if (node_group_init() != 0) {
 		stderr_print("The node/cpu number is out of range, \n"
-			"numatop supports up to %d nodes and %d CPUs\n",
-			NNODES_MAX, NCPUS_MAX);
-		goto L_EXIT4;
+		    "numatop supports up to %d nodes and %d CPUs\n",
+		    NNODES_MAX, NCPUS_MAX);
+		goto L_EXIT5;
 	}
 
+	debug_print(NULL, 2, "Detected %d online CPUs\n", g_ncpus);
+	stderr_print("NumaTOP is starting ...\n");
+
 	if (disp_cons_ctl_init() != 0) {
-		goto L_EXIT5;
+		goto L_EXIT6;
 	}
 
 	/*
@@ -256,7 +254,7 @@ main(int argc, char *argv[])
 	    (signal(SIGQUIT, sigint_handler) == SIG_ERR) ||
 	    (signal(SIGTERM, sigint_handler) == SIG_ERR) ||
 	    (signal(SIGPIPE, sigint_handler) == SIG_ERR)) {
-		goto L_EXIT6;
+		goto L_EXIT7;
 	}
 
 	/*
@@ -264,7 +262,7 @@ main(int argc, char *argv[])
 	 */
 	if (perf_init() != 0) {
 		debug_print(NULL, 2, "perf_init() is failed\n");
-		goto L_EXIT6;
+		goto L_EXIT7;
 	}
 
 	/*
@@ -272,7 +270,7 @@ main(int argc, char *argv[])
 	 */
 	if (disp_init() != 0) {
 		perf_fini();
-		goto L_EXIT6;
+		goto L_EXIT7;
 	}
 
 	/*
@@ -285,29 +283,32 @@ main(int argc, char *argv[])
 	 * Notify cons thread to exit.
 	 */
 	disp_consthr_quit();
-	
+
 	disp_fini();
 	stderr_print("NumaTOP is exiting ...\n");
 	(void) fflush(stdout);
 	ret = 0;
 
-L_EXIT6:
+L_EXIT7:
 	disp_cons_ctl_fini();
 
-L_EXIT5:
+L_EXIT6:
 	node_group_fini();
 
-L_EXIT4:
+L_EXIT5:
 	proc_group_fini();
+
+L_EXIT4:
+	map_fini();
 
 L_EXIT3:
 	dump_fini();
 
 L_EXIT2:
-	sym_fini();
 	debug_fini();
 
 L_EXIT1:
+	os_numatop_unlock();
 	exit_msg_print();
 
 L_EXIT0:
@@ -367,7 +368,7 @@ print_usage(const char *exec_name)
 {
 	char buffer[PATH_MAX];
 
-	strncpy(buffer, exec_name, PATH_MAX);
+	(void) strncpy(buffer, exec_name, PATH_MAX);
 	buffer[PATH_MAX - 1] = 0;
 
 	stderr_print("Usage: %s [option(s)]\n", basename(buffer));
@@ -381,5 +382,6 @@ print_usage(const char *exec_name)
 	    "        normal: balance precision and overhead (default)\n"
 	    "        high  : high sampling precision\n"
 	    "                (high overhead, not recommended option)\n"
-	    "        low   : low sampling precision, suitable for high load system\n");
+	    "        low   : low sampling precision, suitable for high"
+	    " load system\n");
 }

@@ -45,10 +45,10 @@
 #include "include/lwp.h"
 #include "include/proc.h"
 #include "include/disp.h"
-#include "include/node.h"
 #include "include/page.h"
 #include "include/cmd.h"
 #include "include/win.h"
+#include "include/os/node.h"
 
 static disp_ctl_t s_disp_ctl;
 static cons_ctl_t s_cons_ctl;
@@ -159,7 +159,8 @@ disp_consthr_quit(void)
 	debug_print(NULL, 2, "Send PIPE_CHAR_QUIT to cons thread\n");
 	c = PIPE_CHAR_QUIT;
 	if (write(s_cons_ctl.pipe[1], &c, 1) == -1) {
-		debug_print(NULL, 2, "Fail to write PIPE_CHAR_QUIT to pipe\n");
+		debug_print(NULL, 2, "Fail to write PIPE_CHAR_QUIT"
+		    " to pipe\n");
 	}
 
 	(void) pthread_join(s_cons_ctl.thr, NULL);
@@ -203,6 +204,27 @@ disp_profiling_data_fail(void)
 }
 
 /*
+ * Notify 'disp thread' that the perf callchain data is ready.
+ */
+void
+disp_callchain_data_ready(int intval_ms)
+{
+	(void) pthread_mutex_lock(&s_disp_ctl.mutex);
+	s_disp_ctl.intval_ms = intval_ms;
+	dispthr_flagset_nolock(DISP_FLAG_CALLCHAIN_DATA_READY);
+	(void) pthread_mutex_unlock(&s_disp_ctl.mutex);
+}
+
+/*
+ * Notify 'disp thread' that the perf callchain data is failed.
+ */
+void
+disp_callchain_data_fail(void)
+{
+	dispthr_flagset_lock(DISP_FLAG_CALLCHAIN_DATA_FAIL);
+}
+
+/*
  * Notify 'disp thread' that the perf load latency data is ready.
  */
 void
@@ -234,7 +256,8 @@ disp_on_resize(int sig)
 	char c = PIPE_CHAR_RESIZE;
 
 	if (write(s_cons_ctl.pipe[1], &c, 1) == -1) {
-		debug_print(NULL, 2, "Fail to write PIPE_CHAR_RESIZE to pipe\n");
+		debug_print(NULL, 2, "Fail to write "
+		    "PIPE_CHAR_RESIZE to pipe\n");
 	}
 }
 
@@ -265,18 +288,6 @@ disp_start(void)
 	return (0);
 }
 
-/*
- * Send the 'HOME' command to 'disp thread'.
- */
-static void
-submit_cmd_home(void)
-{
-	(void) pthread_mutex_lock(&s_disp_ctl.mutex);
-	CMD_ID_SET(&s_disp_ctl.cmd, CMD_HOME_ID);
-	dispthr_flagset_nolock(DISP_FLAG_CMD);
-	(void) pthread_mutex_unlock(&s_disp_ctl.mutex);
-}
-
 static void
 timeout_set(struct timespec *timeout, int nsec)
 {
@@ -304,7 +315,7 @@ cmd_received(cmd_t *cmd, boolean_t *quit, struct timespec *timeout)
 		*quit = B_TRUE;
 		return;
 
-	case CMD_RESIZE_ID:		
+	case CMD_RESIZE_ID:
 		/*
 		 * The screen resize signal would trigger this
 		 * command. Destroy existing screen and curses
@@ -322,7 +333,7 @@ cmd_received(cmd_t *cmd, boolean_t *quit, struct timespec *timeout)
 		timeout_set(timeout, DISP_DEFAULT_INTVAL);
 		break;
 
-	case CMD_REFRESH_ID:		
+	case CMD_REFRESH_ID:
 		/*
 		 * User hit the hotkey 'R' to refresh current window.
 		 */
@@ -416,19 +427,17 @@ disp_handler(void *arg)
 	cmd_t cmd;
 	boolean_t quit, pagelist_inited = B_FALSE;
 	struct timespec timeout;
-	boolean_t job_started;
-	page_t *cur;
 	uint64_t start_ms, diff_ms;
 
 	/*
 	 * Wait cons thread to complete initialization.
 	 */
 	if (!consthr_init_wait()) {
-		debug_print(NULL, 2,
-		    "Timeout for waiting cons thread to complete initialization\n");
+		debug_print(NULL, 2, "Timeout for waiting cons thread to "
+		    "complete initialization\n");
 
 		/*
-		 * The cons thread should exit with error or startup failed, 
+		 * The cons thread should exit with error or startup failed,
 		 * disp thread stops running.
 		 */
 		goto L_EXIT;
@@ -473,27 +482,16 @@ disp_handler(void *arg)
 		}
 
 		if ((status == ETIMEDOUT) && (flag == DISP_FLAG_NONE)) {
-			if ((cur = page_current_get()) == NULL) {
+			if (page_current_get() == NULL) {
 				timeout_set(&timeout, DISP_DEFAULT_INTVAL);
 				continue;
 			}
 
 			/*
-			 * Notify the perf thread to start sampling.
+			 * Force a 'refresh' operation.
 			 */
-			job_started = page_smpl_start(cur);
-
-			/*
-			 * It's a 'refresh' operation, set the current page to next page.
-			 */
-			page_next_set(cur);
-			if (!job_started) {
-				/*
-				 * Just refresh the current page.
-				 */
-				page_next_execute(B_FALSE);
-			}
-
+			CMD_ID_SET(&cmd, CMD_REFRESH_ID);
+			cmd_execute(&cmd, NULL);
 			timeout_set(&timeout, DISP_DEFAULT_INTVAL);
 			continue;
 		}
@@ -507,38 +505,33 @@ disp_handler(void *arg)
 		case DISP_FLAG_CMD:
 			cmd_received(&cmd, &quit, &timeout);
 			if (quit) {
-				debug_print(NULL, 2, "disp thread received CMD_QUIT_ID\n");
+				debug_print(NULL, 2,
+				    "disp thread received CMD_QUIT_ID\n");
 				goto L_EXIT;
 			}
-
 			break;
 
-		case DISP_FLAG_PROFILING_DATA_READY:			
+		case DISP_FLAG_PROFILING_DATA_READY:
+		case DISP_FLAG_CALLCHAIN_DATA_READY:
+		case DISP_FLAG_LL_DATA_READY:
 			/*
 			 * Show the page.
 			 */
-			page_next_execute(B_FALSE);
+			(void) page_next_execute(B_FALSE);
 			timeout_set(&timeout, DISP_DEFAULT_INTVAL);
 			break;
 
 		case DISP_FLAG_PROFILING_DATA_FAIL:
+		case DISP_FLAG_CALLCHAIN_DATA_FAIL:
+		case DISP_FLAG_LL_DATA_FAIL:
 			/*
-			 * Received the notification that the perf profiling
+			 * Received the notification that the perf counting
 			 * was failed.
 			 */
 			debug_print(NULL, 2,
-			    "disp: received DISP_FLAG_PROFILING_DATA_FAIL.\n");
-			win_warn_msg(WARN_PERF_DATA_FAIL);
-			submit_cmd_home();
+			    "disp: profiling/callchain/LL data failed.\n");
+			disp_go_home();
 			break;
-
-		case DISP_FLAG_LL_DATA_READY:
-			page_next_execute(B_FALSE);
-			timeout_set(&timeout, DISP_DEFAULT_INTVAL);
-			break;
-			
-		case DISP_FLAG_LL_DATA_FAIL:
-			break;		
 
 		case DISP_FLAG_SCROLLUP:
 			/*
@@ -569,7 +562,7 @@ disp_handler(void *arg)
 				timeout_set(&timeout, DISP_DEFAULT_INTVAL);
 			}
 			break;
-			
+
 		default:
 			break;
 		}
@@ -596,8 +589,8 @@ L_EXIT:
 static void *
 cons_handler(void *arg)
 {
-	char c, ch;
-	int cmd_id;
+	int c, cmd_id;
+	unsigned char ch;
 
 	if (!reg_curses_init(B_TRUE)) {
 		goto L_EXIT;
@@ -608,7 +601,7 @@ cons_handler(void *arg)
 	/*
 	 * Excute "home" command. It shows the NumaTop default page.
 	 */
-	submit_cmd_home();
+	disp_go_home();
 
 	for (;;) {
 		FD_ZERO(&s_cons_ctl.fds);
@@ -621,11 +614,7 @@ cons_handler(void *arg)
 		if (select(s_cons_ctl.pipe[0] + 1, &s_cons_ctl.fds,
 		    NULL, NULL, NULL) > 0) {
 			if (FD_ISSET(s_cons_ctl.pipe[0], &s_cons_ctl.fds)) {
-				if (read(s_cons_ctl.pipe[0], &ch, 1) == -1) {
-					debug_print(NULL, 2, "cons: failed to"
-						"read from pipe\n");
-					continue;
-				}
+				(void) read(s_cons_ctl.pipe[0], &ch, 1);
 
 				/*
 				 * Character is from pipe.
@@ -659,10 +648,19 @@ cons_handler(void *arg)
 				/*
 				 * Character is from STDIN.
 				 */
-				c = getch();
-				ch = tolower(c);
+				if ((c = getch()) == ERR) {
+					/*
+					 * It's possile if the associated
+					 * terminal is lost.
+					 */
+					debug_print(NULL, 2, "cons: "
+					    "getch() failed.\n");
+					break;
+				}
+
+				ch = tolower((unsigned char)c);
 				dump_write("\n<-- User hit the key '%c' "
-				    "(ascii = %d) -->\n", c, (int)c);
+				    "(ascii = %d) -->\n", ch, (int)ch);
 
 				cmd_id = cmd_id_get(ch);
 				if (cmd_id != CMD_INVALID_ID) {
@@ -683,12 +681,12 @@ cons_handler(void *arg)
 					 * Hit the keys 'UP'/'DOWN'/'ENTER'
 					 */
 					switch (ch) {
-					case 2:		/* key-down */
+					case 2:	/* KEY DOWN */
 						dispthr_flagset_lock(
 						    DISP_FLAG_SCROLLDOWN);
 						break;
 
-					case 3:		/* key-up */
+					case 3:	/* KEY UP */
 						dispthr_flagset_lock(
 						    DISP_FLAG_SCROLLUP);
 						break;
@@ -725,6 +723,18 @@ disp_dispthr_quit_start(void)
 {
 	(void) pthread_mutex_lock(&s_disp_ctl.mutex);
 	CMD_ID_SET(&s_disp_ctl.cmd, CMD_QUIT_ID);
+	dispthr_flagset_nolock(DISP_FLAG_CMD);
+	(void) pthread_mutex_unlock(&s_disp_ctl.mutex);
+}
+
+/*
+ * Send the 'HOME' command to 'disp thread'.
+ */
+void
+disp_go_home(void)
+{
+	(void) pthread_mutex_lock(&s_disp_ctl.mutex);
+	CMD_ID_SET(&s_disp_ctl.cmd, CMD_HOME_ID);
 	dispthr_flagset_nolock(DISP_FLAG_CMD);
 	(void) pthread_mutex_unlock(&s_disp_ctl.mutex);
 }

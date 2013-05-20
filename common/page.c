@@ -40,7 +40,8 @@
 #include "include/page.h"
 #include "include/win.h"
 #include "include/perf.h"
-#include "include/node.h"
+#include "include/os/node.h"
+#include "include/os/os_page.h"
 
 static page_list_t s_page_list;
 
@@ -164,7 +165,7 @@ page_show(page_t *page, boolean_t smpl)
 
 	if (smpl) {		
 		win_warn_msg(WARN_WAIT);
-		page_smpl_start(page);
+		(void) os_page_smpl_start(page);
 		return (B_TRUE);
 	}
 
@@ -186,13 +187,13 @@ page_next_execute(boolean_t smpl)
 
 	ret = page_show(next_run, smpl);
 	s_page_list.cur = next_run;
-	
+
 	if (smpl) {
 		s_page_list.next_run = next_run;
 	} else {
 		s_page_list.next_run = NULL;
 	}
-	
+
 	return (ret);
 }
 
@@ -269,49 +270,4 @@ page_win_destroy(void)
 	}
 }
 
-/*
- * Start sampling the performance data.
- */
-boolean_t
-page_smpl_start(page_t *page)
-{
-	cmd_t *cmd = PAGE_CMD(page);
 
-	switch (CMD_ID(cmd)) {
-	case CMD_HOME_ID:
-		/* fall through */
-	case CMD_IR_NORMALIZE_ID:
-		/* fall through */
-	case CMD_MONITOR_ID:
-		/* fall through */
-	case CMD_LWP_ID:
-		/* fall through */
-	case CMD_NODE_OVERVIEW_ID:
-		/* fall through */
-	case CMD_NODE_DETAIL_ID:
-		/* fall through */
-	case CMD_CALLCHAIN_ID:		
-		if (perf_profiling_smpl() == 0) {
-			return (B_TRUE);
-		}
-		break;
-
-	case CMD_LAT_ID:
-		/* fall through */
-	case CMD_LLCALLCHAIN_ID:		
-		/* fall through */
-	case CMD_LATNODE_ID:
-		/* fall through */
-	case CMD_ACCDST_ID:
-		if (perf_ll_smpl(((cmd_lat_t *)cmd)->pid,
-			((cmd_lat_t *)cmd)->lwpid) == 0) {
-			return (B_TRUE);
-		}
-		break;
-
-	default:
-		break;
-	}
-
-	return (B_FALSE);
-}

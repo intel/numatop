@@ -35,9 +35,10 @@
 #include <unistd.h>
 #include <string.h>
 #include <strings.h>
-#include "../common/include/linux/perf_event.h"
 #include "../common/include/types.h"
-#include "../common/include/plat.h"
+#include "../common/include/os/linux/perf_event.h"
+#include "../common/include/os/plat.h"
+#include "../common/include/os/os_perf.h"
 #include "include/wsm.h"
 
 static plat_event_config_t s_wsmex_profiling[COUNT_NUM] = {
