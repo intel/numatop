@@ -43,7 +43,7 @@
 
 static plat_event_config_t s_nhm_profiling[COUNT_NUM] = {
 	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.core" },
-	{ PERF_TYPE_RAW, 0x01B7, 0x53, 0x3011, "off_core_response_0" },
+	{ PERF_TYPE_RAW, 0x01B7, 0x53, 0x2011, "off_core_response_0" },
 	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_REF_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.ref" },
 	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS, 0x53, 0, "instr_retired.any" },
 	{ PERF_TYPE_RAW, INVALID_CODE_UMASK, 0, 0, "off_core_response_1" }
