@@ -120,7 +120,7 @@ typedef enum {
 #define	NCPUS_MAX		(NNODES_MAX * NCPUS_NODE_MAX)
 #define NPROCS_NAX		4096
 #define	LL_THRESH		128
-#define LL_PERIOD		10000
+#define LL_PERIOD		1000
 
 typedef struct _count_value {
 	uint64_t counts[COUNT_NUM];
