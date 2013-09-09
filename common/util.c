@@ -45,6 +45,7 @@
 #include <signal.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <cpuid.h>
 #include "include/types.h"
 #include "include/util.h"
 #include "include/perf.h"
@@ -314,20 +315,6 @@ cyc2ns(uint64_t cyc)
 	return (ns);
 }
 
-/* ARGSUSED */
-static void
-cpuid(unsigned int *eax, unsigned int *ebx, unsigned int *ecx,
-	unsigned int *edx)
-{
-	__asm volatile(
-	    "cpuid\n\t"
-	    :"=a" (*eax),
-	    "=b" (*ebx),
-	    "=c" (*ecx),
-	    "=d" (*edx)
-	    :"0" (*eax));
-}
-
 /*
  * Get the CPU type.
  */
@@ -339,9 +326,7 @@ cpu_type_get(void)
 	cpu_type_t type = CPU_UNSUP;
 	char vendor[16];
 
-	eax = 0;
-	cpuid(&eax, &ebx, &ecx, &edx);
-
+	__cpuid(0, eax, ebx, ecx, edx);
 	(void) strncpy(&vendor[0], (char *)(&ebx), 4);
 	(void) strncpy(&vendor[4], (char *)(&ecx), 4);
 	(void) strncpy(&vendor[8], (char *)(&edx), 4);
@@ -351,9 +336,7 @@ cpu_type_get(void)
 		return (CPU_UNSUP);
 	}
 
-	eax = 1;
-	cpuid(&eax, &ebx, &ecx, &edx);
-
+	__cpuid(1, eax, ebx, ecx, edx);
 	family = CPU_FAMILY(eax);
 	model = CPU_MODEL(eax);
 	ext_model = CPU_EXT_MODEL(eax);
