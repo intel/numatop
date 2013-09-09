@@ -319,15 +319,13 @@ static void
 cpuid(unsigned int *eax, unsigned int *ebx, unsigned int *ecx,
 	unsigned int *edx)
 {
-	unsigned int a = *eax;
-
 	__asm volatile(
 	    "cpuid\n\t"
 	    :"=a" (*eax),
 	    "=b" (*ebx),
 	    "=c" (*ecx),
 	    "=d" (*edx)
-	    :"a" (a));
+	    :"0" (*eax));
 }
 
 /*
