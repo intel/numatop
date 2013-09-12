@@ -1979,17 +1979,17 @@ win_size2str(uint64_t size, char *buf, int bufsize)
 	 * "buf" points to a big enough buffer.
 	 */
 	if ((i = (size / KB_BYTES)) < KB_BYTES) {
-		(void) snprintf(buf, bufsize, "%luK", i);
+		(void) snprintf(buf, bufsize, "%"PRIu64"K", i);
 	} else if ((j = i / KB_BYTES) < KB_BYTES) {
 		if ((i % KB_BYTES) == 0) {
-			(void) snprintf(buf, bufsize, "%luM", j);
+			(void) snprintf(buf, bufsize, "%"PRIu64"M", j);
 		} else {
 			(void) snprintf(buf, bufsize, "%.1fM",
 			    (double)i / (double)KB_BYTES);
 		}
 	} else {
 		if ((j % KB_BYTES) == 0) {
-			(void) snprintf(buf, bufsize, "%luG", j / KB_BYTES);
+			(void) snprintf(buf, bufsize, "%"PRIu64"G", j / KB_BYTES);
 		} else {
 			(void) snprintf(buf, bufsize, "%.1fG",
 			    (double)j / (double)KB_BYTES);
@@ -2021,16 +2021,16 @@ win_lat_str_build(char *buf, int size, int idx, void *pv)
 	win_size2str(line->bufaddr.size, size_str, sizeof (size_str));
 
 	if (!line->nid_show) {
-		(void) snprintf(buf, size, "%16lX%8s%10.1f%11lu%34s",
+		(void) snprintf(buf, size, "%16"PRIX64"%8s%10.1f%11"PRIu64"%34s",
 		    line->bufaddr.addr, size_str, hit * 100.0, cyc2ns(lat),
 		    line->desc);
 	} else {
 		if (line->nid < 0) {
-			(void) snprintf(buf, size, "%16lX%8s%8s%10.1f%11lu",
+			(void) snprintf(buf, size, "%16"PRIX64"%8s%8s%10.1f%11"PRIu64,
 			    line->bufaddr.addr, size_str, "-", hit * 100.0,
 			    cyc2ns(lat));
 		} else {
-			(void) snprintf(buf, size, "%16lX%8s%8d%10.1f%11lu",
+			(void) snprintf(buf, size, "%16"PRIX64"%8s%8d%10.1f%11"PRIu64,
 			    line->bufaddr.addr, size_str, line->nid,
 			    hit * 100.0, cyc2ns(lat));
 		}
@@ -2314,12 +2314,12 @@ win_lat_data_show(track_proc_t *proc, dyn_lat_t *dyn, boolean_t *note_out)
 	if (lwp == NULL) {
 		(void) snprintf(content, sizeof (content),
 		    "Monitoring memory areas (pid: %d, "
-		    "AVG.LAT: %luns, interval: %s)",
+		    "AVG.LAT: %"PRIu64"ns, interval: %s)",
 		    proc->pid, cyc2ns(lat), intval_buf);
 	} else {
 		(void) snprintf(content, sizeof (content),
 		    "Monitoring memory areas (lwpid: %d, "
-		    "AVG.LAT: %luns, interval: %s)",
+		    "AVG.LAT: %"PRIu64"ns, interval: %s)",
 		    lwp->id, cyc2ns(lat), intval_buf);
 	}
 
@@ -2462,7 +2462,7 @@ accdst_str_build(char *buf, int size, int idx, void *pv)
 	accdst_line_t *lines = (accdst_line_t *)pv;
 	accdst_line_t *line = &lines[idx];
 
-	(void) snprintf(buf, size, "%5d%14.1f%15lu",
+	(void) snprintf(buf, size, "%5d%14.1f%15"PRIu64,
 	    line->nid, line->access_ratio * 100.0, cyc2ns(line->latency));
 }
 
