@@ -889,11 +889,11 @@ latnode_data_show(track_proc_t *proc, dyn_latnode_t *dyn, map_entry_t *entry,
 	win_size2str(dyn->size, size_str, sizeof (size_str));
 	if (lwp != NULL) {
 		(void) snprintf(content, sizeof (content),
-		    "Memory area(%lX, %s), thread(%d)",
+		    "Memory area(%"PRIX64", %s), thread(%d)",
 		    dyn->addr, size_str, lwp->id);
 	} else {
 		(void) snprintf(content, sizeof (content),
-		    "Memory area(%lX, %s), process(%d)",
+		    "Memory area(%"PRIX64", %s), process(%d)",
 		    dyn->addr, size_str, proc->pid);
 	}
 
