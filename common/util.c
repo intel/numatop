@@ -127,7 +127,7 @@ debug_print(FILE *out, int level, const char *fmt, ...)
 			if (s_logfile != NULL) {
 				(void) pthread_mutex_lock(&s_debug_ctl.mutex);
 				(void) fprintf(s_logfile,
-				    "%lu: ", current_ms() / 1000);
+				    "%"PRIu64": ", current_ms() / 1000);
 				va_start(ap, fmt);
 				(void) vfprintf(s_logfile, fmt, ap);
 				va_end(ap);
@@ -138,7 +138,7 @@ debug_print(FILE *out, int level, const char *fmt, ...)
 		} else {
 			(void) pthread_mutex_lock(&s_debug_ctl.mutex);
 			(void) fprintf(out,
-			    "%lu: ", current_ms() / 1000);
+			    "%"PRIu64": ", current_ms() / 1000);
 			va_start(ap, fmt);
 			(void) vfprintf(out, fmt, ap);
 			va_end(ap);

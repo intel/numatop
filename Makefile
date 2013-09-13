@@ -5,6 +5,7 @@ PROG = numatop
 CC = gcc
 LD = gcc
 CFLAGS = -g -Wall -O2
+LDFLAGS = -g
 LDLIBS = -lncurses -lpthread -lnuma
 
 COMMON_OBJS = cmd.o disp.o lwp.o numatop.o page.o perf.o \
@@ -18,7 +19,7 @@ INTEL_OBJS = wsm.o snb.o nhm.o
 all: $(PROG)
 
 $(PROG): $(COMMON_OBJS) $(OS_OBJS) $(INTEL_OBJS)
-	$(LD) -o $@ $(COMMON_OBJS) $(OS_OBJS) $(INTEL_OBJS) $(LDLIBS)
+	$(LD) $(LDFLAGS) -o $@ $(COMMON_OBJS) $(OS_OBJS) $(INTEL_OBJS) $(LDLIBS)
 
 %.o: ./common/%.c ./common/include/*.h ./common/include/os/*.h
 	$(CC) $(CFLAGS) -o $@ -c $<

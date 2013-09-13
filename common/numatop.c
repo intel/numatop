@@ -35,6 +35,7 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
@@ -72,7 +73,7 @@ main(int argc, char *argv[])
 {
 	int ret = 1, debug_level = 0;
 	FILE *log = NULL, *dump = NULL;
-	boolean_t locked;
+	boolean_t locked = false;
 	char c;
 
 	if (!os_authorized()) {
