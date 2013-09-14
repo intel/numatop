@@ -319,6 +319,7 @@ static void
 cpuid(unsigned int *eax, unsigned int *ebx, unsigned int *ecx,
 	unsigned int *edx)
 {
+#if __x86_64
 	__asm volatile(
 	    "cpuid\n\t"
 	    :"=a" (*eax),
@@ -326,6 +327,19 @@ cpuid(unsigned int *eax, unsigned int *ebx, unsigned int *ecx,
 	    "=c" (*ecx),
 	    "=d" (*edx)
 	    :"a" (*eax));
+#else
+	__asm volatile(
+	    "push %%ebx\n\t"
+	    "cpuid\n\t"
+	    "mov %%ebx, (%4)\n\t"
+	    "pop %%ebx"
+	    :"=a" (*eax),
+	    "=c" (*ecx),
+	    "=d" (*edx)
+	    :"0" (*eax),
+	    "S" (ebx)
+	    :"memory");
+#endif
 }
 
 /*
