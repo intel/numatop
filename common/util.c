@@ -315,6 +315,20 @@ cyc2ns(uint64_t cyc)
 	return (ns);
 }
 
+/* ARGSUSED */
+static void
+cpuid(unsigned int *eax, unsigned int *ebx, unsigned int *ecx,
+	unsigned int *edx)
+{
+	__asm volatile(
+	    "cpuid\n\t"
+	    :"=a" (*eax),
+	    "=b" (*ebx),
+	    "=c" (*ecx),
+	    "=d" (*edx)
+	    :"a" (*eax));
+}
+
 /*
  * Get the CPU type.
  */
