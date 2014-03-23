@@ -196,7 +196,7 @@ static int
 calibrate_cpuinfo(double *nsofclk, uint64_t *clkofsec)
 {
 	FILE *f;
-	char *line = NULL, unit[10];
+	char *line = NULL, unit[11];
 	size_t len = 0;
 	double freq = 0.0;
 
