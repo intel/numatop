@@ -402,6 +402,7 @@ reg_curses_init(boolean_t first_load)
 {
 	(void) initscr();
 	(void) refresh();
+	(void) use_default_colors();
 	(void) start_color();
 	(void) keypad(stdscr, TRUE);
 	(void) nonl();
