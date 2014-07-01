@@ -49,10 +49,11 @@ typedef enum {
 	CPU_SNB_EP,
 	CPU_NHM_EX,
 	CPU_NHM_EP,
-	CPU_WSM_EP
+	CPU_WSM_EP,
+	CPU_IVB_EX
 } cpu_type_t;
 
-#define	CPU_TYPE_NUM	6
+#define	CPU_TYPE_NUM	7
 
 typedef enum {
 	SORT_KEY_INVALID = -1,

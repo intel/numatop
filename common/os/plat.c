@@ -49,7 +49,8 @@ s_plat_profiling_config[CPU_TYPE_NUM] = {
 	snbep_profiling_config,
 	nhmex_profiling_config,
 	nhmep_profiling_config,
-	wsmep_profiling_config
+	wsmep_profiling_config,
+	snbep_profiling_config
 };
 
 static pfn_plat_ll_config_t
@@ -59,7 +60,8 @@ s_plat_ll_config[CPU_TYPE_NUM] = {
 	snbep_ll_config,
 	nhmex_ll_config,
 	nhmep_ll_config,
-	wsmep_ll_config
+	wsmep_ll_config,
+	snbep_ll_config
 };
 
 static pfn_plat_offcore_num_t
@@ -69,7 +71,8 @@ s_plat_offcore_num[CPU_TYPE_NUM] = {
 	snb_offcore_num,
 	nhm_offcore_num,
 	nhm_offcore_num,
-	wsm_offcore_num
+	wsm_offcore_num,
+	snb_offcore_num
 };
 
 static cpu_type_t s_cpu_type;
@@ -95,6 +98,8 @@ plat_detect(void)
 	case CPU_NHM_EP:
 		/* fall through */		
 	case CPU_WSM_EP:
+		/* fall through */
+	case CPU_IVB_EX:
 		return (0);
 		
 	default:

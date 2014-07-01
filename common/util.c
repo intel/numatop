@@ -394,6 +394,9 @@ cpu_type_get(void)
 		case 47:
 			type = CPU_WSM_EX;
 			break;
+		case 62:
+			type = CPU_IVB_EX;
+			break;
 		}
 	}
 
