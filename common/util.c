@@ -378,24 +378,23 @@ cpu_type_get(void)
 		case 26:
 			type = CPU_NHM_EP;
 			break;
-
 		case 44:
 			type = CPU_WSM_EP;
 			break;
-
 		case 45:
 			type = CPU_SNB_EP;
 			break;
-
 		case 46:
 			type = CPU_NHM_EX;
 			break;
-
 		case 47:
 			type = CPU_WSM_EX;
 			break;
 		case 62:
 			type = CPU_IVB_EX;
+			break;
+		case 63:
+			type = CPU_HSX;
 			break;
 		}
 	}
