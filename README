@@ -21,15 +21,10 @@ NumaTOP requires following libraries:
 
 Kernel Requirement:
 ------------------
-NumaTOP requires a special patch which supports PEBS Load Latency functionality.
-The patch has not been integrated in 3.8 (probably it will be integrated
-in 3.9). The following steps instruct how to get and apply the patch.
+Kernel: 3.13+
 
-1. git clone git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git
-2. cd tip
-3. git checkout perf/x86
-4. build kernel as usual
-
+For Haswell supporting, please also apply the following perf patch in kernel.
+http://www.gossamer-threads.com/lists/linux/kernel/1964864
 
 Directories
 ------------------
