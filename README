@@ -21,9 +21,12 @@ NumaTOP requires following libraries:
 
 Kernel Requirement:
 ------------------
-Kernel: 3.13+
+Recommended kernel: 3.16
 
-For Haswell supporting, please also apply the following perf patch in kernel.
+For Haswell supporting, please also apply a perf patch on 3.16. The patch
+is numatop/kernel_patches/0001-perf-x86-Widen-Haswell-OFFCORE-mask.patch.
+
+The patch can also be found at following link:
 http://www.gossamer-threads.com/lists/linux/kernel/1964864
 
 Directories
@@ -35,6 +38,8 @@ intel : Intel platform-specific code.
 test  : mgen source code. mgen is a micro-test application which can
         generate memory access with runtime latency value among CPUs.
         Note that this application is only used for numatop testing!
+
+kernel_patches: the required kernel patches.
 
 Note:
 -----
