@@ -614,35 +614,35 @@ cons_handler(void *arg)
 		if (select(s_cons_ctl.pipe[0] + 1, &s_cons_ctl.fds,
 		    NULL, NULL, NULL) > 0) {
 			if (FD_ISSET(s_cons_ctl.pipe[0], &s_cons_ctl.fds)) {
-				(void) read(s_cons_ctl.pipe[0], &ch, 1);
-
-				/*
-				 * Character is from pipe.
-				 */
-				if (ch == PIPE_CHAR_QUIT) {
+				if (read(s_cons_ctl.pipe[0], &ch, 1) == 1) {
 					/*
-					 * Received a QUIT notification,
-					 * "console thread" will be quit
+					 * Character is from pipe.
 					 */
-					debug_print(NULL, 2, "cons: "
-					    "received PIPE_CHAR_QUIT\n");
-					break;
-				}
+					if (ch == PIPE_CHAR_QUIT) {
+						/*
+						 * Received a QUIT notification,
+						 * "console thread" will be quit
+						 */
+						debug_print(NULL, 2, "cons: "
+						    "received PIPE_CHAR_QUIT\n");
+						break;
+					}
 
-				if (ch == PIPE_CHAR_RESIZE) {
-					/*
-					 * Send the "RESIZE" command
-					 * to "display thread".
-					 */
-					(void) pthread_mutex_lock(
-					    &s_disp_ctl.mutex);
+					if (ch == PIPE_CHAR_RESIZE) {
+						/*
+						 * Send the "RESIZE" command
+						 * to "display thread".
+						 */
+						(void) pthread_mutex_lock(
+						    &s_disp_ctl.mutex);
 
-					CMD_ID_SET(&s_disp_ctl.cmd,
-					    CMD_RESIZE_ID);
+						CMD_ID_SET(&s_disp_ctl.cmd,
+						    CMD_RESIZE_ID);
 					dispthr_flagset_nolock(DISP_FLAG_CMD);
 
 					(void) pthread_mutex_unlock(
 					    &s_disp_ctl.mutex);
+					}
 				}
 			} else {
 				/*
