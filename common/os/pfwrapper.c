@@ -254,8 +254,8 @@ profiling_sample_read(struct perf_event_mmap_page *mhdr, int size,
 {
 	struct { uint32_t pid, tid; } id;
 	count_value_t *countval = &rec->countval;
-	uint64_t time_enabled, time_running, nr, value, *ips;
-	int i, j, ret = -1;
+	uint64_t i, time_enabled, time_running, nr, value, *ips;
+	int j, ret = -1;
 
 	/*
 	 * struct read_format {
@@ -473,8 +473,8 @@ ll_sample_read(struct perf_event_mmap_page *mhdr, int size,
 	pf_ll_rec_t *rec)
 {
 	struct { uint32_t pid, tid; } id;
-	uint64_t addr, cpu, weight, nr, value, *ips;
-	int i, j, ret = -1;
+	uint64_t i, addr, cpu, weight, nr, value, *ips;
+	int j, ret = -1;
 
 	/*
 	 * struct read_format {

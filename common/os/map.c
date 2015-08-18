@@ -349,8 +349,8 @@ int
 map_map2numa(track_proc_t *proc, map_entry_t *map_entry)
 {
 	void *addr_arr[NUMA_MOVE_NPAGES];
-	unsigned int npages_total, npages_tomove, npages_moved = 0;
-	int node_arr[NUMA_MOVE_NPAGES], i;
+	unsigned int i, npages_total, npages_tomove, npages_moved = 0;
+	int node_arr[NUMA_MOVE_NPAGES];
 	numa_entry_t *last_entry = NULL;
 	
 	numa_map_fini(map_entry);
