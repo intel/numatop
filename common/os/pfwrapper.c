@@ -588,14 +588,12 @@ pf_ll_record(struct _perf_cpu *cpu, pf_ll_rec_t *rec_arr, int *nrec)
 	pf_ll_rec_t rec;
 	int size;
 
-	if (nrec != NULL) {
-		*nrec = 0;
-	}
+	*nrec = 0;
 
 	for (;;) {
 		if (mmap_buffer_read(mhdr, &ehdr, sizeof(ehdr)) == -1) {
 			/* No valid record in ring buffer. */
-   	    	return;
+			return;
  		}
 
 		if ((size = ehdr.size - sizeof (ehdr)) <= 0) {
