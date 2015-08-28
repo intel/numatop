@@ -2638,7 +2638,7 @@ accdst_data_show(track_proc_t *proc, dyn_accdst_t *dyn, boolean_t *note_out)
 	track_lwp_t *lwp = NULL;
 	void **addr_arr = NULL;
 	int *lat_arr = NULL;
-	int addr_num, i, nnodes, naccess_total;
+	int addr_num, i, nnodes, naccess_total = 0;
 	map_nodedst_t nodedst_arr[NNODES_MAX];
 	accdst_line_t *lines;
 	char content[WIN_LINECHAR_MAX], intval_buf[16];
