@@ -258,19 +258,22 @@ topnproc_dyn_create(int type)
 	void *buf;
 	int i;
 
-	if ((dyn = zalloc(sizeof (dyn_topnproc_t))) == NULL) {
-		return (NULL);
-	}
-
 	if ((buf = zalloc(sizeof (topnproc_line_t) *
 	    WIN_NLINES_MAX)) == NULL) {
-		free(dyn);
+		return (NULL);
+	}
+	if ((dyn = zalloc(sizeof (dyn_topnproc_t))) == NULL) {
+		free(buf);
 		return (NULL);
 	}
 
-	i = reg_init(&dyn->summary, 0, 1, g_scr_width, 2, A_BOLD);
-	i = reg_init(&dyn->caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE);
-	i = reg_init(&dyn->data, 0, i, g_scr_width, g_scr_height - i - 5, 0);
+
+	if ((i = reg_init(&dyn->summary, 0, 1, g_scr_width, 2, A_BOLD)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->data, 0, i, g_scr_width, g_scr_height - i - 5, 0)) < 0)
+		goto L_EXIT;
 
 	if (type == WIN_TYPE_TOPNPROC) {
 		reg_buf_init(&dyn->data, buf, topnproc_line_get);
@@ -282,6 +285,10 @@ topnproc_dyn_create(int type)
 	(void) reg_init(&dyn->hint, 0, i, g_scr_width,
 	    g_scr_height - i - 1, A_BOLD);
 	return (dyn);
+L_EXIT:
+	free(dyn);
+	free(buf);
+	return (NULL);
 }
 
 /*
@@ -655,21 +662,23 @@ moniproc_dyn_create(pid_t pid)
 	int i, nnodes;
 
 	nnodes = node_num();
-	if ((dyn = zalloc(sizeof (dyn_moniproc_t))) == NULL) {
+	if ((buf_cur = zalloc(sizeof (moni_line_t) * nnodes)) == NULL) {
 		return (NULL);
 	}
-
-	if ((buf_cur = zalloc(sizeof (moni_line_t) * nnodes)) == NULL) {
-		free(dyn);
+	if ((dyn = zalloc(sizeof (dyn_moniproc_t))) == NULL) {
+		free(buf_cur);
 		return (NULL);
 	}
 
 	dyn->pid = pid;
 
-	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
-	i = reg_init(&dyn->caption_cur, 0, i, g_scr_width, 2,
-	    A_BOLD | A_UNDERLINE);
-	i = reg_init(&dyn->data_cur, 0, i, g_scr_width, nnodes, 0);
+	if ((i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->caption_cur, 0, i, g_scr_width, 2,
+	    A_BOLD | A_UNDERLINE)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->data_cur, 0, i, g_scr_width, nnodes, 0)) < 0)
+		goto L_EXIT;
 
 	reg_buf_init(&dyn->data_cur, buf_cur, moni_line_get);
 	reg_scroll_init(&dyn->data_cur, B_TRUE);
@@ -677,6 +686,10 @@ moniproc_dyn_create(pid_t pid)
 	(void) reg_init(&dyn->hint, 0, i, g_scr_width,
 	    g_scr_height - i - 1, A_BOLD);
 	return (dyn);
+L_EXIT:
+	free(dyn);
+	free(buf_cur);
+	return (NULL);
 }
 
 /*
@@ -691,22 +704,24 @@ monilwp_dyn_create(pid_t pid, id_t lwpid)
 	int i, nnodes;
 
 	nnodes = node_num();
-	if ((dyn = zalloc(sizeof (dyn_monilwp_t))) == NULL) {
+	if ((buf_cur = zalloc(sizeof (moni_line_t) * nnodes)) == NULL) {
 		return (NULL);
 	}
-
-	if ((buf_cur = zalloc(sizeof (moni_line_t) * nnodes)) == NULL) {
-		free(dyn);
+	if ((dyn = zalloc(sizeof (dyn_monilwp_t))) == NULL) {
+		free(buf_cur);
 		return (NULL);
 	}
 
 	dyn->pid = pid;
 	dyn->lwpid = lwpid;
 
-	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
-	i = reg_init(&dyn->caption_cur, 0, i, g_scr_width, 2,
-	    A_BOLD | A_UNDERLINE);
-	i = reg_init(&dyn->data_cur, 0, i, g_scr_width, nnodes, 0);
+	if ((i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->caption_cur, 0, i, g_scr_width, 2,
+	    A_BOLD | A_UNDERLINE)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->data_cur, 0, i, g_scr_width, nnodes, 0)) < 0)
+		goto L_EXIT;
 
 	reg_buf_init(&dyn->data_cur, buf_cur, moni_line_get);
 	reg_scroll_init(&dyn->data_cur, B_TRUE);
@@ -714,6 +729,10 @@ monilwp_dyn_create(pid_t pid, id_t lwpid)
 	(void) reg_init(&dyn->hint, 0, i, g_scr_width,
 	    g_scr_height - i - 1, A_BOLD);
 	return (dyn);
+L_EXIT:
+	free(dyn);
+	free(buf_cur);
+	return (NULL);
 }
 
 /*
@@ -1185,20 +1204,22 @@ topnlwp_dyn_create(page_t *page)
 	cmd_lwp_t *cmd_lwp = (cmd_lwp_t *)(&page->cmd);
 	pid_t pid = cmd_lwp->pid;
 
-	if ((dyn = zalloc(sizeof (dyn_topnlwp_t))) == NULL) {
+	if ((buf = zalloc(sizeof (topnlwp_line_t) * WIN_NLINES_MAX)) == NULL) {
 		return (NULL);
 	}
-
-	if ((buf = zalloc(sizeof (topnlwp_line_t) * WIN_NLINES_MAX)) == NULL) {
-		free(dyn);
+	if ((dyn = zalloc(sizeof (dyn_topnlwp_t))) == NULL) {
+		free(buf);
 		return (NULL);
 	}
 
 	dyn->pid = pid;
 
-	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
-	i = reg_init(&dyn->caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE);
-	i = reg_init(&dyn->data, 0, i, g_scr_width, g_scr_height - i - 4, 0);
+	if ((i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->data, 0, i, g_scr_width, g_scr_height - i - 4, 0)) < 0)
+		goto L_EXIT;
 
 	reg_buf_init(&dyn->data, buf, topnlwp_line_get);
 	reg_scroll_init(&dyn->data, B_TRUE);
@@ -1206,6 +1227,10 @@ topnlwp_dyn_create(page_t *page)
 	(void) reg_init(&dyn->hint, 0, i, g_scr_width,
 	    g_scr_height - i - 1, A_BOLD);
 	return (dyn);
+L_EXIT:
+	free(dyn);
+	free(buf);
+	return (NULL);
 }
 
 /*
@@ -1441,19 +1466,21 @@ nodeoverview_dyn_create(void)
 	int i, nnodes;
 
 	nnodes = node_num();
-	if ((dyn = zalloc(sizeof (dyn_nodeoverview_t))) == NULL) {
-		return (NULL);
-	}
-
 	if ((buf_cur = zalloc(sizeof (nodeoverview_line_t) * nnodes)) == NULL) {
-		free(dyn);
+		return (NULL);
+	}
+	if ((dyn = zalloc(sizeof (dyn_nodeoverview_t))) == NULL) {
+		free(buf_cur);
 		return (NULL);
 	}
 
-	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
-	i = reg_init(&dyn->caption_cur, 0, i, g_scr_width, 2,
-	    A_BOLD | A_UNDERLINE);
-	i = reg_init(&dyn->data_cur, 0, i, g_scr_width, nnodes, 0);
+	if ((i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->caption_cur, 0, i, g_scr_width, 2,
+	    A_BOLD | A_UNDERLINE)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->data_cur, 0, i, g_scr_width, nnodes, 0)) < 0)
+		goto L_EXIT;
 
 	reg_buf_init(&dyn->data_cur, buf_cur, nodeoverview_line_get);
 	reg_scroll_init(&dyn->data_cur, B_TRUE);
@@ -1461,6 +1488,10 @@ nodeoverview_dyn_create(void)
 	(void) reg_init(&dyn->hint, 0, i, g_scr_width,
 	    g_scr_height - i - 1, A_BOLD);
 	return (dyn);
+L_EXIT:
+	free(dyn);
+	free(buf_cur);
+	return (NULL);
 }
 
 /*
@@ -1683,16 +1714,20 @@ nodedetail_dyn_create(page_t *page)
 	dyn->nid = CMD_NODE_DETAIL(&page->cmd)->nid;
 	node = node_get(dyn->nid);
 	if (!NODE_VALID(node)) {
-		free(dyn);
 		win_warn_msg(WARN_INVALID_NID);
-		return (NULL);
+		goto L_EXIT;
 	}
 
-	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD | A_UNDERLINE);
-	i = reg_init(&dyn->node_data, 0, i, g_scr_width,
-	    g_scr_height - i - 4, 0);
+	if ((i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD | A_UNDERLINE)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->node_data, 0, i, g_scr_width,
+	    g_scr_height - i - 4, 0)) < 0)
+		goto L_EXIT;
 	(void) reg_init(&dyn->hint, 0, i, g_scr_width, 3, A_BOLD);
 	return (dyn);
+L_EXIT:
+	free(dyn);
+	return NULL;
 }
 
 static boolean_t
@@ -1810,15 +1845,22 @@ callchain_dyn_create(page_t *page)
 	dyn->lwpid = cmd_callchain->lwpid;
 	dyn->countid = COUNT_RMA;
 
-	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
-	i = reg_init(&dyn->caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE);
-	i = reg_init(&dyn->pad, 0, i, g_scr_width, 1, 0);
-	i = reg_init(&dyn->data, 0, i, g_scr_width, g_scr_height - i - 4, 0);
+	if ((i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->pad, 0, i, g_scr_width, 1, 0)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->data, 0, i, g_scr_width, g_scr_height - i - 4, 0)) < 0)
+		goto L_EXIT;
 	reg_buf_init(&dyn->data, NULL, win_callchain_line_get);
 	reg_scroll_init(&dyn->data, B_TRUE);
 	(void) reg_init(&dyn->hint, 0, i, g_scr_width,
 	    g_scr_height - i - 1, A_BOLD);
 	return (dyn);
+L_EXIT:
+	free(dyn);
+	return (NULL);
 }
 
 /*
@@ -2061,8 +2103,10 @@ lat_dyn_create(page_t *page, win_type_t *type)
 		return (NULL);
 	}
 
-	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
-	i = reg_init(&dyn->caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE);
+	if ((i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE)) < 0)
+		goto L_EXIT;
 	(void) reg_init(&dyn->data, 0, i, g_scr_width, g_scr_height - i - 2, 0);
 
 	reg_buf_init(&dyn->data, NULL, lat_line_get);
@@ -2076,6 +2120,9 @@ lat_dyn_create(page_t *page, win_type_t *type)
 	}
 
 	return (dyn);
+L_EXIT:
+	free(dyn);
+	return (NULL);
 }
 
 /*
@@ -2410,9 +2457,12 @@ latnode_dyn_create(page_t *page, win_type_t *type)
 		return (NULL);
 	}
 
-	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
-	i = reg_init(&dyn->note, 0, i, g_scr_width, 2, A_BOLD);
-	i = reg_init(&dyn->caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE);
+	if ((i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->note, 0, i, g_scr_width, 2, A_BOLD)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE)) <  0)
+		goto L_EXIT;
 	(void) reg_init(&dyn->data, 0, i, g_scr_width, g_scr_height - i - 2, 0);
 
 	reg_buf_init(&dyn->data, NULL, lat_line_get);
@@ -2428,6 +2478,9 @@ latnode_dyn_create(page_t *page, win_type_t *type)
 	dyn->addr = cmd->addr;
 	dyn->size = cmd->size;
 	return (dyn);
+L_EXIT:
+	free(dyn);
+	return (NULL);
 }
 
 /*
@@ -2504,19 +2557,21 @@ accdst_dyn_create(page_t *page, win_type_t *type)
 	cmd_accdst_t *cmd_accdst = CMD_ACCDST(&page->cmd);
 
 	nnodes = node_num();
-	if ((dyn = zalloc(sizeof (dyn_accdst_t))) == NULL) {
-		return (NULL);
-	}
-
 	if ((buf = zalloc(sizeof (accdst_line_t) * nnodes)) == NULL) {
-		free(dyn);
+		return (NULL);
+	}
+	if ((dyn = zalloc(sizeof (dyn_accdst_t))) == NULL) {
+		free(buf);
 		return (NULL);
 	}
 
-	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
-	i = reg_init(&dyn->caption, 0, i, g_scr_width, 2,
-	    A_BOLD | A_UNDERLINE);
-	i = reg_init(&dyn->data, 0, i, g_scr_width, nnodes, 0);
+	if ((i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->caption, 0, i, g_scr_width, 2,
+	    A_BOLD | A_UNDERLINE)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->data, 0, i, g_scr_width, nnodes, 0)) < 0)
+		goto L_EXIT;
 	reg_buf_init(&dyn->data, buf, accdst_line_get);
 	reg_scroll_init(&dyn->data, B_TRUE);
 	(void) reg_init(&dyn->hint, 0, i, g_scr_width,
@@ -2530,6 +2585,10 @@ accdst_dyn_create(page_t *page, win_type_t *type)
 	}
 
 	return (dyn);
+L_EXIT:
+	free(dyn);
+	free(buf);
+	return (NULL);
 }
 
 /*
@@ -2776,7 +2835,8 @@ win_warn_msg(warn_type_t warn_type)
 	char content[WIN_LINECHAR_MAX];
 	int i;
 
-	i = reg_init(&dyn.msg, 0, 1, g_scr_width, 4, A_BOLD);
+	if ((i = reg_init(&dyn.msg, 0, 1, g_scr_width, 4, A_BOLD)) < 0)
+		return;
 	(void) reg_init(&dyn.pad, 0, i, g_scr_width,
 	    g_scr_height - i - 2, 0);
 

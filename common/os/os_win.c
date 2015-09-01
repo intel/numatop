@@ -479,16 +479,25 @@ os_llcallchain_dyn_create(page_t *page)
 	strncpy(dyn->desc, cmd->desc, WIN_DESCBUF_SIZE);
 	dyn->desc[WIN_DESCBUF_SIZE - 1] = 0;
 
-	i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD);
-	i = reg_init(&dyn->buf_caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE);
-	i = reg_init(&dyn->buf_data, 0, i, g_scr_width, 1, 0);
-	i = reg_init(&dyn->chain_caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE);
-	i = reg_init(&dyn->pad, 0, i, g_scr_width, 1, 0);
-	reg_init(&dyn->chain_data, 0, i, g_scr_width, g_scr_height - i - 2, 0);
+	if ((i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->buf_caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->buf_data, 0, i, g_scr_width, 1, 0)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->chain_caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->pad, 0, i, g_scr_width, 1, 0)) < 0)
+		goto L_EXIT;
+	if ((reg_init(&dyn->chain_data, 0, i, g_scr_width, g_scr_height - i - 2, 0)) < 0)
+		goto L_EXIT;
 	reg_buf_init(&dyn->chain_data, NULL, win_callchain_line_get);
 	reg_scroll_init(&dyn->chain_data, B_TRUE);
 
 	return (dyn);
+L_EXIT:
+	free(dyn);
+	return (NULL);
 }
 
 void
