@@ -427,7 +427,8 @@ disp_handler(void *arg)
 	cmd_t cmd;
 	boolean_t quit, pagelist_inited = B_FALSE;
 	struct timespec timeout;
-	uint64_t start_ms, diff_ms;
+	uint64_t start_ms;
+	int64_t diff_ms;
 
 	/*
 	 * Wait cons thread to complete initialization.
