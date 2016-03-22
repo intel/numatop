@@ -16,9 +16,10 @@ from Intel. It is just a tool to test numatop.
 
 For example:
 
-1. Generate LMA (Local Memory Access) on cpu1 for running 1000s:
+1. Generate LMA for 1000s (memory allocated on node1, thread runs on cpu1):
+   (cpu1 is on node1)
    ./mgen -a 1 -c 1 -t 1000
 
-2. Generate RMA (Remote Memory Access) from cpu10 to cpu0 for running 1000s.
-   (cpu10 and cpu0 are on different nodes):
+2. Generate RMA for 1000s (memory allocated on node0, thread runs on cpu10):
+   (cpu10 is not on node0):
    ./mgen -a 0 -c 10 -t 1000

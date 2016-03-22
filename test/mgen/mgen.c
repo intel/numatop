@@ -54,6 +54,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/resource.h>
+#include <numa.h>
 
 #ifndef PATH_MAX
 #define	PATH_MAX	4096
@@ -77,7 +78,7 @@
 #define BUF_SIZE	256 * 1024 * 1024
 #define RAND_ARRAY_SIZE	8192
 #define INVALID_RAND	-1
-#define LINE_SIZE	128
+#define LINE_SIZE	64
 #define READ_NUM	10240000
 
 static double s_nsofclk, s_clkofns;
@@ -105,15 +106,15 @@ print_usage(const char *exec_name)
 	printf("Usage: %s [option(s)]\n", basename(buffer));
 	printf("Options:\n"
 	    "    -h: print helps\n"
-	    "    -a: the cpu where allocates memory on the associated node\n"
+	    "    -a: the node where the memory is allocated on\n"
 	    "    -c: the cpu where creates a thread to access memory.\n"
 	    "    -t: the seconds for measuring.\n"
 	    "    -s: the random seed to build random address array (just for reproducing).\n");
 	printf("\nFor example:\n"
-	    "    1. Generate LMA (Local Memory Access) on cpu1 for 10s measuring:\n"
+	    "    1. Generate LMA for 10s (memory allocated on node1, thread runs on cpu1):\n"
 	    "       %s -a 1 -c 1 -t 10\n"
-	    "    2. Generate RMA (Remote Memory Access) from cpu1 to cpu0 for 10s measuring:\n"
-	    "       %s -a 0 -c 1 -t 10\n",
+	    "    2. Generate RMA for 10s (memory allocated on node0, thread runs on cpu10):\n"
+	    "       %s -a 0 -c 10 -t 10\n",
 	    basename(buffer), basename(buffer));
 }
 
@@ -372,7 +373,7 @@ sigint_handler(int sig)
 int
 main(int argc, char *argv[])
 {
-	int cpu_alloc = -1, cpu_consumer = -1;
+	int node_alloc = -1, cpu_consumer = -1;
 	int meas_sec = MEAS_TIME_DEFAULT;
 	int ret = -1;
 	char c;
@@ -389,7 +390,7 @@ main(int argc, char *argv[])
 			goto L_EXIT0;
 
 		case 'a':
-			cpu_alloc = atoi(optarg);
+			node_alloc = atoi(optarg);
 			break;
 			
 		case 'c':
@@ -419,7 +420,7 @@ main(int argc, char *argv[])
 	
 	s_ncpus = sysconf(_SC_NPROCESSORS_CONF);
 
-	if (cpu_alloc == -1) {
+	if (node_alloc == -1) {
 		printf("Missed argument for option '-a'.\n");
 		print_usage(argv[0]);
 		goto L_EXIT0;
@@ -442,12 +443,12 @@ main(int argc, char *argv[])
 	gettimeofday(&s_tvbase, 0);
 	calibrate();
 	
-	if ((s_buf = buf_create(cpu_alloc)) == NULL) {
+	if ((s_buf = buf_create(node_alloc)) == NULL) {
 		printf("Failed to create buffer.\n");
 		goto L_EXIT0;
 	}
 
-	if (dependent_read(s_buf, cpu_consumer, cpu_alloc, meas_sec) != 0) {
+	if (dependent_read(s_buf, cpu_consumer, node_alloc, meas_sec) != 0) {
 		printf("Failed to dependent read.\n");
 		goto L_EXIT0;
 	}
@@ -552,20 +553,13 @@ buf_init(void *buf, int size)
 }
 
 static void *
-buf_create(int cpu_alloc)
+buf_create(int node_alloc)
 {
 	void *buf;
 
-	if (processor_bind(cpu_alloc) != 0) {
-		return (NULL);		
-	}
-
-	buf= (void *)mmap(0, BUF_SIZE,
-	    PROT_READ | PROT_WRITE | PROT_EXEC,MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-
-	if (buf != NULL) {
+	buf = numa_alloc_onnode(BUF_SIZE, node_alloc);
+	if (buf != NULL)
 		buf_init(buf, BUF_SIZE);
-	}
 
 	return (buf);
 }
@@ -573,7 +567,7 @@ buf_create(int cpu_alloc)
 static void
 buf_release(void *buf)
 {
-	(void) munmap(buf, BUF_SIZE);	
+	numa_free(buf, BUF_SIZE);	
 }
 
 static uint64_t
@@ -617,7 +611,7 @@ latency_calculate(uint64_t count, uint64_t dur_cyc, uint64_t total_cyc)
 }
 
 static int
-dependent_read(void *buf, int cpu_consumer, int cpu_alloc, int meas_sec)
+dependent_read(void *buf, int cpu_consumer, int node_alloc, int meas_sec)
 {
 	uint64_t total_count = 0, dur_count = 0;
 	uint64_t start_tsc, end_tsc, prev_tsc;
@@ -637,8 +631,8 @@ dependent_read(void *buf, int cpu_consumer, int cpu_alloc, int meas_sec)
 	fprintf(stdout, "\n!!! The reported latency is not the official data\n");
 	fprintf(stdout, "    from Intel, it's just a tool to test numatop !!!\n");
 
-	fprintf(stdout, "\nGenerating memory access from cpu%d to cpu%d for ~%ds ...\n",
-	    cpu_consumer, cpu_alloc, meas_sec);
+	fprintf(stdout, "\nGenerating memory access from cpu%d to node%d for ~%ds ...\n",
+	    cpu_consumer, node_alloc, meas_sec);
 
 	fprintf(stdout, "(random seed to build random address array is %d.)\n", s_randseed);
 

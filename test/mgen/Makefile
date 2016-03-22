@@ -9,7 +9,7 @@ OBJS = mgen.o
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(LD) $(LDLIBS) -o $@ $(OBJS)
+	$(LD) $(LDLIBS) -o $@ $(OBJS) -lnuma
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
