@@ -41,7 +41,7 @@
 extern "C" {
 #endif
 
-#define	NUMATOP_TITLE	"NumaTOP v1.0, (C) 2013 Intel Corporation"
+#define	NUMATOP_TITLE	"NumaTOP v2.0, (C) 2015 Intel Corporation"
 #define	CMD_CAPTION		"Command: "
 #define	WIN_PROCNAME_SIZE	12
 #define	WIN_DESCBUF_SIZE	32
@@ -54,17 +54,31 @@ extern "C" {
 #define	NOTE_DEFAULT \
 	"Q: Quit; H: Home; B: Back; R: Refresh; N: Node"
 
+#define	NOTE_DEFAULT_LLC \
+	"Q: Quit; H: Home; B: Back; R: Refresh; N: Node; O: LLC OCCUPANCY"
+
 #define	NOTE_TOPNPROC_RAW \
 	"Q: Quit; H: Home; R: Refresh; I: IR Normalize; N: Node"
 
-#define	NOTE_TOPNPROC	NOTE_DEFAULT
+#define	NOTE_TOPNPROC_RAW_LLC \
+	"Q: Quit; H: Home; R: Refresh; I: IR Normalize; N: Node; O: LLC OCCUPANCY"
+
+#define NOTE_TOPNPROC	NOTE_DEFAULT
+#define	NOTE_TOPNPROC_LLC	NOTE_DEFAULT_LLC
+
 #define	NOTE_TOPNLWP	NOTE_DEFAULT
 
 #define	NOTE_MONIPROC \
 	"Q: Quit; H: Home; B: Back; R: Refresh; " \
 	"N: Node; L: Latency; C: Call-Chain"
 
+#define	NOTE_MONIPROC_LLC \
+	"Q;  H;  B;  R;  " \
+	"N: Node; L: Latency; C: Call-Chain; O: LLC OCCUPANCY"
+
 #define	NOTE_MONILWP 	NOTE_MONIPROC
+
+#define	NOTE_MONILWP_LLC	NOTE_MONIPROC_LLC
 
 #define	NOTE_NONODE \
 	"Q: Quit; H: Home; B: Back; R: Refresh"
@@ -73,6 +87,11 @@ extern "C" {
 #define	NOTE_NODEOVERVIEW NOTE_NONODE
 #define	NOTE_NODEDETAIL NOTE_NONODE
 #define	NOTE_CALLCHAIN	NOTE_NONODE
+#define NOTE_PQOS_CMT_TOPNPROC	NOTE_NONODE
+#define NOTE_PQOS_MBM	NOTE_NONODE
+
+#define NOTE_PQOS_CMT_MONI	\
+	"Q: Quit; H: Home; B: Back; R: Refresh; P: Memory Bandwidth"
 
 #define	NOTE_INVALID_PID \
 	"Invalid process id! (Q: Quit; H: Home)"
@@ -104,6 +123,9 @@ extern "C" {
 #define	CAPTION_AVGLAT		"LAT(ns)"
 #define	CAPTION_MEM_ALL		"MEM.ALL"
 #define	CAPTION_MEM_FREE	"MEM.FREE"
+#define CAPTION_LLC_OCCUPANCY	"LLC.OCCUPANCY(MB)"
+#define CAPTION_TOTAL_BW	"MBAND.TOTAL"
+#define CAPTION_LOCAL_BW	"MBAND.LOCAL"
 
 typedef enum {
 	WIN_TYPE_RAW_NUM = 0,
@@ -120,10 +142,15 @@ typedef enum {
 	WIN_TYPE_CALLCHAIN,
 	WIN_TYPE_LLCALLCHAIN,
 	WIN_TYPE_ACCDST_PROC,
-	WIN_TYPE_ACCDST_LWP
+	WIN_TYPE_ACCDST_LWP,
+	WIN_TYPE_PQOS_CMT_TOPNPROC,
+	WIN_TYPE_PQOS_CMT_MONIPROC,
+	WIN_TYPE_PQOS_CMT_MONILWP,
+	WIN_TYPE_PQOS_MBM_MONIPROC,
+	WIN_TYPE_PQOS_MBM_MONILWP,
 } win_type_t;
 
-#define	WIN_TYPE_NUM		15
+#define	WIN_TYPE_NUM		20
 
 typedef enum {
 	WARN_INVALID = 0,
@@ -311,6 +338,46 @@ typedef struct _dyn_llcallchain {
 	win_reg_t chain_data;
 } dyn_llcallchain_t;
 
+typedef struct _dyn_pqos_cmt_proc {
+	pid_t pid;
+	int lwpid;
+	win_reg_t summary;
+	win_reg_t caption;
+	win_reg_t data;
+	win_reg_t hint;
+} dyn_pqos_cmt_proc_t;
+
+typedef struct _pqos_cmt_proc_line {
+	win_countvalue_t value;
+	uint64_t llc_occupancy;
+	int pid;
+	int lwpid;
+	int nlwp;
+	int fd;
+	char proc_name[WIN_PROCNAME_SIZE];
+} pqos_cmt_proc_line_t;
+
+typedef struct _dyn_pqos_mbm_proc {
+	pid_t pid;
+	int lwpid;
+	win_reg_t summary;
+	win_reg_t caption;
+	win_reg_t data;
+	win_reg_t hint;
+} dyn_pqos_mbm_proc_t;
+
+typedef struct _pqos_mbm_proc_line {
+	win_countvalue_t value;
+	uint64_t totalbw_scaled;
+	uint64_t localbw_scaled;
+	int pid;
+	int lwpid;
+	int nlwp;
+	int totalbw_fd;
+	int localbw_fd;
+	char proc_name[WIN_PROCNAME_SIZE];
+} pqos_mbm_proc_line_t;
+
 typedef struct _dyn_warn {
 	win_reg_t msg;
 	win_reg_t pad;
@@ -342,6 +409,12 @@ typedef struct _dyn_warn {
 
 #define	DYN_LLCALLCHAIN(page) \
 	((dyn_llcallchain_t *)((page)->dyn_win.dyn))
+
+#define	DYN_PQOS_CMT_PROC(page) \
+	((dyn_pqos_cmt_proc_t *)((page)->dyn_win.dyn))
+
+#define	DYN_PQOS_MBM_PROC(page) \
+	((dyn_pqos_mbm_proc_t *)((page)->dyn_win.dyn))
 
 /* Screen dimension */
 extern int g_scr_height;

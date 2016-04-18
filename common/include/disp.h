@@ -54,6 +54,8 @@ typedef enum {
 	DISP_FLAG_CALLCHAIN_DATA_FAIL,
 	DISP_FLAG_LL_DATA_READY,
 	DISP_FLAG_LL_DATA_FAIL,
+	DISP_FLAG_PQOS_CMT_READY,
+	DISP_FLAG_PQOS_CMT_FAIL,
 	DISP_FLAG_CMD,
 	DISP_FLAG_SCROLLUP,
 	DISP_FLAG_SCROLLDOWN,
@@ -63,10 +65,13 @@ typedef enum {
 typedef struct _disp_ctl {
 	pthread_mutex_t mutex;
 	pthread_cond_t cond;
+	pthread_mutex_t mutex2;
+	pthread_cond_t cond2;
 	pthread_t thr;
 	boolean_t inited;
 	cmd_t cmd;
 	disp_flag_t flag;
+	disp_flag_t flag2;
 	int intval_ms;
 } disp_ctl_t;
 
@@ -90,11 +95,15 @@ extern void disp_callchain_data_ready(int);
 extern void disp_callchain_data_fail(void);
 extern void disp_ll_data_ready(int);
 extern void disp_ll_data_fail(void);
+extern void disp_pqos_cmt_data_ready(int);
+extern void disp_pqos_cmt_data_fail(void);
 extern void disp_on_resize(int);
 extern void disp_intval(char *, int);
 extern void disp_dispthr_quit_wait(void);
 extern void disp_dispthr_quit_start(void);
 extern void disp_go_home(void);
+extern void disp_flag2_set(disp_flag_t);
+extern disp_flag_t disp_flag2_wait(void);
 
 #ifdef __cplusplus
 }

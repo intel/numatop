@@ -57,6 +57,26 @@ static int disp_start(void);
 static void* disp_handler(void *);
 static void* cons_handler(void *);
 
+static int mutex_cond_init(pthread_mutex_t *mutex, pthread_cond_t *cond)
+{
+	if (pthread_mutex_init(mutex, NULL) != 0) {
+		return (-1);
+	}
+
+	if (pthread_cond_init(cond, NULL) != 0) {
+		(void) pthread_mutex_destroy(mutex);
+		return (-1);
+	}
+
+	return 0;
+}
+
+static void mutex_cond_fini(pthread_mutex_t *mutex, pthread_cond_t *cond)
+{
+	pthread_mutex_destroy(mutex);
+	pthread_cond_destroy(cond);
+}
+
 /*
  * Initialization for the display control structure.
  */
@@ -64,13 +84,13 @@ static int
 disp_ctl_init(void)
 {
 	(void) memset(&s_disp_ctl, 0, sizeof (s_disp_ctl));
-	if (pthread_mutex_init(&s_disp_ctl.mutex, NULL) != 0) {
-		return (-1);
-	}
 
-	if (pthread_cond_init(&s_disp_ctl.cond, NULL) != 0) {
-		(void) pthread_mutex_destroy(&s_disp_ctl.mutex);
-		return (-1);
+	if (mutex_cond_init(&s_disp_ctl.mutex, &s_disp_ctl.cond) != 0)
+		return -1;
+
+	if (mutex_cond_init(&s_disp_ctl.mutex2, &s_disp_ctl.cond2) != 0) {
+		mutex_cond_fini(&s_disp_ctl.mutex, &s_disp_ctl.cond);
+		return -1;
 	}
 
 	s_disp_ctl.inited = B_TRUE;
@@ -84,8 +104,8 @@ static void
 disp_ctl_fini(void)
 {
 	if (s_disp_ctl.inited) {
-		(void) pthread_mutex_destroy(&s_disp_ctl.mutex);
-		(void) pthread_cond_destroy(&s_disp_ctl.cond);
+		mutex_cond_fini(&s_disp_ctl.mutex, &s_disp_ctl.cond);
+		mutex_cond_fini(&s_disp_ctl.mutex2, &s_disp_ctl.cond2);
 		s_disp_ctl.inited = B_FALSE;
 	}
 }
@@ -243,6 +263,19 @@ void
 disp_ll_data_fail(void)
 {
 	dispthr_flagset_lock(DISP_FLAG_LL_DATA_FAIL);
+}
+
+void disp_pqos_cmt_data_ready(int intval_ms)
+{
+	(void) pthread_mutex_lock(&s_disp_ctl.mutex);
+	s_disp_ctl.intval_ms = intval_ms;
+	dispthr_flagset_nolock(DISP_FLAG_PQOS_CMT_READY);
+	(void) pthread_mutex_unlock(&s_disp_ctl.mutex);
+}
+
+void disp_pqos_cmt_data_fail(void)
+{
+	dispthr_flagset_lock(DISP_FLAG_PQOS_CMT_FAIL);
 }
 
 /*
@@ -515,6 +548,7 @@ disp_handler(void *arg)
 		case DISP_FLAG_PROFILING_DATA_READY:
 		case DISP_FLAG_CALLCHAIN_DATA_READY:
 		case DISP_FLAG_LL_DATA_READY:
+		case DISP_FLAG_PQOS_CMT_READY:
 			/*
 			 * Show the page.
 			 */
@@ -525,6 +559,7 @@ disp_handler(void *arg)
 		case DISP_FLAG_PROFILING_DATA_FAIL:
 		case DISP_FLAG_CALLCHAIN_DATA_FAIL:
 		case DISP_FLAG_LL_DATA_FAIL:
+		case DISP_FLAG_PQOS_CMT_FAIL:
 			/*
 			 * Received the notification that the perf counting
 			 * was failed.
@@ -738,4 +773,33 @@ disp_go_home(void)
 	CMD_ID_SET(&s_disp_ctl.cmd, CMD_HOME_ID);
 	dispthr_flagset_nolock(DISP_FLAG_CMD);
 	(void) pthread_mutex_unlock(&s_disp_ctl.mutex);
+}
+
+void
+disp_flag2_set(disp_flag_t flag2)
+{
+	pthread_mutex_lock(&s_disp_ctl.mutex2);
+
+	s_disp_ctl.flag2 = flag2;
+	pthread_cond_signal(&s_disp_ctl.cond2);
+	pthread_mutex_unlock(&s_disp_ctl.mutex2);
+}
+
+disp_flag_t
+disp_flag2_wait(void)
+{
+	disp_flag_t flag2;
+
+	pthread_mutex_lock(&s_disp_ctl.mutex2);
+	flag2 = s_disp_ctl.flag2;
+
+	while (flag2 == DISP_FLAG_NONE) {
+		pthread_cond_wait(&s_disp_ctl.cond2, &s_disp_ctl.mutex2);
+		flag2 = s_disp_ctl.flag2;
+	}
+
+	s_disp_ctl.flag2 = DISP_FLAG_NONE;
+	pthread_mutex_unlock(&s_disp_ctl.mutex2);
+
+	return flag2;
 }

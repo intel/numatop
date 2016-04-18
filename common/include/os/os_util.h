@@ -43,10 +43,20 @@ extern "C" {
 #endif
 
 #define DIGIT_LEN_MAX	512
-#define CPU0_CPUFREQ_PATH	"/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"
-#define NODE_INFO_ROOT	"/sys/devices/system/node/"
-#define NODE_NONLINE_PATH	"/sys/devices/system/node/online"
-#define CPUINFO_PATH	"/proc/cpuinfo"
+#define CPU0_CPUFREQ_PATH \
+	"/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"
+#define NODE_INFO_ROOT \
+	"/sys/devices/system/node/"
+#define NODE_NONLINE_PATH \
+	"/sys/devices/system/node/online"
+#define CPUINFO_PATH \
+	"/proc/cpuinfo"
+#define CQM_LLC_OCCUPANCY_SCALE_PATH \
+	"/sys/devices/intel_cqm/events/llc_occupancy.scale"
+#define CQM_LLC_TOTAL_BW_SCALE_PATH \
+	"/sys/devices/intel_cqm/events/total_bytes.scale"
+#define CQM_LLC_LOCAL_BW_SCALE_PATH \
+	"/sys/devices/intel_cqm/events/local_bytes.scale"
 
 extern boolean_t os_authorized(void);
 extern int os_numatop_lock(boolean_t *);
@@ -61,6 +71,7 @@ extern boolean_t os_sysfs_cpu_enum(int, int *, int, int *);
 extern int sysfs_os_online_ncpus(void);
 extern boolean_t os_sysfs_meminfo(int, node_meminfo_t *);
 extern int os_sysfs_online_ncpus(void);
+extern int os_sysfs_cqm_llc_scale(const char*, double *);
 
 #ifdef __cplusplus
 }

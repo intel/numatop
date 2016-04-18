@@ -114,6 +114,8 @@ proc_free(track_proc_t *proc)
 	perf_countchain_reset(&proc->count_chain);
 	perf_llrecgrp_reset(&proc->llrec_grp);
 
+	os_perf_pqos_free(&proc->pqos);
+
 	(void) pthread_mutex_unlock(&proc->mutex);
 	(void) pthread_mutex_destroy(&proc->mutex);
 	free(proc);
@@ -280,6 +282,7 @@ proc_alloc(void)
 	proc->pid = -1;
 	proc->countval_arr = countval_arr;
 	proc->cpuid_max = cpuid_max;
+	os_pqos_cmt_init(&proc->pqos);
 	proc->inited = B_TRUE;
 	return (proc);
 }
@@ -994,5 +997,15 @@ proc_ll_clear(track_proc_t *proc)
 		perf_llrecgrp_reset(&proc->llrec_grp);
 	} else {
 		proc_traverse(ll_clear, NULL);
+	}
+}
+
+void proc_pqos_func(track_proc_t *proc,
+	int (*func)(track_proc_t *, void *, boolean_t *))
+{
+	if (proc == NULL) {
+		pthread_mutex_lock(&s_proc_group.mutex);
+		proc_traverse(func, NULL);
+		pthread_mutex_unlock(&s_proc_group.mutex);
 	}
 }

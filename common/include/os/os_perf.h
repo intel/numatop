@@ -41,6 +41,11 @@ extern "C" {
 #define PERF_REC_NUM	512
 #define PERF_FD_NUM		NCPUS_MAX * COUNT_NUM
 #define INVALID_CODE_UMASK	(uint64_t)(-1)
+#define PERF_PQOS_CMT_MAX	10
+
+#define PERF_PQOS_FLAG_LLC	1
+#define PERF_PQOS_FLAG_TOTAL_BW	2
+#define PERF_PQOS_FLAG_LOCAL_BW	4
 
 typedef struct _os_perf_callchain {
 	unsigned int ip_num;
@@ -67,6 +72,18 @@ typedef struct _perf_cpu {
 	count_value_t countval_last;
 } perf_cpu_t;
 
+typedef struct _perf_pqos {
+	int occupancy_fd;
+	int totalbw_fd;
+	int localbw_fd;
+	uint64_t occupancy_values[3];
+	uint64_t occupancy_scaled;
+	uint64_t totalbw_values[3];
+	uint64_t totalbw_scaled;
+	uint64_t localbw_values[3];
+	uint64_t localbw_scaled;
+} perf_pqos_t;
+
 typedef int (*pfn_perf_cpu_op_t)(struct _perf_cpu *, void *);
 
 struct _perf_ctl;
@@ -75,6 +92,8 @@ struct _perf_countchain;
 struct _perf_chainrecgrp;
 struct _perf_chainrec;
 struct _perf_llrecgrp;
+struct _track_proc;
+struct _track_lwp;
 
 extern boolean_t os_profiling_started(struct _perf_ctl *);
 extern int os_profiling_start(struct _perf_ctl *, union _perf_task *);
@@ -106,6 +125,16 @@ extern char *os_perf_chain_entryname(void *, int);
 extern void os_perf_cpuarr_init(perf_cpu_t *, int, boolean_t);
 extern void os_perf_cpuarr_fini(perf_cpu_t *, int, boolean_t);
 extern int os_perf_cpuarr_refresh(perf_cpu_t *, int, int *, int, boolean_t);
+extern void os_pqos_cmt_init(perf_pqos_t *);
+extern int os_pqos_cmt_start(struct _perf_ctl *, union _perf_task *);
+extern int os_perf_pqos_cmt_smpl(struct _perf_ctl *, pid_t, int);
+extern int os_pqos_cmt_smpl(struct _perf_ctl *, union _perf_task *, int *);
+extern void os_perf_pqos_free(perf_pqos_t *);
+extern int os_pqos_cmt_proc_smpl(struct _track_proc *, void *, boolean_t *);
+extern int os_pqos_cmt_lwp_smpl(struct _track_lwp *, void *, boolean_t *);
+extern int os_pqos_cmt_proc_free(struct _track_proc *, void *, boolean_t *);
+extern boolean_t os_perf_pqos_cmt_started(struct _perf_ctl *);
+extern int os_pqos_proc_stop(struct _perf_ctl *, union _perf_task *);
 
 #ifdef __cplusplus
 }

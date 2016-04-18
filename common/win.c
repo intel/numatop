@@ -51,6 +51,10 @@
 #include "include/os/os_util.h"
 #include "include/os/os_win.h"
 
+extern double g_llc_occupancy_scale;
+extern double g_llc_total_bw_scale;
+extern double g_llc_local_bw_scale;
+
 static boolean_t s_first_load = B_TRUE;
 static win_reg_t s_note_reg;
 static win_reg_t s_title_reg;
@@ -497,7 +501,7 @@ load_msg_show(void)
 }
 
 /*
- * Show the title "NumaTop v1.0, (C) 2012 Intel Corporation"
+ * Show the title "NumaTop v2.0, (C) 2015 Intel Corporation"
  */
 void
 win_title_show(void)
@@ -514,8 +518,11 @@ void
 win_note_show(char *note)
 {
 	char *content;
+	char *p;
 
-	content = (note != NULL) ? note : NOTE_DEFAULT;
+	p = (g_cmt_enabled)? NOTE_DEFAULT_LLC : NOTE_DEFAULT;
+
+	content = (note != NULL) ? note : p;
 	reg_erase(&s_note_reg);
 	reg_line_write(&s_note_reg, 0, ALIGN_LEFT, content);
 	reg_refresh(&s_note_reg);
@@ -529,6 +536,8 @@ win_note_show(char *note)
 static boolean_t
 topnproc_win_draw(dyn_win_t *win)
 {
+	char *note;
+
 	win_title_show();
 	if (s_first_load) {
 		s_first_load = B_FALSE;
@@ -541,9 +550,13 @@ topnproc_win_draw(dyn_win_t *win)
 	topnproc_data_show(win);
 
 	if (win->type == WIN_TYPE_TOPNPROC) {
-		win_note_show(NOTE_TOPNPROC);
+		note = (g_cmt_enabled)?
+			NOTE_TOPNPROC_LLC : NOTE_TOPNPROC;
+		win_note_show(note);
 	} else {
-		win_note_show(NOTE_TOPNPROC_RAW);
+		note = (g_cmt_enabled)?
+			NOTE_TOPNPROC_RAW_LLC : NOTE_TOPNPROC_RAW;
+		win_note_show(note);
 	}
 
 	reg_update_all();
@@ -856,12 +869,14 @@ static boolean_t
 moniproc_win_draw(dyn_win_t *win)
 {
 	boolean_t note_out, ret;
+	char *p;
 
 	win_title_show();
 	ret = moniproc_data_show(win, &note_out);
 
 	if (!note_out) {
-		win_note_show(NOTE_MONIPROC);
+		p = (g_cmt_enabled)? NOTE_MONIPROC_LLC : NOTE_MONIPROC;
+		win_note_show(p);
 	}
 
 	reg_update_all();
@@ -998,12 +1013,14 @@ static boolean_t
 monilwp_win_draw(dyn_win_t *win)
 {
 	boolean_t note_out, ret;
+	char *p;
 
 	win_title_show();
 	ret = monilwp_data_show(win, &note_out);
 
 	if (!note_out) {
-		win_note_show(NOTE_MONILWP);
+		p = (g_cmt_enabled)? NOTE_MONILWP_LLC : NOTE_MONILWP;
+		win_note_show(p);
 	}
 
 	reg_update_all();
@@ -2825,6 +2842,631 @@ accdst_win_draw(dyn_win_t *win)
 	return (ret);
 }
 
+static void
+pqos_cmt_proc_data_build(char *buf, int size,
+	pqos_cmt_proc_line_t *line)
+{
+	win_countvalue_t *value = &line->value;
+	char tmp[32], id[16];
+
+	if (line->lwpid == 0)
+		snprintf(id, sizeof(id), "%d", line->pid);
+	else
+		snprintf(id, sizeof(id), "%d", line->lwpid);
+
+	if (line->fd == INVALID_FD)
+		snprintf(tmp, sizeof(tmp), "%s", id);
+	else
+		snprintf(tmp, sizeof(tmp), "*%s", id);
+
+	snprintf(buf, size,
+	    "%6s%15s%11.1f%11.1f%21.1f%10.1f",
+	    tmp, line->proc_name,
+	    value->rma, value->lma,
+	    ratio(line->llc_occupancy * g_llc_occupancy_scale,
+	        1048576),
+	    value->cpu * 100);
+}
+
+static void
+pqos_cmt_proc_str_build(char *buf, int size, int idx, void *pv)
+{
+	pqos_cmt_proc_line_t *lines = (pqos_cmt_proc_line_t *)pv;
+	pqos_cmt_proc_line_t *line = &lines[idx];
+
+	pqos_cmt_proc_data_build(buf, size, line);
+}
+
+static void
+pqos_cmt_proc_line_get(win_reg_t *r, int idx, char *line, int size)
+{
+	pqos_cmt_proc_line_t *lines;
+
+	lines = (pqos_cmt_proc_line_t *)(r->buf);
+	pqos_cmt_proc_str_build(line, size, idx, (void *)lines);
+}
+
+static void
+pqos_cmt_proc_data_save(track_proc_t *proc, track_lwp_t *lwp, int intval,
+	pqos_cmt_proc_line_t *line)
+{
+	(void) memset(line, 0, sizeof (pqos_cmt_proc_line_t));
+
+	(void) strncpy(line->proc_name, proc->name, sizeof (line->proc_name));
+	line->proc_name[WIN_PROCNAME_SIZE - 1] = 0;
+	line->pid = proc->pid;
+	line->nlwp = proc_nlwp(proc);
+
+	if (lwp == NULL) {
+		line->llc_occupancy = proc->pqos.occupancy_scaled;
+		line->fd = proc->pqos.occupancy_fd;
+
+		win_countvalue_fill(&line->value, proc->countval_arr,
+			proc->cpuid_max, NODE_ALL, intval, g_ncpus);
+
+	} else {
+		line->llc_occupancy = lwp->pqos.occupancy_scaled;
+		line->fd = lwp->pqos.occupancy_fd;
+		line->lwpid = lwp->id;
+
+		win_countvalue_fill(&line->value, lwp->countval_arr,
+			lwp->cpuid_max, NODE_ALL, intval, g_ncpus);
+	}
+}
+
+static dyn_pqos_cmt_proc_t *
+pqos_cmt_dyn_create_proc(page_t *page, pid_t pid, int lwpid, win_type_t *type)
+{
+	dyn_pqos_cmt_proc_t *dyn;
+	void *buf;
+	int i;
+
+	if ((buf = zalloc(sizeof (pqos_cmt_proc_line_t) *
+	    WIN_NLINES_MAX)) == NULL) {
+		return (NULL);
+	}
+	if ((dyn = zalloc(sizeof (dyn_pqos_cmt_proc_t))) == NULL) {
+		free(buf);
+		return (NULL);
+	}
+
+	if ((i = reg_init(&dyn->summary, 0, 1, g_scr_width, 2, A_BOLD)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->data, 0, i, g_scr_width, g_scr_height - i - 5, 0)) < 0)
+		goto L_EXIT;
+
+	reg_buf_init(&dyn->data, buf, pqos_cmt_proc_line_get);
+
+	reg_scroll_init(&dyn->data, B_TRUE);
+	(void) reg_init(&dyn->hint, 0, i, g_scr_width,
+	    g_scr_height - i - 1, A_BOLD);
+
+	if (pid == 0)
+		*type = WIN_TYPE_PQOS_CMT_TOPNPROC;
+	else if (lwpid == 0)
+		*type = WIN_TYPE_PQOS_CMT_MONIPROC;
+	else
+		*type = WIN_TYPE_PQOS_CMT_MONILWP;
+
+	dyn->pid = pid;
+	dyn->lwpid = lwpid;
+
+	return (dyn);
+
+L_EXIT:
+	free(dyn);
+	free(buf);
+	return (NULL);
+}
+
+static void *
+pqos_cmt_dyn_create(page_t *page, win_type_t *type)
+{
+	cmd_pqos_cmt_t *cmd_pqos = CMD_PQOS_CMT(&page->cmd);
+
+	return pqos_cmt_dyn_create_proc(page, cmd_pqos->pid,
+		cmd_pqos->lwpid, type);
+}
+
+static void
+pqos_cmt_caption_build(int lwpid, char *buf, int size)
+{
+	if (lwpid == 0)
+		snprintf(buf, size,
+			"%6s%15s%11s%11s%21s%11s",
+			CAPTION_PID, CAPTION_PROC, CAPTION_RMA, CAPTION_LMA,
+			CAPTION_LLC_OCCUPANCY, CAPTION_CPU);
+	else
+		snprintf(buf, size,
+			"%6s%15s%11s%11s%21s%11s",
+			CAPTION_LWP, CAPTION_PROC, CAPTION_RMA, CAPTION_LMA,
+			CAPTION_LLC_OCCUPANCY, CAPTION_CPU);
+}
+
+static boolean_t
+pqos_cmt_data_show(dyn_win_t *win, boolean_t *note_out)
+{
+	dyn_pqos_cmt_proc_t *dyn;
+	win_reg_t *r, *data_reg;
+	char content[WIN_LINECHAR_MAX], intval_buf[16];
+	int nprocs, nlwps, i;
+	track_proc_t *proc;
+	track_lwp_t *lwp;
+	int intval;
+	pqos_cmt_proc_line_t *lines;
+	boolean_t mbm_out = B_FALSE;
+
+	dyn = (dyn_pqos_cmt_proc_t *)(win->dyn);
+	data_reg = &dyn->data;
+
+	disp_intval(intval_buf, 16);
+
+	if (dyn->pid == 0) {
+		proc_lwp_count(&nprocs, &nlwps);
+		nprocs = MIN(nprocs, WIN_NLINES_MAX);
+		data_reg->nlines_total = nprocs;
+
+		snprintf(content, sizeof (content),
+		    "Monitoring processes with LLC occupancy (interval: %s)",
+		    intval_buf);
+	} else if (dyn->lwpid == 0) {
+		nprocs = 1;
+		data_reg->nlines_total = 1;
+
+		snprintf(content, sizeof (content),
+		    "Monitoring a process with LLC occupancy (interval: %s)",
+		    intval_buf);
+
+		mbm_out = B_TRUE;
+	} else {
+		nprocs = 1;
+		data_reg->nlines_total = 1;
+
+		snprintf(content, sizeof (content),
+		    "Monitoring a thread with LLC occupancy (interval: %s)",
+		    intval_buf);
+
+		mbm_out = B_TRUE;
+	}
+
+	r = &dyn->summary;
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
+	dump_write("\n*** %s\n", content);
+	reg_refresh_nout(r);
+
+	/*
+	 * Display the caption of table:
+	 * "PID PROC CPU% LLC_OCCUPANCY(MB)"
+	 */
+	pqos_cmt_caption_build(dyn->lwpid, content, sizeof (content));
+
+	r = &dyn->caption;
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
+	dump_write("%s\n", content);
+	reg_refresh_nout(r);
+
+	reg_erase(data_reg);
+	lines = (pqos_cmt_proc_line_t *)(data_reg->buf);
+
+	if (dyn->pid == 0) {
+		proc_group_lock();
+		proc_resort(SORT_KEY_CPU);
+
+		for (i = 0; i < nprocs; i++) {
+			if ((proc = proc_sort_next()) == NULL) {
+				break;
+			}
+
+			intval = proc_intval_get(proc);
+			pqos_cmt_proc_data_save(proc, NULL, intval, &lines[i]);
+		}
+
+		proc_group_unlock();
+
+	} else if (dyn->lwpid == 0) {
+		if ((proc = proc_find(dyn->pid)) == NULL) {
+			win_invalid_proc();
+			*note_out = B_TRUE;
+			return (B_FALSE);
+		}
+
+		intval = proc_intval_get(proc);
+		pqos_cmt_proc_data_save(proc, NULL, intval, &lines[0]);
+		proc_refcount_dec(proc);
+	} else {
+		if ((proc = proc_find(dyn->pid)) == NULL) {
+			win_invalid_proc();
+			*note_out = B_TRUE;
+			return (B_FALSE);
+		}
+
+		if ((lwp = proc_lwp_find(proc, dyn->lwpid)) == NULL) {
+			proc_refcount_dec(proc);
+			win_invalid_lwp();
+			*note_out = B_TRUE;
+			return (B_FALSE);
+		}
+
+		intval = lwp_intval_get(lwp);
+		pqos_cmt_proc_data_save(proc, lwp, intval, &lines[0]);
+		lwp_refcount_dec(lwp);
+		proc_refcount_dec(proc);
+	}
+
+	reg_scroll_show(data_reg, (void *)lines, nprocs,
+	    pqos_cmt_proc_str_build);
+
+	reg_refresh_nout(data_reg);
+
+	r = &dyn->hint;
+	reg_erase(r);
+
+	if (dyn->pid == 0) {
+		snprintf(content, sizeof (content),
+		    "-- Track %d active processes's LLC occupancy (marked with *) --",
+		    PERF_PQOS_CMT_MAX);
+		reg_line_write(r, 1, ALIGN_LEFT, content);
+	}
+
+	reg_line_write(r, 2, ALIGN_LEFT,
+	    "CPU%% = system CPU utilization");
+	reg_refresh_nout(r);
+
+	if (mbm_out) {
+		win_note_show(NOTE_PQOS_CMT_MONI);
+		*note_out = B_TRUE;
+	} else {
+		*note_out = B_FALSE;
+	}
+
+	return B_TRUE;
+}
+
+static boolean_t
+pqos_cmt_win_draw(dyn_win_t *win)
+{
+	boolean_t note_out, ret;
+
+	win_title_show();
+	ret = pqos_cmt_data_show(win, &note_out);
+
+	if (!note_out) {
+		win_note_show(NOTE_PQOS_CMT_TOPNPROC);
+	}
+
+	reg_update_all();
+	return (ret);
+}
+
+static void
+pqos_cmt_win_destroy(dyn_win_t *win)
+{
+	dyn_pqos_cmt_proc_t *dyn;
+
+	if ((dyn = win->dyn) != NULL) {
+		if (dyn->data.buf != NULL) {
+			free(dyn->data.buf);
+			dyn->data.buf = NULL;
+		}
+
+		reg_win_destroy(&dyn->summary);
+		reg_win_destroy(&dyn->caption);
+		reg_win_destroy(&dyn->data);
+		reg_win_destroy(&dyn->hint);
+		free(dyn);
+	}
+}
+
+static void
+pqos_cmt_win_scroll(dyn_win_t *win, int scroll_type)
+{
+	dyn_pqos_cmt_proc_t *dyn = (dyn_pqos_cmt_proc_t *)(win->dyn);
+
+	reg_line_scroll(&dyn->data, scroll_type);
+}
+
+static void
+pqos_mbm_proc_data_build(char *buf, int size,
+	pqos_mbm_proc_line_t *line)
+{
+	win_countvalue_t *value = &line->value;
+	char id[16], total_bw[16], local_bw[16];
+
+	if (line->lwpid == 0)
+		snprintf(id, sizeof(id), "%d", line->pid);
+	else
+		snprintf(id, sizeof(id), "%d", line->lwpid);
+
+	snprintf(total_bw, sizeof(total_bw), "%.1fMB",
+		ratio(line->totalbw_scaled * g_llc_total_bw_scale, 1));
+
+	snprintf(local_bw, sizeof(local_bw), "%.1fMB",
+		ratio(line->localbw_scaled * g_llc_local_bw_scale, 1));
+
+	snprintf(buf, size,
+	    "%6s%15s%10.1f%10.1f%14s%14s%9.1f",
+	    id, line->proc_name,
+	    value->rma, value->lma,
+	    total_bw, local_bw,
+	    value->cpu * 100);
+}
+
+static void
+pqos_mbm_proc_str_build(char *buf, int size, int idx, void *pv)
+{
+	pqos_mbm_proc_line_t *lines = (pqos_mbm_proc_line_t *)pv;
+	pqos_mbm_proc_line_t *line = &lines[idx];
+
+	pqos_mbm_proc_data_build(buf, size, line);
+}
+
+static void
+pqos_mbm_proc_line_get(win_reg_t *r, int idx, char *line, int size)
+{
+	pqos_mbm_proc_line_t *lines;
+
+	lines = (pqos_mbm_proc_line_t *)(r->buf);
+	pqos_mbm_proc_str_build(line, size, idx, (void *)lines);
+}
+
+static void
+pqos_mbm_proc_data_save(track_proc_t *proc, track_lwp_t *lwp, int intval,
+	pqos_mbm_proc_line_t *line)
+{
+	(void) memset(line, 0, sizeof (pqos_mbm_proc_line_t));
+
+	(void) strncpy(line->proc_name, proc->name, sizeof (line->proc_name));
+	line->proc_name[WIN_PROCNAME_SIZE - 1] = 0;
+	line->pid = proc->pid;
+	line->nlwp = proc_nlwp(proc);
+
+	if (lwp == NULL) {
+		line->totalbw_scaled = proc->pqos.totalbw_scaled;
+		line->totalbw_fd = proc->pqos.totalbw_fd;
+		line->localbw_scaled = proc->pqos.localbw_scaled;
+		line->localbw_fd = proc->pqos.localbw_fd;
+
+		win_countvalue_fill(&line->value, proc->countval_arr,
+			proc->cpuid_max, NODE_ALL, intval, g_ncpus);
+
+	} else {
+		line->totalbw_scaled = lwp->pqos.totalbw_scaled;
+		line->totalbw_fd = lwp->pqos.totalbw_fd;
+		line->localbw_scaled = lwp->pqos.localbw_scaled;
+		line->localbw_fd = lwp->pqos.localbw_fd;
+
+		win_countvalue_fill(&line->value, lwp->countval_arr,
+			lwp->cpuid_max, NODE_ALL, intval, g_ncpus);
+	}
+}
+
+static dyn_pqos_mbm_proc_t *
+pqos_mbm_dyn_create_proc(page_t *page, pid_t pid, int lwpid, win_type_t *type)
+{
+	dyn_pqos_mbm_proc_t *dyn;
+	void *buf;
+	int i;
+
+	if ((buf = zalloc(sizeof (pqos_mbm_proc_line_t) *
+	    WIN_NLINES_MAX)) == NULL) {
+		return (NULL);
+	}
+
+	if ((dyn = zalloc(sizeof (dyn_pqos_mbm_proc_t))) == NULL) {
+		free(buf);
+		return (NULL);
+	}
+
+	if ((i = reg_init(&dyn->summary, 0, 1, g_scr_width, 2, A_BOLD)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->caption, 0, i, g_scr_width, 2, A_BOLD | A_UNDERLINE)) < 0)
+		goto L_EXIT;
+	if ((i = reg_init(&dyn->data, 0, i, g_scr_width, g_scr_height - i - 5, 0)) < 0)
+		goto L_EXIT;
+
+	reg_buf_init(&dyn->data, buf, pqos_mbm_proc_line_get);
+
+	reg_scroll_init(&dyn->data, B_TRUE);
+	(void) reg_init(&dyn->hint, 0, i, g_scr_width,
+	    g_scr_height - i - 1, A_BOLD);
+
+	if (pid == 0) {
+		/* TODO */
+	} else if (lwpid == 0)
+		*type = WIN_TYPE_PQOS_MBM_MONIPROC;
+	else
+		*type = WIN_TYPE_PQOS_MBM_MONILWP;
+
+	dyn->pid = pid;
+	dyn->lwpid = lwpid;
+
+	return (dyn);
+
+L_EXIT:
+	free(dyn);
+	free(buf);
+	return (NULL);
+}
+
+static void *
+pqos_mbm_dyn_create(page_t *page, win_type_t *type)
+{
+	cmd_pqos_mbm_t *cmd_pqos = CMD_PQOS_MBM(&page->cmd);
+
+	return pqos_mbm_dyn_create_proc(page, cmd_pqos->pid,
+		cmd_pqos->lwpid, type);
+}
+
+static void
+pqos_mbm_caption_build(int lwpid, char *buf, int size)
+{
+	if (lwpid == 0)
+		snprintf(buf, size,
+			"%6s%15s%10s%10s%14s%14s%10s",
+			CAPTION_PID, CAPTION_PROC, CAPTION_RMA, CAPTION_LMA,
+			CAPTION_TOTAL_BW, CAPTION_LOCAL_BW, CAPTION_CPU);
+	else
+		snprintf(buf, size,
+			"%6s%15s%10s%10s%14s%14s%10s",
+			CAPTION_LWP, CAPTION_PROC, CAPTION_RMA, CAPTION_LMA,
+			CAPTION_TOTAL_BW, CAPTION_LOCAL_BW, CAPTION_CPU);
+}
+
+static boolean_t
+pqos_mbm_data_show(dyn_win_t *win, boolean_t *note_out)
+{
+	dyn_pqos_mbm_proc_t *dyn;
+	win_reg_t *r, *data_reg;
+	char content[WIN_LINECHAR_MAX], intval_buf[16];
+	int nprocs;
+	track_proc_t *proc = NULL;
+	track_lwp_t *lwp = NULL;
+	int intval;
+	pqos_mbm_proc_line_t *lines;
+
+	dyn = (dyn_pqos_mbm_proc_t *)(win->dyn);
+	data_reg = &dyn->data;
+
+	disp_intval(intval_buf, 16);
+
+	if (dyn->pid == 0) {
+		/* TODO */
+	} else if (dyn->lwpid == 0) {
+		nprocs = 1;
+		data_reg->nlines_total = 1;
+
+		snprintf(content, sizeof (content),
+		    "Monitoring a process with memory bandwidth (interval: %s)",
+		    intval_buf);
+	} else {
+		nprocs = 1;
+		data_reg->nlines_total = 1;
+
+		snprintf(content, sizeof (content),
+		    "Monitoring a thread with memory bandwidth (interval: %s)",
+		    intval_buf);
+	}
+
+	r = &dyn->summary;
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
+	dump_write("\n*** %s\n", content);
+	reg_refresh_nout(r);
+
+	pqos_mbm_caption_build(dyn->lwpid, content, sizeof (content));
+
+	r = &dyn->caption;
+	reg_erase(r);
+	reg_line_write(r, 1, ALIGN_LEFT, content);
+	dump_write("%s\n", content);
+	reg_refresh_nout(r);
+
+	reg_erase(data_reg);
+	lines = (pqos_mbm_proc_line_t *)(data_reg->buf);
+
+	if (dyn->pid == 0) {
+		/* TODO */
+	} else if (dyn->lwpid == 0) {
+		if ((proc = proc_find(dyn->pid)) == NULL) {
+			win_invalid_proc();
+			*note_out = B_TRUE;
+			return (B_FALSE);
+		}
+
+		intval = proc_intval_get(proc);
+		pqos_mbm_proc_data_save(proc, NULL, intval, &lines[0]);
+		proc_refcount_dec(proc);
+	} else {
+		if ((proc = proc_find(dyn->pid)) == NULL) {
+			win_invalid_proc();
+			*note_out = B_TRUE;
+			return (B_FALSE);
+		}
+
+		if ((lwp = proc_lwp_find(proc, dyn->lwpid)) == NULL) {
+			proc_refcount_dec(proc);
+			win_invalid_lwp();
+			*note_out = B_TRUE;
+			return (B_FALSE);
+		}
+
+		intval = lwp_intval_get(lwp);
+		pqos_mbm_proc_data_save(proc, lwp, intval, &lines[0]);
+		lwp_refcount_dec(lwp);
+		proc_refcount_dec(proc);
+	}
+
+	reg_scroll_show(data_reg, (void *)lines, nprocs,
+	    pqos_mbm_proc_str_build);
+
+	reg_refresh_nout(data_reg);
+
+	r = &dyn->hint;
+	reg_erase(r);
+
+	if (dyn->pid == 0) {
+		snprintf(content, sizeof (content),
+		    "-- Track %d active processes's LLC occupancy (marked with *) --",
+		    PERF_PQOS_CMT_MAX);
+		reg_line_write(r, 1, ALIGN_LEFT, content);
+	}
+
+	reg_line_write(r, 2, ALIGN_LEFT,
+	    "CPU%% = system CPU utilization; MBAND = Memory Bandwidth");
+	reg_refresh_nout(r);
+
+	*note_out = B_FALSE;
+
+	return B_TRUE;
+}
+
+static boolean_t
+pqos_mbm_win_draw(dyn_win_t *win)
+{
+	boolean_t note_out, ret;
+
+	win_title_show();
+	ret = pqos_mbm_data_show(win, &note_out);
+
+	if (!note_out) {
+		win_note_show(NOTE_PQOS_MBM);
+	}
+
+	reg_update_all();
+	return (ret);
+}
+
+static void
+pqos_mbm_win_destroy(dyn_win_t *win)
+{
+	dyn_pqos_mbm_proc_t *dyn;
+
+	if ((dyn = win->dyn) != NULL) {
+		if (dyn->data.buf != NULL) {
+			free(dyn->data.buf);
+			dyn->data.buf = NULL;
+		}
+
+		reg_win_destroy(&dyn->summary);
+		reg_win_destroy(&dyn->caption);
+		reg_win_destroy(&dyn->data);
+		reg_win_destroy(&dyn->hint);
+		free(dyn);
+	}
+}
+
+static void
+pqos_mbm_win_scroll(dyn_win_t *win, int scroll_type)
+{
+	dyn_pqos_mbm_proc_t *dyn = (dyn_pqos_mbm_proc_t *)(win->dyn);
+
+	reg_line_scroll(&dyn->data, scroll_type);
+}
+
 /*
  * The common entry for all warning messages.
  */
@@ -3092,6 +3734,26 @@ win_dyn_init(void *p)
 		win->draw = os_llcallchain_win_draw;
 		win->destroy = os_llcallchain_win_destroy;
 		win->scroll = os_llcallchain_win_scroll;
+		break;
+
+	case CMD_PQOS_CMT_ID:
+		if ((win->dyn = pqos_cmt_dyn_create(page, &win->type)) == NULL) {
+			goto L_EXIT;
+		}
+
+		win->draw = pqos_cmt_win_draw;
+		win->destroy = pqos_cmt_win_destroy;
+		win->scroll = pqos_cmt_win_scroll;
+		break;
+
+	case CMD_PQOS_MBM_ID:
+		if ((win->dyn = pqos_mbm_dyn_create(page, &win->type)) == NULL) {
+			goto L_EXIT;
+		}
+
+		win->draw = pqos_mbm_win_draw;
+		win->destroy = pqos_mbm_win_destroy;
+		win->scroll = pqos_mbm_win_scroll;
 		break;
 
 	default:

@@ -523,7 +523,8 @@ boolean_t
 os_profiling_started(perf_ctl_t *ctl)
 {
 	if ((ctl->status == PERF_STATUS_PROFILING_PART_STARTED) ||
-		(ctl->status == PERF_STATUS_PROFILING_STARTED)) {
+		(ctl->status == PERF_STATUS_PROFILING_STARTED) ||
+		(ctl->status == PERF_STATUS_PQOS_CMT_STARTED)) {
 		return (B_TRUE);
 	}
 	
@@ -558,23 +559,39 @@ os_profiling_start(perf_ctl_t *ctl, perf_task_t *task)
 int
 os_profiling_smpl(perf_ctl_t *ctl, perf_task_t *task, int *intval_ms)
 {
+	task_profiling_t *t = (task_profiling_t *)task;
+	int ret = -1;
+
+/*
 	if (!perf_profiling_started()) {
 		return (-1);
 	}
-
+*/
 	proc_enum_update(0);
 	proc_callchain_clear();
 	proc_profiling_clear();
 	node_profiling_clear();
 
-	if (profiling_smpl(ctl, (task_profiling_t *)task, intval_ms) != 0) {
+	if (profiling_smpl(ctl, t, intval_ms) != 0) {
 		perf_status_set(PERF_STATUS_PROFILING_FAILED);
-		disp_profiling_data_fail();
-		return (-1);
+		goto L_EXIT;
 	}
-	
-	disp_profiling_data_ready(*intval_ms);
-	return (0);
+
+	ret = 0;
+
+L_EXIT:
+	if (ret == 0)
+		if (t->use_dispflag1)
+			disp_profiling_data_ready(*intval_ms);
+		else
+			disp_flag2_set(DISP_FLAG_PROFILING_DATA_READY);
+	else
+		if (t->use_dispflag1)
+			disp_profiling_data_fail();
+		else
+			disp_flag2_set(DISP_FLAG_PROFILING_DATA_FAIL);
+
+	return (ret);
 }
 
 int
@@ -834,6 +851,10 @@ os_allstop(void)
 	if (perf_ll_started()) {
 		ll_stop();				
 	}
+
+	if (perf_pqos_cmt_started()) {
+		proc_pqos_func(NULL, os_pqos_cmt_proc_free);
+	}
 }
 
 int
@@ -990,5 +1011,230 @@ os_perf_cpuarr_refresh(perf_cpu_t *cpu_arr, int cpu_num, int *cpuid_arr,
 		}
 	}
 	
+	return (0);
+}
+
+static int
+pqos_cmt_start(perf_ctl_t *ctl, int pid, int lwpid, int flags)
+{
+	track_proc_t *proc;
+	track_lwp_t *lwp = NULL;
+	perf_pqos_t *pqos;
+	int ret = -1;
+
+	if ((proc = proc_find(pid)) == NULL)
+		return -1;
+
+	if (lwpid == 0) {
+		pqos = &proc->pqos;
+	} else {
+		if ((lwp = proc_lwp_find(proc, lwpid)) == NULL) {
+			proc_refcount_dec(proc);
+			return -1;
+		}
+
+		pqos = &lwp->pqos;
+		proc->lwp_pqosed = B_TRUE;
+	}
+
+	memset(pqos, 0, sizeof(perf_pqos_t));
+	os_pqos_cmt_init(pqos);
+
+	if (flags & PERF_PQOS_FLAG_LLC) {
+		if (pf_pqos_occupancy_setup(pqos, pid, lwpid) != 0)
+			goto L_EXIT;
+	}
+
+	if (flags & PERF_PQOS_FLAG_TOTAL_BW) {
+		if (pf_pqos_totalbw_setup(pqos, pid, lwpid) != 0)
+			goto L_EXIT;
+	}
+
+	if (flags & PERF_PQOS_FLAG_LOCAL_BW) {
+		if (pf_pqos_localbw_setup(pqos, pid, lwpid) != 0)
+			goto L_EXIT;
+	}
+
+	/* ctl->last_ms_pqos = current_ms(); */
+
+	if (pf_pqos_start(pqos) == 0)
+		ret = 0;
+
+L_EXIT:
+	if (ret != 0)
+		pf_pqos_resource_free(pqos);
+
+	if (lwp != NULL)
+		lwp_refcount_dec(lwp);
+
+	proc_refcount_dec(proc);
+
+	return ret;
+}
+
+void os_pqos_cmt_init(perf_pqos_t *pqos)
+{
+	pqos->occupancy_fd = INVALID_FD;
+	pqos->totalbw_fd = INVALID_FD;
+	pqos->localbw_fd = INVALID_FD;
+}
+
+int
+os_pqos_cmt_start(perf_ctl_t *ctl, perf_task_t *task)
+{
+	task_pqos_cmt_t *t = (task_pqos_cmt_t *)task;
+
+	if (pqos_cmt_start(ctl, t->pid, t->lwpid, t->flags) != 0) {
+		debug_print(NULL, 2,
+			"os_pqos_cmt_start is failed for %d/%d\n",
+			t->pid, t->lwpid);
+		perf_status_set(PERF_STATUS_PQOS_CMT_FAILED);
+		return (-1);
+	}
+
+	perf_status_set(PERF_STATUS_PQOS_CMT_STARTED);
+	return (0);
+}
+
+int
+os_perf_pqos_cmt_smpl(perf_ctl_t *ctl, pid_t pid, int lwpid)
+{
+	perf_task_t task;
+	task_pqos_cmt_t *t;
+
+	perf_smpl_wait();
+	memset(&task, 0, sizeof (perf_task_t));
+	t = (task_pqos_cmt_t *)&task;
+	t->task_id = PERF_PQOS_CMT_SMPL_ID;
+	t->pid = pid;
+	t->lwpid = lwpid;
+	perf_task_set(&task);
+	return (0);
+}
+
+int
+os_pqos_cmt_smpl(perf_ctl_t *ctl, perf_task_t *task, int *intval_ms)
+{
+	task_pqos_cmt_t *t = (task_pqos_cmt_t *)task;
+	track_proc_t *proc;
+	track_lwp_t *lwp = NULL;
+	boolean_t end;
+
+	proc_enum_update(0);
+
+	if (t->pid == 0)
+		proc_pqos_func(NULL, os_pqos_cmt_proc_smpl);
+	else {
+		if ((proc = proc_find(t->pid)) == NULL) {
+			disp_pqos_cmt_data_ready(0);
+			return -1;
+		}
+
+		if (t->lwpid == 0)
+			os_pqos_cmt_proc_smpl(proc, NULL, &end);
+		else {
+			if ((lwp = proc_lwp_find(proc, t->lwpid)) == NULL) {
+				proc_refcount_dec(proc);
+				disp_pqos_cmt_data_ready(0);
+				return -1;
+			}
+
+			os_pqos_cmt_lwp_smpl(lwp, NULL, &end);
+		}
+
+		if (lwp != NULL)
+			lwp_refcount_dec(lwp);
+
+		proc_refcount_dec(proc);
+	}
+
+	*intval_ms = current_ms() - ctl->last_ms_pqos;
+	ctl->last_ms_pqos = current_ms();
+	disp_pqos_cmt_data_ready(*intval_ms);
+
+	return (0);
+}
+
+void
+os_perf_pqos_free(perf_pqos_t *pqos)
+{
+	pf_pqos_resource_free(pqos);
+}
+
+int os_pqos_cmt_proc_smpl(struct _track_proc *proc, void *arg, boolean_t *end)
+{
+	*end = B_FALSE;
+	pf_pqos_record(&proc->pqos);
+	return 0;
+}
+
+int
+os_pqos_cmt_lwp_smpl(track_lwp_t *lwp, void *arg, boolean_t *end)
+{
+	*end = B_FALSE;
+	pf_pqos_record(&lwp->pqos);
+	return 0;
+}
+
+static int
+os_pqos_cmt_lwp_free(track_lwp_t *lwp, void *arg, boolean_t *end)
+{
+	*end = B_FALSE;
+	os_perf_pqos_free(&lwp->pqos);
+	return 0;
+}
+
+int os_pqos_cmt_proc_free(struct _track_proc *proc, void *arg, boolean_t *end)
+{
+	*end = B_FALSE;
+	os_perf_pqos_free(&proc->pqos);
+
+	if (proc->lwp_pqosed) {
+		proc_lwp_traverse(proc, os_pqos_cmt_lwp_free, NULL);
+		proc->lwp_pqosed = B_FALSE;
+	}
+
+	return 0;
+}
+
+boolean_t
+os_perf_pqos_cmt_started(perf_ctl_t *ctl)
+{
+	if (ctl->status == PERF_STATUS_PQOS_CMT_STARTED)
+		return (B_TRUE);
+
+	return (B_FALSE);
+}
+
+int os_pqos_proc_stop(perf_ctl_t *ctl, perf_task_t *task)
+{
+	task_pqos_cmt_t *t = (task_pqos_cmt_t *)task;
+	track_proc_t *proc;
+	track_lwp_t *lwp = NULL;
+	boolean_t end;
+
+	if (t->pid == 0)
+		proc_pqos_func(NULL, os_pqos_cmt_proc_free);
+	else {
+		if ((proc = proc_find(t->pid)) == NULL)
+			return -1;
+
+		if (t->lwpid == 0)
+			os_pqos_cmt_proc_free(proc, NULL, &end);
+		else {
+			if ((lwp = proc_lwp_find(proc, t->lwpid)) == NULL) {
+				proc_refcount_dec(proc);
+				return -1;
+			}
+
+			os_pqos_cmt_lwp_free(lwp, NULL, &end);
+		}
+
+		if (lwp != NULL)
+			lwp_refcount_dec(lwp);
+
+		proc_refcount_dec(proc);
+	}
+
 	return (0);
 }

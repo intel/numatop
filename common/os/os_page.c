@@ -37,6 +37,7 @@
 #include "../include/cmd.h"
 #include "../include/page.h"
 #include "../include/perf.h"
+#include "../include/disp.h"
 #include "../include/os/os_page.h"
 
 /*
@@ -46,6 +47,7 @@ boolean_t
 os_page_smpl_start(page_t *page)
 {
 	cmd_t *cmd = PAGE_CMD(page);
+	win_type_t type = PAGE_WIN_TYPE(page);
 
 	switch (CMD_ID(cmd)) {
 	case CMD_HOME_ID:
@@ -61,7 +63,7 @@ os_page_smpl_start(page_t *page)
 	case CMD_NODE_DETAIL_ID:
 		/* fall through */
 	case CMD_CALLCHAIN_ID:
-		if (perf_profiling_smpl() == 0) {
+		if (perf_profiling_smpl(B_TRUE) == 0) {
 			return (B_TRUE);
 		}
 		break;
@@ -77,6 +79,42 @@ os_page_smpl_start(page_t *page)
 			return (B_TRUE);
 		}
 		break;
+
+	case CMD_PQOS_CMT_ID:
+		if (perf_profiling_smpl(B_FALSE) != 0)
+			break;
+
+		if (disp_flag2_wait() != DISP_FLAG_PROFILING_DATA_READY)
+			break;
+
+		if (type == WIN_TYPE_PQOS_CMT_TOPNPROC) {
+			perf_pqos_active_proc_setup(CMD_PQOS_CMT(cmd)->flags, B_TRUE);
+			if (perf_pqos_cmt_smpl(0, 0) != 0)
+				break;
+
+		} else if (type == WIN_TYPE_PQOS_CMT_MONIPROC) {
+			if (perf_pqos_cmt_smpl(CMD_PQOS_CMT(cmd)->pid, 0) != 0)
+				break;
+		} else if (type == WIN_TYPE_PQOS_CMT_MONILWP) {
+			if (perf_pqos_cmt_smpl(CMD_PQOS_CMT(cmd)->pid,
+				CMD_PQOS_CMT(cmd)->lwpid) != 0)
+				break;
+		}
+
+		return B_TRUE;
+
+	case CMD_PQOS_MBM_ID:
+		if (perf_profiling_smpl(B_FALSE) != 0)
+			break;
+
+		if (disp_flag2_wait() != DISP_FLAG_PROFILING_DATA_READY)
+			break;
+
+		if (perf_pqos_cmt_smpl(CMD_PQOS_CMT(cmd)->pid,
+			CMD_PQOS_CMT(cmd)->lwpid) != 0)
+			break;
+
+		return B_TRUE;
 
 	default:
 		break;

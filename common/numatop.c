@@ -60,6 +60,9 @@ int g_sortkey;
 precise_type_t g_precise;
 pid_t g_numatop_pid;
 struct timeval g_tvbase;
+double g_llc_occupancy_scale;
+double g_llc_total_bw_scale;
+double g_llc_local_bw_scale;
 
 /* For automated test. */
 int g_run_secs;
@@ -219,6 +222,10 @@ main(int argc, char *argv[])
 	 */
 	os_calibrate();
 
+	os_sysfs_cqm_llc_scale(CQM_LLC_OCCUPANCY_SCALE_PATH, &g_llc_occupancy_scale);
+	os_sysfs_cqm_llc_scale(CQM_LLC_TOTAL_BW_SCALE_PATH, &g_llc_total_bw_scale);
+	os_sysfs_cqm_llc_scale(CQM_LLC_LOCAL_BW_SCALE_PATH, &g_llc_local_bw_scale);
+
 	if (map_init() != 0) {
 		goto L_EXIT3;
 	}
@@ -240,6 +247,9 @@ main(int argc, char *argv[])
 	}
 
 	debug_print(NULL, 2, "Detected %d online CPUs\n", g_ncpus);
+	debug_print(NULL, 2, "LLC scale: occupancy %.1f, total bw %.1f, local bw %.1f\n",
+		g_llc_occupancy_scale, g_llc_total_bw_scale, g_llc_local_bw_scale);
+
 	stderr_print("NumaTOP is starting ...\n");
 
 	if (disp_cons_ctl_init() != 0) {

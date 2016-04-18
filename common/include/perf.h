@@ -50,7 +50,9 @@ typedef enum {
 	PERF_STATUS_CALLCHAIN_STARTED,
 	PERF_STATUS_CALLCHAIN_FAILED,
 	PERF_STATUS_LL_STARTED,
-	PERF_STATUS_LL_FAILED
+	PERF_STATUS_LL_FAILED,
+	PERF_STATUS_PQOS_CMT_STARTED,
+	PERF_STATUS_PQOS_CMT_FAILED,
 } perf_status_t;
 
 typedef enum {
@@ -64,7 +66,10 @@ typedef enum {
 	PERF_LL_START_ID,
 	PERF_LL_SMPL_ID,	
 	PERF_STOP_ID,
-	PERF_QUIT_ID
+	PERF_QUIT_ID,
+	PERF_PQOS_CMT_START_ID,
+	PERF_PQOS_CMT_SMPL_ID,
+	PERF_PQOS_CMT_STOP_ID,
 } perf_taskid_t;
 
 typedef struct _task_quit {
@@ -77,6 +82,7 @@ typedef struct _task_allstop {
 
 typedef struct _task_profiling {
 	perf_taskid_t task_id;
+	boolean_t use_dispflag1;
 } task_profiling_t;
 
 typedef struct _task_partpause {
@@ -101,6 +107,13 @@ typedef struct _task_ll {
 	int lwpid;
 } task_ll_t;
 
+typedef struct _task_pqos_cmt {
+	perf_taskid_t task_id;
+	pid_t pid;
+	int lwpid;
+	int flags;
+} task_pqos_cmt_t;
+
 typedef union _perf_task {
 	task_quit_t quit;
 	task_allstop_t allstop;
@@ -109,6 +122,7 @@ typedef union _perf_task {
 	task_restore_t restore;
 	task_callchain_t callchain;
 	task_ll_t ll;
+	task_pqos_cmt_t pqos_cmt;
 } perf_task_t;
 
 typedef struct _perf_llrecgrp {
@@ -153,6 +167,7 @@ typedef struct _perf_ctl {
 	perf_task_t task;
 	boolean_t inited;
 	uint64_t last_ms;
+	uint64_t last_ms_pqos;
 } perf_ctl_t;
 
 extern precise_type_t g_precise;
@@ -162,7 +177,7 @@ extern void perf_fini(void);
 extern int perf_allstop(void);
 extern boolean_t perf_profiling_started(void);
 extern int perf_profiling_start(void);
-extern int perf_profiling_smpl(void);
+extern int perf_profiling_smpl(boolean_t);
 extern int perf_profiling_partpause(count_id_t);
 extern int perf_profiling_restore(count_id_t);
 extern boolean_t perf_callchain_started(void);
@@ -174,12 +189,19 @@ extern int perf_ll_smpl(pid_t, int);
 extern void perf_llrecgrp_reset(perf_llrecgrp_t *);
 extern void perf_countchain_reset(perf_countchain_t *);
 extern void perf_status_set(perf_status_t);
+extern void perf_status_set_no_signal(perf_status_t);
 extern void* perf_priv_alloc(boolean_t *);
 extern void perf_priv_free(void *);
 extern void perf_task_set(perf_task_t *);
 extern int perf_status_wait(perf_status_t);
 extern void perf_smpl_wait(void);
 extern void perf_ll_started_set(void);
+extern int perf_pqos_cmt_start(int, int, int);
+extern int perf_pqos_cmt_smpl(pid_t, int);
+extern int perf_pqos_active_proc_setup(int, boolean_t);
+extern boolean_t perf_pqos_cmt_started(void);
+extern int perf_pqos_cmt_stop(pid_t, int);
+extern int perf_pqos_proc_setup(int, int, int);
 
 #ifdef __cplusplus
 }

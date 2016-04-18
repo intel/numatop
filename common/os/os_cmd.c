@@ -38,6 +38,7 @@
 #include "../include/win.h"
 #include "../include/perf.h"
 #include "../include/cmd.h"
+#include "../include/disp.h"
 #include "../include/os/map.h"
 #include "../include/os/os_cmd.h"
 
@@ -59,6 +60,11 @@ os_preop_switch2profiling(cmd_t *cmd, boolean_t *smpl)
 			return (-1);	
 		}
 
+		*smpl = B_TRUE;
+	}
+
+	if (perf_pqos_cmt_started()) {
+		perf_pqos_cmt_stop(0, 0);
 		*smpl = B_TRUE;
 	}
 
@@ -189,6 +195,90 @@ os_preop_leavecallchain(cmd_t *cmd, boolean_t *smpl)
 
 	*smpl = B_TRUE;
 	return (0);	
+}
+
+int
+os_preop_switch2pqoscmt(cmd_t *cmd, boolean_t *smpl)
+{
+	page_t *cur = page_current_get();
+	win_type_t type = PAGE_WIN_TYPE(cur);
+	int ret = 0;
+
+	switch (type) {
+	case WIN_TYPE_MONIPROC:
+		CMD_PQOS_CMT(cmd)->pid = DYN_MONI_PROC(cur)->pid;
+		CMD_PQOS_CMT(cmd)->lwpid = 0;
+		CMD_PQOS_CMT(cmd)->flags = PERF_PQOS_FLAG_LLC;
+		break;
+
+	case WIN_TYPE_RAW_NUM:
+	case WIN_TYPE_TOPNPROC:
+		CMD_PQOS_CMT(cmd)->pid = 0;
+		CMD_PQOS_CMT(cmd)->lwpid = 0;
+		CMD_PQOS_CMT(cmd)->flags = PERF_PQOS_FLAG_LLC;
+		break;
+
+	case WIN_TYPE_MONILWP:
+		CMD_PQOS_CMT(cmd)->pid = DYN_MONI_LWP(cur)->pid;
+		CMD_PQOS_CMT(cmd)->lwpid = DYN_MONI_LWP(cur)->lwpid;
+		CMD_PQOS_CMT(cmd)->flags = PERF_PQOS_FLAG_LLC;
+		break;
+
+	case WIN_TYPE_PQOS_MBM_MONIPROC:
+	case WIN_TYPE_PQOS_MBM_MONILWP:
+		CMD_PQOS_CMT(cmd)->pid = DYN_PQOS_MBM_PROC(cur)->pid;
+		CMD_PQOS_CMT(cmd)->lwpid = DYN_PQOS_MBM_PROC(cur)->lwpid;
+		CMD_PQOS_CMT(cmd)->flags = PERF_PQOS_FLAG_LLC;
+		break;
+
+	default:
+		return (-1);
+	}
+
+	perf_pqos_cmt_stop(CMD_PQOS_CMT(cmd)->pid, CMD_PQOS_CMT(cmd)->lwpid);
+
+	if (perf_profiling_smpl(B_FALSE) != 0)
+		return -1;
+
+	if (disp_flag2_wait() != DISP_FLAG_PROFILING_DATA_READY)
+		return -1;
+
+	if (CMD_PQOS_CMT(cmd)->pid == 0) {
+		ret = perf_pqos_active_proc_setup(CMD_PQOS_CMT(cmd)->flags, B_FALSE);
+	} else {
+		ret = perf_pqos_proc_setup(CMD_PQOS_CMT(cmd)->pid,
+			CMD_PQOS_CMT(cmd)->lwpid, CMD_PQOS_CMT(cmd)->flags);
+	}
+
+	return (ret);
+}
+
+int
+os_preop_switch2pqosmbm(cmd_t *cmd, boolean_t *smpl)
+{
+	page_t *cur = page_current_get();
+	win_type_t type = PAGE_WIN_TYPE(cur);
+	int ret = 0;
+
+	if ((type == WIN_TYPE_PQOS_CMT_MONIPROC) || (type == WIN_TYPE_PQOS_CMT_MONILWP)) {
+
+		if (perf_profiling_smpl(B_FALSE) != 0)
+			return -1;
+
+		if (disp_flag2_wait() != DISP_FLAG_PROFILING_DATA_READY)
+			return -1;
+
+		CMD_PQOS_MBM(cmd)->pid = DYN_PQOS_CMT_PROC(cur)->pid;
+		CMD_PQOS_MBM(cmd)->lwpid = DYN_PQOS_CMT_PROC(cur)->lwpid;
+		CMD_PQOS_MBM(cmd)->flags = PERF_PQOS_FLAG_TOTAL_BW | PERF_PQOS_FLAG_LOCAL_BW;
+
+		perf_pqos_cmt_stop(CMD_PQOS_MBM(cmd)->pid, CMD_PQOS_MBM(cmd)->lwpid);
+
+		ret = perf_pqos_proc_setup(CMD_PQOS_MBM(cmd)->pid,
+			CMD_PQOS_MBM(cmd)->lwpid, CMD_PQOS_MBM(cmd)->flags);
+	}
+
+	return (ret);
 }
 
 int

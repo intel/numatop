@@ -49,6 +49,9 @@ extern int os_preop_back2ll(cmd_t *, boolean_t *);
 extern int os_preop_switch2callchain(cmd_t *, boolean_t *);
 extern int os_preop_switch2accdst(cmd_t *, boolean_t *);
 extern int os_preop_leavecallchain(cmd_t *, boolean_t *);
+extern int os_preop_switch2pqoscmt(cmd_t *, boolean_t *);
+extern int os_preop_switch2pqosmbm(cmd_t *, boolean_t *);
+
 extern int os_op_llmap_stop(cmd_t *, boolean_t);
 extern int os_op_lnmap_stop(cmd_t *, boolean_t);
 extern int os_op_switch2ll(cmd_t *, boolean_t);

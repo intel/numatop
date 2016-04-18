@@ -39,6 +39,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <limits.h>
+#include <locale.h>
 #include "../include/types.h"
 #include "../include/util.h"
 #include "../include/os/os_util.h"
@@ -620,4 +621,27 @@ L_EXIT:
 
 	fclose(fp);
 	return (ret);
+}
+
+int
+os_sysfs_cqm_llc_scale(const char *path, double *scale)
+{
+	FILE *fp;
+	char buf[LINE_SIZE];
+
+	*scale = 0.0;
+
+	if ((fp = fopen(path, "r")) == NULL) {
+		return (-1);
+	}
+
+	if (fgets(buf, LINE_SIZE, fp) == NULL) {
+		fclose(fp);
+		return (-1);
+	}
+
+	fclose(fp);
+	*scale = strtod(buf, NULL);
+
+	return 0;
 }

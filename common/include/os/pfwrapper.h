@@ -110,6 +110,7 @@ typedef struct _pf_ll_rbrec {
 extern precise_type_t g_precise;
 
 struct _perf_cpu;
+struct _perf_pqos;
 
 typedef int (*pfn_pf_event_op_t)(struct _perf_cpu *);
 
@@ -125,6 +126,13 @@ int pf_ll_start(struct _perf_cpu *);
 int pf_ll_stop(struct _perf_cpu *);
 void pf_ll_record(struct _perf_cpu *, pf_ll_rec_t *, int *);
 void pf_resource_free(struct _perf_cpu *);
+int pf_pqos_occupancy_setup(struct _perf_pqos *, int pid, int lwpid);
+int pf_pqos_totalbw_setup(struct _perf_pqos *, int pid, int lwpid);
+int pf_pqos_localbw_setup(struct _perf_pqos *, int pid, int lwpid);
+int pf_pqos_start(struct _perf_pqos *);
+int pf_pqos_stop(struct _perf_pqos *);
+void pf_pqos_record(struct _perf_pqos *);
+void pf_pqos_resource_free(struct _perf_pqos *);
 
 #ifdef __cplusplus
 }

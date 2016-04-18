@@ -52,6 +52,7 @@ typedef struct _plat_event_config {
 } plat_event_config_t;
 
 extern uint64_t g_sample_period[COUNT_NUM][PRECISE_NUM];
+extern boolean_t g_cmt_enabled;
 
 typedef void (*pfn_plat_profiling_config_t)(count_id_t,
     plat_event_config_t *);

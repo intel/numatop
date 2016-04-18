@@ -42,6 +42,7 @@
 #include "include/disp.h"
 #include "include/os/os_page.h"
 #include "include/os/os_cmd.h"
+#include "include/os/plat.h"
 
 static int s_rawnum_sortkey[] = {
 	SORT_KEY_RMA,
@@ -119,6 +120,18 @@ static int
 preop_switch2accdst(cmd_t *cmd, boolean_t *smpl)
 {
 	return (os_preop_switch2accdst(cmd, smpl));
+}
+
+static int
+preop_switch2pqoscmt(cmd_t *cmd, boolean_t *smpl)
+{
+	return (os_preop_switch2pqoscmt(cmd, smpl));
+}
+
+static int
+preop_switch2pqosmbm(cmd_t *cmd, boolean_t *smpl)
+{
+	return (os_preop_switch2pqosmbm(cmd, smpl));
 }
 
 int
@@ -281,6 +294,10 @@ switch_table_init(void)
 	s_switch[WIN_TYPE_RAW_NUM][CMD_3_ID].op = op_sort;
 	s_switch[WIN_TYPE_RAW_NUM][CMD_4_ID].op = op_sort;
 	s_switch[WIN_TYPE_RAW_NUM][CMD_5_ID].op = op_sort;
+	s_switch[WIN_TYPE_RAW_NUM][CMD_PQOS_CMT_ID].preop =
+		preop_switch2pqoscmt;
+	s_switch[WIN_TYPE_RAW_NUM][CMD_PQOS_CMT_ID].op =
+		op_page_next;
 
 	/*
 	 * Initialize for window type "WIN_TYPE_TOPNPROC"
@@ -291,6 +308,10 @@ switch_table_init(void)
 	s_switch[WIN_TYPE_TOPNPROC][CMD_3_ID].op = op_sort;
 	s_switch[WIN_TYPE_TOPNPROC][CMD_4_ID].op = op_sort;
 	s_switch[WIN_TYPE_TOPNPROC][CMD_5_ID].op = op_sort;
+	s_switch[WIN_TYPE_TOPNPROC][CMD_PQOS_CMT_ID].preop =
+		preop_switch2pqoscmt;
+	s_switch[WIN_TYPE_TOPNPROC][CMD_PQOS_CMT_ID].op =
+		op_page_next;
 
 	/*
 	 * Initialize for window type "WIN_TYPE_MONIPROC"
@@ -301,6 +322,10 @@ switch_table_init(void)
 	s_switch[WIN_TYPE_MONIPROC][CMD_CALLCHAIN_ID].preop =
 	    preop_switch2callchain;
 	s_switch[WIN_TYPE_MONIPROC][CMD_CALLCHAIN_ID].op = op_page_next;
+	s_switch[WIN_TYPE_MONIPROC][CMD_PQOS_CMT_ID].preop =
+		preop_switch2pqoscmt;
+	s_switch[WIN_TYPE_MONIPROC][CMD_PQOS_CMT_ID].op =
+		op_page_next;
 
 	/*
 	 * Initialize for window type "WIN_TYPE_TOPNLWP"
@@ -315,13 +340,18 @@ switch_table_init(void)
 	s_switch[WIN_TYPE_MONILWP][CMD_CALLCHAIN_ID].preop =
 	    preop_switch2callchain;
 	s_switch[WIN_TYPE_MONILWP][CMD_CALLCHAIN_ID].op = op_page_next;
+	s_switch[WIN_TYPE_MONILWP][CMD_PQOS_CMT_ID].preop =
+		preop_switch2pqoscmt;
+	s_switch[WIN_TYPE_MONILWP][CMD_PQOS_CMT_ID].op =
+		op_page_next;
 
 	/*
 	 * Initialize for window type "WIN_TYPE_LAT_PROC"
 	 */	
 	s_switch[WIN_TYPE_LAT_PROC][CMD_REFRESH_ID].preop = preop_llrefresh;
 	s_switch[WIN_TYPE_LAT_PROC][CMD_BACK_ID].preop = preop_switch2profiling;
-	s_switch[WIN_TYPE_LAT_PROC][CMD_LLCALLCHAIN_ID].op = op_switch2llcallchain;
+	s_switch[WIN_TYPE_LAT_PROC][CMD_LLCALLCHAIN_ID].op =
+		op_switch2llcallchain;
 	s_switch[WIN_TYPE_LAT_PROC][CMD_LATNODE_ID].preop = preop_switch2ln;
 	s_switch[WIN_TYPE_LAT_PROC][CMD_LATNODE_ID].op = op_page_next;
 	s_switch[WIN_TYPE_LAT_PROC][CMD_ACCDST_ID].preop = preop_switch2accdst;
@@ -337,7 +367,8 @@ switch_table_init(void)
 	 */
 	s_switch[WIN_TYPE_LAT_LWP][CMD_REFRESH_ID].preop = preop_llrefresh;
 	s_switch[WIN_TYPE_LAT_LWP][CMD_BACK_ID].preop = preop_switch2profiling;
-	s_switch[WIN_TYPE_LAT_LWP][CMD_LLCALLCHAIN_ID].op = op_switch2llcallchain;
+	s_switch[WIN_TYPE_LAT_LWP][CMD_LLCALLCHAIN_ID].op =
+		op_switch2llcallchain;
 	s_switch[WIN_TYPE_LAT_LWP][CMD_LATNODE_ID].preop = preop_switch2ln;
 	s_switch[WIN_TYPE_LAT_LWP][CMD_LATNODE_ID].op = op_page_next;
 	s_switch[WIN_TYPE_LAT_LWP][CMD_ACCDST_ID].preop = preop_switch2accdst;
@@ -409,6 +440,44 @@ switch_table_init(void)
 	 */
 	s_switch[WIN_TYPE_LLCALLCHAIN][CMD_NODE_OVERVIEW_ID].preop = NULL;
 	s_switch[WIN_TYPE_LLCALLCHAIN][CMD_NODE_OVERVIEW_ID].op = NULL;
+
+	/*
+	 * Initialize for window type "WIN_TYPE_PQOS_CMT_TOPNPROC"
+	 */
+	s_switch[WIN_TYPE_PQOS_CMT_TOPNPROC][CMD_BACK_ID].preop =
+		preop_switch2profiling;
+
+	/*
+	 * Initialize for window type "WIN_TYPE_PQOS_CMT_MONIPROC"
+	 */
+	s_switch[WIN_TYPE_PQOS_CMT_MONIPROC][CMD_BACK_ID].preop =
+		preop_switch2profiling;
+	s_switch[WIN_TYPE_PQOS_CMT_MONIPROC][CMD_PQOS_MBM_ID].preop =
+		preop_switch2pqosmbm;
+	s_switch[WIN_TYPE_PQOS_CMT_MONIPROC][CMD_PQOS_MBM_ID].op =
+		op_page_next;
+
+	/*
+	 * Initialize for window type "WIN_TYPE_PQOS_CMT_MONILWP"
+	 */
+	s_switch[WIN_TYPE_PQOS_CMT_MONILWP][CMD_BACK_ID].preop =
+		preop_switch2profiling;
+	s_switch[WIN_TYPE_PQOS_CMT_MONILWP][CMD_PQOS_MBM_ID].preop =
+		preop_switch2pqosmbm;
+	s_switch[WIN_TYPE_PQOS_CMT_MONILWP][CMD_PQOS_MBM_ID].op =
+		op_page_next;
+
+	/*
+	 * Initialize for window type "WIN_TYPE_PQOS_MBM_MONIPROC"
+	 */
+	s_switch[WIN_TYPE_PQOS_MBM_MONIPROC][CMD_BACK_ID].preop =
+		preop_switch2pqoscmt;
+
+	/*
+	 * Initialize for window type "WIN_TYPE_PQOS_MBM_MONILWP"
+	 */
+	s_switch[WIN_TYPE_PQOS_MBM_MONILWP][CMD_BACK_ID].preop =
+		preop_switch2pqoscmt;
 }
 
 static int
@@ -488,6 +557,18 @@ cmd_id_get(char ch)
 
 	case CMD_5_CHAR:
 		return (CMD_5_ID);
+
+	case CMD_PQOS_CMT_CHAR:
+		if (g_cmt_enabled)
+			return (CMD_PQOS_CMT_ID);
+
+		return (CMD_INVALID_ID);
+
+	case CMD_PQOS_MBM_CHAR:
+		if (g_cmt_enabled)
+			return (CMD_PQOS_MBM_ID);
+
+		return (CMD_INVALID_ID);
 
 	default:
 		return (CMD_INVALID_ID);

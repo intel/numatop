@@ -36,6 +36,7 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
+#include <sys/errno.h>
 #include "../include/types.h"
 #include "../include/perf.h"
 #include "../include/util.h"
@@ -162,6 +163,10 @@ pf_profiling_setup(struct _perf_cpu *cpu, int idx, pf_conf_t *conf)
 	attr.read_format = PERF_FORMAT_GROUP |
 		PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
 
+	debug_print(NULL, 2, "pf_profiling_setup: attr.type = 0x%lx, "
+		"attr.config = 0x%lx, attr.config1 = 0x%lx\n",
+		 attr.type, attr.config, attr.config1);
+
 	if (idx == 0) {
 		attr.disabled = 1;
 		group_fd = -1;
@@ -187,7 +192,7 @@ pf_profiling_setup(struct _perf_cpu *cpu, int idx, pf_conf_t *conf)
 		cpu->map_len = s_mapsize;
 		cpu->map_mask = s_mapmask;
 	} else {
-        if (ioctl(fds[idx], PERF_EVENT_IOC_SET_OUTPUT, fds[0]) != 0) {
+	        if (ioctl(fds[idx], PERF_EVENT_IOC_SET_OUTPUT, fds[0]) != 0) {
 			debug_print(NULL, 2, "pf_profiling_setup: "
 				"PERF_EVENT_IOC_SET_OUTPUT is failed for CPU%d, COUNT%d\n",
 				cpu->cpuid, idx);
@@ -391,7 +396,7 @@ pf_profiling_record(struct _perf_cpu *cpu, pf_profiling_rec_t *rec_arr,
 
 	for (;;) {
 		if (mmap_buffer_read(mhdr, &ehdr, sizeof(ehdr)) == -1) {
-   	    	return;
+			return;
  		}
 
 		if ((size = ehdr.size - sizeof (ehdr)) <= 0) {			
@@ -630,4 +635,320 @@ pf_resource_free(struct _perf_cpu *cpu)
 		cpu->map_base = MAP_FAILED;
 		cpu->map_len = 0;
 	}
+}
+
+int
+pf_pqos_occupancy_setup(struct _perf_pqos *pqos, int pid, int lwpid)
+{
+	struct perf_event_attr attr;
+
+	memset(&attr, 0, sizeof (attr));
+	attr.type = 9;
+	attr.size = sizeof(attr);
+	attr.config = 1;
+	attr.disabled = 1;
+	attr.inherit = 1;
+	attr.read_format =
+		PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
+
+	if (lwpid == 0) {
+		if ((pqos->occupancy_fd = pf_event_open(&attr, pid, -1, -1, 0)) < 0) {
+			debug_print(NULL, 2, "pf_pqos_occupancy_setup: pf_event_open is failed "
+				"for pid %d\n", pid);
+			pqos->occupancy_fd = INVALID_FD;
+			return (-1);
+		}
+
+		debug_print(NULL, 2, "pf_pqos_occupancy_setup: pid %d, occupancy_fd = %d\n",
+			pid, pqos->occupancy_fd);
+	} else {
+		if ((pqos->occupancy_fd = pf_event_open(&attr, lwpid, -1, -1, 0)) < 0) {
+			debug_print(NULL, 2, "pf_pqos_occupancy_setup: pf_event_open is failed "
+				"for lwpid %d\n", lwpid);
+			pqos->occupancy_fd = INVALID_FD;
+			return (-1);
+		}
+
+		debug_print(NULL, 2, "pf_pqos_occupancy_setup: lwpid %d, occupancy_fd = %d\n",
+			lwpid, pqos->occupancy_fd);
+	}
+
+	return (0);
+}
+
+int
+pf_pqos_totalbw_setup(struct _perf_pqos *pqos, int pid, int lwpid)
+{
+	struct perf_event_attr attr;
+
+	memset(&attr, 0, sizeof (attr));
+	attr.type = 9;
+	attr.size = sizeof(attr);
+	attr.config = 2;
+	attr.disabled = 1;
+	attr.inherit = 1;
+	attr.read_format =
+		PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
+
+	if (lwpid == 0) {
+		if ((pqos->totalbw_fd = pf_event_open(&attr, pid, -1, -1, 0)) < 0) {
+			debug_print(NULL, 2, "pf_pqos_totalbw_setup: pf_event_open is failed "
+				"for pid %d\n", pid);
+			pqos->totalbw_fd = INVALID_FD;
+			return (-1);
+		}
+
+		debug_print(NULL, 2, "pf_pqos_totalbw_setup: pid %d, totalbw_fd = %d\n",
+			pid, pqos->totalbw_fd);
+	} else {
+		if ((pqos->totalbw_fd = pf_event_open(&attr, lwpid, -1, -1, 0)) < 0) {
+			debug_print(NULL, 2, "pf_pqos_totalbw_setup: pf_event_open is failed "
+				"for lwpid %d\n", lwpid);
+			pqos->totalbw_fd = INVALID_FD;
+			return (-1);
+		}
+
+		debug_print(NULL, 2, "pf_pqos_totalbw_setup: lwpid %d, totalbw_fd = %d\n",
+			lwpid, pqos->totalbw_fd);
+	}
+
+	return (0);
+}
+
+int
+pf_pqos_localbw_setup(struct _perf_pqos *pqos, int pid, int lwpid)
+{
+	struct perf_event_attr attr;
+
+	memset(&attr, 0, sizeof (attr));
+	attr.type = 9;
+	attr.size = sizeof(attr);
+	attr.config = 3;
+	attr.disabled = 1;
+	attr.inherit = 1;
+	attr.read_format =
+		PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
+
+	if (lwpid == 0) {
+		if ((pqos->localbw_fd = pf_event_open(&attr, pid, -1, -1, 0)) < 0) {
+			debug_print(NULL, 2, "pf_pqos_localbw_setup: pf_event_open is failed "
+				"for pid %d\n", pid);
+			pqos->localbw_fd = INVALID_FD;
+			return (-1);
+		}
+
+		debug_print(NULL, 2, "pf_pqos_localbw_setup: pid %d, localbw_fd = %d\n",
+			pid, pqos->localbw_fd);
+	} else {
+		if ((pqos->localbw_fd = pf_event_open(&attr, lwpid, -1, -1, 0)) < 0) {
+			debug_print(NULL, 2, "pf_pqos_localbw_setup: pf_event_open is failed "
+				"for lwpid %d\n", lwpid);
+			pqos->localbw_fd = INVALID_FD;
+			return (-1);
+		}
+
+		debug_print(NULL, 2, "pf_pqos_localbw_setup: lwpid %d, localbw_fd = %d\n",
+			lwpid, pqos->localbw_fd);
+	}
+
+	return (0);
+}
+
+int
+pf_pqos_start(struct _perf_pqos *pqos)
+{
+	if (pqos->occupancy_fd != INVALID_FD) {
+		debug_print(NULL, 2, "pf_pqos_start: occupancy_fd = %d\n",
+			pqos->occupancy_fd);
+		ioctl(pqos->occupancy_fd, PERF_EVENT_IOC_ENABLE, 0);
+	}
+
+	if (pqos->totalbw_fd != INVALID_FD) {
+		debug_print(NULL, 2, "pf_pqos_start: totalbw_fd = %d\n",
+			pqos->totalbw_fd);
+		ioctl(pqos->totalbw_fd, PERF_EVENT_IOC_ENABLE, 0);
+	}
+
+	if (pqos->localbw_fd != INVALID_FD) {
+		debug_print(NULL, 2, "pf_pqos_start: localbw_fd = %d\n",
+			pqos->localbw_fd);
+		ioctl(pqos->localbw_fd, PERF_EVENT_IOC_ENABLE, 0);
+	}
+
+	return (0);
+}
+
+int
+pf_pqos_stop(struct _perf_pqos *pqos)
+{
+	if (pqos->occupancy_fd != INVALID_FD) {
+		ioctl(pqos->occupancy_fd, PERF_EVENT_IOC_DISABLE, 0);
+	}
+
+	if (pqos->totalbw_fd != INVALID_FD) {
+		ioctl(pqos->totalbw_fd, PERF_EVENT_IOC_DISABLE, 0);
+	}
+
+	if (pqos->localbw_fd != INVALID_FD) {
+		ioctl(pqos->localbw_fd, PERF_EVENT_IOC_DISABLE, 0);
+	}
+
+	return (0);
+}
+
+static int
+read_fd(int fd, void *buf, int bytes)
+{
+	int left = bytes, ret;
+
+	while (left > 0) {
+		if (((ret = read(fd, buf, left)) < 0) &&
+			(errno == EINTR)) {
+			debug_print(NULL, 2, "read_fd: read fd %d failed (ret = %d, errno = %d)\n",
+				fd, ret, errno);
+			continue;
+		}
+
+		if (ret < 0) {
+			debug_print(NULL, 2, "read_fd: read fd %d failed (ret = %d)\n",
+				fd, ret);
+			return ret;
+		}
+
+		left -= ret;
+		buf += ret;
+	}
+
+	return 0;
+}
+
+void
+pf_pqos_record(struct _perf_pqos *pqos)
+{
+	uint64_t values[3];
+
+	/*
+	 * struct read_format {
+	 *	{ u64	value; }
+	 *	{ u64	time_enabled; }
+	 *	{ u64	time_running; }
+	 * };
+	 */
+
+	if (pqos->occupancy_fd != INVALID_FD) {
+		if (read_fd(pqos->occupancy_fd, values,
+			sizeof(values)) != 0) {
+
+			debug_print(NULL, 2,
+				"pf_pqos_record: read from occupancy_fd %d failed\n",
+				pqos->occupancy_fd);
+		}
+
+		pqos->occupancy_scaled = scale(pqos->occupancy_values[0],
+			values[1] - pqos->occupancy_values[1],
+			values[2] - pqos->occupancy_values[2]);
+
+		debug_print(NULL, 2, "pf_pqos_record: occupancy_fd %d: "
+			"%" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n",
+			pqos->occupancy_fd, pqos->occupancy_values[0],
+			values[1] - pqos->occupancy_values[1],
+			values[2] - pqos->occupancy_values[2]);
+
+		memcpy(pqos->occupancy_values, values, sizeof(values));
+	}
+
+	if (pqos->totalbw_fd != INVALID_FD) {
+		if (read_fd(pqos->totalbw_fd, values, sizeof(values)) != 0) {
+			debug_print(NULL, 2,
+				"pf_pqos_record: read from totalbw_fd %d failed\n",
+				pqos->totalbw_fd);
+		}
+
+		if (values[0] > pqos->totalbw_values[0]) {
+			pqos->totalbw_scaled = scale(values[0] - pqos->totalbw_values[0],
+				values[1] - pqos->totalbw_values[1],
+				values[2] - pqos->totalbw_values[2]);
+
+			debug_print(NULL, 2, "pf_pqos_record: totalbw_fd %d: "
+				"%" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n",
+				pqos->totalbw_fd,
+				values[0] - pqos->totalbw_values[0],
+				values[1] - pqos->totalbw_values[1],
+				values[2] - pqos->totalbw_values[2]);
+		} else {
+			pqos->totalbw_scaled = scale(values[0],
+				values[1],
+				values[2]);
+
+			debug_print(NULL, 2, "pf_pqos_record: totalbw_fd %d: "
+				"%" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n",
+				pqos->totalbw_fd,
+				values[0],
+				values[1],
+				values[2]);
+		}
+
+		memcpy(pqos->totalbw_values, values, sizeof(values));
+	}
+
+	if (pqos->localbw_fd != INVALID_FD) {
+		if (read_fd(pqos->localbw_fd, values, sizeof(values)) != 0) {
+			debug_print(NULL, 2,
+				"pf_pqos_record: read from localbw_fd %d failed\n",
+				pqos->localbw_fd);
+		}
+
+		if (values[0] > pqos->localbw_values[0]) {
+			pqos->localbw_scaled = scale(values[0] - pqos->localbw_values[0],
+				values[1] - pqos->localbw_values[1],
+				values[2] - pqos->localbw_values[2]);
+
+			debug_print(NULL, 2, "pf_pqos_record: localbw_fd %d: "
+				"%" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n",
+				pqos->localbw_fd,
+				values[0] - pqos->localbw_values[0],
+				values[1] - pqos->localbw_values[1],
+				values[2] - pqos->localbw_values[2]);
+		} else {
+			pqos->localbw_scaled = scale(values[0],
+				values[1],
+				values[2]);
+
+			debug_print(NULL, 2, "pf_pqos_record: localbw_fd %d: "
+				"%" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n",
+				pqos->localbw_scaled,
+				values[0],
+				values[1],
+				values[2]);
+		}
+
+		memcpy(pqos->localbw_values, values, sizeof(values));
+	}
+}
+
+void
+pf_pqos_resource_free(struct _perf_pqos *pqos)
+{
+	if (pqos->occupancy_fd != INVALID_FD) {
+		debug_print(NULL, 2, "pf_pqos_resource_free: occupancy_fd %d\n",
+			pqos->occupancy_fd);
+		close(pqos->occupancy_fd);
+	}
+
+	if (pqos->totalbw_fd != INVALID_FD) {
+		debug_print(NULL, 2, "pf_pqos_resource_free: totalbw_fd %d\n",
+			pqos->totalbw_fd);
+		close(pqos->totalbw_fd);
+	}
+
+	if (pqos->localbw_fd != INVALID_FD) {
+		debug_print(NULL, 2, "pf_pqos_resource_free: localbw_fd %d\n",
+			pqos->localbw_fd);
+		close(pqos->localbw_fd);
+	}
+
+	memset(pqos, 0, sizeof(struct _perf_pqos));
+	pqos->occupancy_fd = INVALID_FD;
+	pqos->totalbw_fd = INVALID_FD;
+	pqos->localbw_fd = INVALID_FD;
 }

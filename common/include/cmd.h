@@ -54,6 +54,8 @@ extern "C" {
 #define CMD_ACCDST_CHAR	'd'
 #define CMD_MAP_GET_CHAR	'm'
 #define CMD_MAP_STOP_CHAR	's'
+#define CMD_PQOS_CMT_CHAR	'o'
+#define CMD_PQOS_MBM_CHAR	'p'
 
 typedef enum {
 	CMD_INVALID_ID = 0,
@@ -78,10 +80,12 @@ typedef enum {
 	CMD_REFRESH_ID,
 	CMD_QUIT_ID,
 	CMD_BACK_ID,
-	CMD_RESIZE_ID
+	CMD_RESIZE_ID,
+	CMD_PQOS_CMT_ID,
+	CMD_PQOS_MBM_ID
 } cmd_id_t;
 
-#define CMD_NUM	23
+#define CMD_NUM	25
 
 typedef struct _cmd_home {
 	cmd_id_t id;
@@ -146,6 +150,20 @@ typedef struct _cmd_llcallchain {
 	char desc[WIN_DESCBUF_SIZE];
 } cmd_llcallchain_t;
 
+typedef struct _cmd_pqos_cmt {
+	cmd_id_t id;
+	pid_t pid;
+	int lwpid;
+	int flags;
+} cmd_pqos_cmt_t;
+
+typedef struct _cmd_pqos_mbm {
+	cmd_id_t id;
+	pid_t pid;
+	int lwpid;
+	int flags;
+} cmd_pqos_mbm_t;
+
 typedef union _cmd {
 	cmd_home_t home;
 	cmd_ir_normalize_t ir_normalize;
@@ -158,6 +176,8 @@ typedef union _cmd {
 	cmd_callchain_t callchain;
 	cmd_llcallchain_t llcallchain;
 	cmd_accdst_t accdst;
+	cmd_pqos_cmt_t pqos_cmt;
+	cmd_pqos_mbm_t pqos_mbm;
 } cmd_t;
 
 typedef int (*pfn_switch_preop_t)(cmd_t *, boolean_t *);
@@ -197,6 +217,12 @@ typedef struct _switch {
 
 #define	CMD_LLCALLCHAIN(cmd) \
 	((cmd_llcallchain_t *)(cmd))
+
+#define	CMD_PQOS_CMT(cmd) \
+	((cmd_pqos_cmt_t *)(cmd))
+
+#define	CMD_PQOS_MBM(cmd) \
+	((cmd_pqos_mbm_t *)(cmd))
 
 extern int g_sortkey;
 

@@ -70,6 +70,13 @@ uint64_t g_sample_period[COUNT_NUM][PRECISE_NUM] = {
 	}
 };
 
+typedef struct _perf_pqos_arg {
+	pid_t pid;
+	int lwpid;
+} perf_pqos_arg_t;
+
+static perf_pqos_arg_t s_pqos_arg[PERF_PQOS_CMT_MAX];
+
 static boolean_t
 task_valid(perf_task_t *task)
 {
@@ -93,6 +100,10 @@ task_valid(perf_task_t *task)
 	case PERF_STOP_ID:
 		/* fall through */
 	case PERF_QUIT_ID:
+		/* fall through */
+	case PERF_PQOS_CMT_START_ID:
+	case PERF_PQOS_CMT_SMPL_ID:
+	case PERF_PQOS_CMT_STOP_ID:
 		return (B_TRUE);
 	default:
 		break;
@@ -116,6 +127,14 @@ perf_status_set(perf_status_t status)
 	(void) pthread_mutex_lock(&s_perf_ctl.status_mutex);
 	s_perf_ctl.status = status;
 	(void) pthread_cond_signal(&s_perf_ctl.status_cond);
+	(void) pthread_mutex_unlock(&s_perf_ctl.status_mutex);
+}
+
+void
+perf_status_set_no_signal(perf_status_t status)
+{
+	(void) pthread_mutex_lock(&s_perf_ctl.status_mutex);
+	s_perf_ctl.status = status;
 	(void) pthread_mutex_unlock(&s_perf_ctl.status_mutex);
 }
 
@@ -236,6 +255,19 @@ perf_handler(void *arg)
 
 		case PERF_LL_SMPL_ID:
 			os_ll_smpl(&s_perf_ctl, &task, &intval_ms);
+			break;
+
+		case PERF_PQOS_CMT_START_ID:
+			os_pqos_cmt_start(&s_perf_ctl, &task);
+			break;
+
+		case PERF_PQOS_CMT_SMPL_ID:
+			os_pqos_cmt_smpl(&s_perf_ctl, &task, &intval_ms);
+			break;
+
+		case PERF_PQOS_CMT_STOP_ID:
+			os_pqos_proc_stop(&s_perf_ctl, &task);
+			perf_status_set(PERF_STATUS_PROFILING_STARTED);
 			break;
 
 		default:
@@ -411,7 +443,7 @@ perf_smpl_wait(void)
 }
 
 int
-perf_profiling_smpl(void)
+perf_profiling_smpl(boolean_t use_dispflag1)
 {
 	perf_task_t task;
 	task_profiling_t *t;
@@ -420,6 +452,7 @@ perf_profiling_smpl(void)
 	(void) memset(&task, 0, sizeof (perf_task_t));
 	t = (task_profiling_t *)&task;
 	t->task_id = PERF_PROFILING_SMPL_ID;
+	t->use_dispflag1 = use_dispflag1;
 	perf_task_set(&task);
 	return (0);
 }
@@ -520,4 +553,130 @@ void
 perf_ll_started_set(void)
 {
 	perf_status_set(PERF_STATUS_LL_STARTED);
+}
+
+int
+perf_pqos_cmt_start(int pid, int lwpid, int flags)
+{
+	perf_task_t task;
+	task_pqos_cmt_t *t;
+
+	(void) memset(&task, 0, sizeof (perf_task_t));
+	t = (task_pqos_cmt_t *)&task;
+	t->task_id = PERF_PQOS_CMT_START_ID;
+	t->pid = pid;
+	t->lwpid = lwpid;
+	t->flags = flags;
+	perf_task_set(&task);
+	return (perf_status_wait(PERF_STATUS_PQOS_CMT_STARTED));
+}
+
+int
+perf_pqos_cmt_smpl(pid_t pid, int lwpid)
+{
+	return (os_perf_pqos_cmt_smpl(&s_perf_ctl, pid, lwpid));
+}
+
+int perf_pqos_active_proc_setup(int flags, boolean_t refresh)
+{
+	int nprocs, nlwps, i, j = 0, pqos_num;
+	track_proc_t *proc;
+
+	proc_lwp_count(&nprocs, &nlwps);
+	pqos_num = MIN(nprocs, PERF_PQOS_CMT_MAX);
+
+	memset(s_pqos_arg, 0, sizeof(s_pqos_arg));
+
+	proc_group_lock();
+	proc_resort(SORT_KEY_CPU);
+
+	for (i = 0; i < pqos_num; i++) {
+		if ((proc = proc_sort_next()) == NULL) {
+			break;
+		}
+
+		if (proc->pqos.occupancy_fd == INVALID_FD) {
+			s_pqos_arg[j].pid = proc->pid;
+			j++;
+		}
+	}
+
+	for (i = pqos_num; i < nprocs; i++) {
+		if ((proc = proc_sort_next()) == NULL) {
+			break;
+		}
+
+		if (proc->pqos.occupancy_fd != INVALID_FD)
+			os_perf_pqos_free(&proc->pqos);
+	}
+
+	proc_group_unlock();
+
+	for (i = 0; i < j; i++) {
+		if (perf_pqos_cmt_start(s_pqos_arg[i].pid, 0, flags) != 0)
+			return -1;
+	}
+
+	if ((j > 0) && (!refresh))
+		s_perf_ctl.last_ms_pqos = current_ms();
+
+	return 0;
+}
+
+boolean_t
+perf_pqos_cmt_started(void)
+{
+	return (os_perf_pqos_cmt_started(&s_perf_ctl));
+}
+
+int
+perf_pqos_cmt_stop(pid_t pid, int lwpid)
+{
+	perf_task_t task;
+	task_pqos_cmt_t *t;
+
+	(void) memset(&task, 0, sizeof (perf_task_t));
+	t = (task_pqos_cmt_t *)&task;
+	t->task_id = PERF_PQOS_CMT_STOP_ID;
+	t->pid = pid;
+	t->lwpid = lwpid;
+	perf_task_set(&task);
+	return (perf_status_wait(PERF_STATUS_PROFILING_STARTED));
+}
+
+int perf_pqos_proc_setup(int pid, int lwpid, int flags)
+{
+	track_proc_t *proc;
+	track_lwp_t *lwp = NULL;
+	int ret = 0;
+
+	if ((proc = proc_find(pid)) == NULL)
+		return -1;
+
+	if (proc->pqos.occupancy_fd != INVALID_FD) {
+		goto L_EXIT;
+	}
+
+	if (lwpid != 0) {
+		if ((lwp = proc_lwp_find(proc, lwpid)) == NULL) {
+			ret = -1;
+			goto L_EXIT;
+		}
+
+		if (lwp->pqos.occupancy_fd != INVALID_FD) {
+			goto L_EXIT;
+		}
+	}
+
+	if (perf_pqos_cmt_start(pid, lwpid, flags) != 0)
+		ret = -1;
+
+	s_perf_ctl.last_ms_pqos = current_ms();
+
+L_EXIT:
+	if (lwp != NULL)
+		lwp_refcount_dec(lwp);
+
+	proc_refcount_dec(proc);
+	return ret;
 }

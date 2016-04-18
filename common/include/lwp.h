@@ -57,6 +57,7 @@ typedef struct _track_lwp {
 	count_value_t *countval_arr;
 	perf_countchain_t count_chain;
 	perf_llrecgrp_t llrec_grp;
+	perf_pqos_t pqos;
 	void *perf_priv;
 } track_lwp_t;
 

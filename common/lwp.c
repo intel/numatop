@@ -86,6 +86,7 @@ lwp_alloc(void)
 
 	lwp->countval_arr = countval_arr;
 	lwp->cpuid_max = cpuid_max;
+	os_pqos_cmt_init(&lwp->pqos);
 	lwp->inited = B_TRUE;
 	return (lwp);
 }
@@ -112,6 +113,8 @@ lwp_free(track_lwp_t *lwp)
 	perf_priv_free(lwp->perf_priv);
 	perf_countchain_reset(&lwp->count_chain);
 	perf_llrecgrp_reset(&lwp->llrec_grp);
+
+	os_perf_pqos_free(&lwp->pqos);
 
 	(void) pthread_mutex_unlock(&lwp->mutex);
 	(void) pthread_mutex_destroy(&lwp->mutex);

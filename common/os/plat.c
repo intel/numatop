@@ -43,6 +43,8 @@
 #include "../../intel/include/snb.h"
 #include "../../intel/include/bdw.h"
 
+boolean_t g_cmt_enabled;
+
 static pfn_plat_profiling_config_t
 s_plat_profiling_config[CPU_TYPE_NUM] = {
 	NULL,
@@ -91,10 +93,12 @@ static cpu_type_t s_cpu_type;
 int
 plat_detect(void)
 {
+	int ret = -1;
+
 	if ((s_cpu_type = cpu_type_get()) == CPU_UNSUP) {
 		return (-1);
 	}
-		
+
 	switch (s_cpu_type) {
 	case CPU_WSM_EX:
 		/* fall through */
@@ -110,14 +114,16 @@ plat_detect(void)
 		/* fall through */
 	case CPU_HSX:
 		/* fall through */
-	case CPU_BDX:	
-		return (0);
-		
+	case CPU_BDX:
+		ret = 0;
+		break;
 	default:
 		break;
 	}
 
-	return (-1);
+	g_cmt_enabled = (s_cpu_type == CPU_BDX) ? B_TRUE : B_FALSE;
+
+	return (ret);
 }
 
 /*

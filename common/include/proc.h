@@ -76,6 +76,8 @@ typedef struct _track_proc {
 	count_value_t *countval_arr;
 	perf_countchain_t count_chain;
 	perf_llrecgrp_t llrec_grp;
+	perf_pqos_t pqos;
+	boolean_t lwp_pqosed;
 	struct _track_proc *hash_prev;
 	struct _track_proc *hash_next;
 	struct _track_proc *sort_prev;
@@ -116,6 +118,8 @@ extern int proc_intval_get(track_proc_t *);
 extern void proc_profiling_clear(void);
 extern void proc_callchain_clear(void);
 extern void proc_ll_clear(track_proc_t *);
+extern void proc_pqos_func(track_proc_t *,
+	int (*func)(track_proc_t *, void *, boolean_t *));
 
 #ifdef __cplusplus
 }

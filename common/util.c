@@ -374,6 +374,7 @@ cpu_type_get(void)
 
 	if (family == 6) {
 		model = (ext_model << 4) + model;
+
 		switch (model) {
 		case 26:
 			type = CPU_NHM_EP;
