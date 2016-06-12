@@ -111,6 +111,7 @@ extern precise_type_t g_precise;
 
 struct _perf_cpu;
 struct _perf_pqos;
+struct _node;
 
 typedef int (*pfn_pf_event_op_t)(struct _perf_cpu *);
 
@@ -133,6 +134,10 @@ int pf_pqos_start(struct _perf_pqos *);
 int pf_pqos_stop(struct _perf_pqos *);
 void pf_pqos_record(struct _perf_pqos *);
 void pf_pqos_resource_free(struct _perf_pqos *);
+void pf_uncoreqpi_free(struct _node *);
+int pf_uncoreqpi_setup(struct _node *);
+int pf_uncoreqpi_start(struct _node *);
+int pf_uncoreqpi_smpl(struct _node *);
 
 #ifdef __cplusplus
 }

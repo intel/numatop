@@ -645,3 +645,32 @@ os_sysfs_cqm_llc_scale(const char *path, double *scale)
 
 	return 0;
 }
+
+int
+os_sysfs_uncore_qpi_init(qpi_info_t *qpi, int num)
+{
+	int i, fd, qpi_num = 0;
+	char path[PATH_MAX], buf[32];
+	
+	for (i = 0; i < num; i++)
+	{
+		snprintf(path, PATH_MAX, "/sys/devices/uncore_qpi_%d/type", i);
+		if ((fd = open(path, O_RDONLY)) < 0)
+			return qpi_num;
+
+		if (read(fd, buf, sizeof(buf)) < 0) {
+			close(fd);
+			return qpi_num;
+		}		
+
+		qpi_num++;
+		qpi[i].type = atoi(buf);
+		qpi[i].id = i;
+		qpi[i].value_scaled = 0;
+		memset(qpi[i].values, 0, sizeof(qpi[i].values));
+		qpi[i].fd = INVALID_FD;
+		close(fd);
+	}
+
+	return qpi_num;
+}

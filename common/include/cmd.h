@@ -82,7 +82,7 @@ typedef enum {
 	CMD_BACK_ID,
 	CMD_RESIZE_ID,
 	CMD_PQOS_CMT_ID,
-	CMD_PQOS_MBM_ID
+	CMD_PQOS_MBM_ID,
 } cmd_id_t;
 
 #define CMD_NUM	25
@@ -223,6 +223,9 @@ typedef struct _switch {
 
 #define	CMD_PQOS_MBM(cmd) \
 	((cmd_pqos_mbm_t *)(cmd))
+
+#define	CMD_UNCOREQPI(cmd) \
+	((cmd_uncoreqpi_t *)(cmd))
 
 extern int g_sortkey;
 

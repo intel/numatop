@@ -841,6 +841,21 @@ os_perf_countchain_reset(perf_countchain_t *count_chain)
 	memset(count_chain, 0, sizeof (perf_countchain_t));
 }
 
+static int
+uncoreqpi_stop_all(void)
+{
+	node_t *node;
+	int i;
+
+	for (i = 0; i < NNODES_MAX; i++) {
+		node = node_get(i);
+		if (NODE_VALID(node) && (node->qpi.qpi_num > 0))
+			pf_uncoreqpi_free(node);
+	}
+
+	return 0;
+}
+
 void
 os_allstop(void)
 {
@@ -854,6 +869,10 @@ os_allstop(void)
 
 	if (perf_pqos_cmt_started()) {
 		proc_pqos_func(NULL, os_pqos_cmt_proc_free);
+	}
+
+	if (perf_uncoreqpi_started()) {
+		uncoreqpi_stop_all();
 	}
 }
 
@@ -1236,5 +1255,106 @@ int os_pqos_proc_stop(perf_ctl_t *ctl, perf_task_t *task)
 		proc_refcount_dec(proc);
 	}
 
+	return (0);
+}
+
+int os_uncoreqpi_stop(perf_ctl_t *ctl, perf_task_t *task)
+{
+	task_uncoreqpi_t *t = (task_uncoreqpi_t *)task;
+	node_t *node;
+	int i;
+	
+	if (t->nid >= 0) {
+		node = node_get(t->nid);
+		if (NODE_VALID(node) && (node->qpi.qpi_num > 0))
+			pf_uncoreqpi_free(node);
+	} else {
+		for (i = 0; i < NNODES_MAX; i++) {
+			node = node_get(i);
+			if (NODE_VALID(node) && (node->qpi.qpi_num > 0))
+				pf_uncoreqpi_free(node);
+		}
+	}
+
+	return 0;
+}
+
+static int uncoreqpi_start(perf_ctl_t *ctl, int nid)
+{
+	node_t *node;
+	
+	node = node_get(nid);
+	if (!NODE_VALID(node))
+		return -1;
+	
+	if (pf_uncoreqpi_setup(node) != 0)
+		return -1;
+	
+	if (pf_uncoreqpi_start(node) != 0)
+		return -1;
+	
+	return 0;
+}
+
+int
+os_uncoreqpi_start(perf_ctl_t *ctl, perf_task_t *task)
+{
+	task_uncoreqpi_t *t = (task_uncoreqpi_t *)task;
+
+	if (uncoreqpi_start(ctl, t->nid) != 0) {
+		debug_print(NULL, 2,
+			"uncoreqpi_start is failed for node %d/%d\n",
+			t->nid);
+		perf_status_set(PERF_STATUS_UNCOREQPI_FAILED);
+		return (-1);
+	}
+
+	perf_status_set(PERF_STATUS_UNCOREQPI_STARTED);
+	return (0);
+}
+
+int
+os_uncoreqpi_smpl(perf_ctl_t *ctl, perf_task_t *task, int *intval_ms)
+{
+	task_uncoreqpi_t *t = (task_uncoreqpi_t *)task;
+	node_t *node;
+	int ret;
+
+	node = node_get(t->nid);
+	if (!NODE_VALID(node))
+		return -1;
+
+	ret = pf_uncoreqpi_smpl(node);
+
+	if (ret == 0)
+		disp_profiling_data_ready(*intval_ms);
+	else
+		disp_profiling_data_fail();
+
+	return (ret);
+}
+
+boolean_t
+os_perf_uncoreqpi_started(perf_ctl_t *ctl)
+{
+	if (ctl->status == PERF_STATUS_UNCOREQPI_STARTED)
+		return (B_TRUE);
+
+	return (B_FALSE);
+}
+
+int
+os_perf_uncoreqpi_smpl(perf_ctl_t *ctl, int nid)
+{
+	perf_task_t task;
+	task_uncoreqpi_t *t;
+
+	perf_smpl_wait();
+	memset(&task, 0, sizeof (perf_task_t));
+	t = (task_uncoreqpi_t *)&task;
+	t->task_id = PERF_UNCOREQPI_SMPL_ID;
+	t->nid = nid;
+
+	perf_task_set(&task);
 	return (0);
 }

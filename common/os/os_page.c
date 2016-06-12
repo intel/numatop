@@ -60,13 +60,23 @@ os_page_smpl_start(page_t *page)
 		/* fall through */
 	case CMD_NODE_OVERVIEW_ID:
 		/* fall through */
-	case CMD_NODE_DETAIL_ID:
-		/* fall through */
 	case CMD_CALLCHAIN_ID:
 		if (perf_profiling_smpl(B_TRUE) == 0) {
 			return (B_TRUE);
 		}
 		break;
+
+	case CMD_NODE_DETAIL_ID:
+		if (perf_profiling_smpl(B_FALSE) != 0)
+			break;
+
+		if (disp_flag2_wait() != DISP_FLAG_PROFILING_DATA_READY)
+			break;
+
+		if (perf_uncoreqpi_smpl(CMD_NODE_DETAIL(cmd)->nid) != 0)
+			break;
+
+		return B_TRUE;
 
 	case CMD_LAT_ID:
 		/* fall through */

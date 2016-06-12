@@ -135,6 +135,11 @@ extern int os_pqos_cmt_lwp_smpl(struct _track_lwp *, void *, boolean_t *);
 extern int os_pqos_cmt_proc_free(struct _track_proc *, void *, boolean_t *);
 extern boolean_t os_perf_pqos_cmt_started(struct _perf_ctl *);
 extern int os_pqos_proc_stop(struct _perf_ctl *, union _perf_task *);
+extern int os_uncoreqpi_stop(struct _perf_ctl *, union _perf_task *);
+extern int os_uncoreqpi_start(struct _perf_ctl *, union _perf_task *);
+extern int os_uncoreqpi_smpl(struct _perf_ctl *, union _perf_task *, int *);
+extern boolean_t os_perf_uncoreqpi_started(struct _perf_ctl *);
+extern int os_perf_uncoreqpi_smpl(struct _perf_ctl *, int);
 
 #ifdef __cplusplus
 }

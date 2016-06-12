@@ -41,6 +41,7 @@
 #include "../include/perf.h"
 #include "../include/util.h"
 #include "../include/os/pfwrapper.h"
+#include "../include/os/node.h"
 
 static int s_mapsize, s_mapmask;
 
@@ -951,4 +952,128 @@ pf_pqos_resource_free(struct _perf_pqos *pqos)
 	pqos->occupancy_fd = INVALID_FD;
 	pqos->totalbw_fd = INVALID_FD;
 	pqos->localbw_fd = INVALID_FD;
+}
+
+void
+pf_uncoreqpi_free(struct _node *node)
+{
+	int i;
+	node_qpi_t *qpi = &node->qpi;
+
+	for (i = 0; i < qpi->qpi_num; i++) {
+		if (qpi->qpi_info[i].fd != INVALID_FD) {
+			debug_print(NULL, 2, "pf_uncoreqpi_free: nid %d, qpi %d, fd %d\n",
+				node->nid, i, qpi->qpi_info[i].fd);
+			close(qpi->qpi_info[i].fd);
+		}
+
+		qpi->qpi_info[i].fd = INVALID_FD;
+		qpi->qpi_info[i].value_scaled = 0;
+		memset(qpi->qpi_info[i].values, 0, sizeof(qpi->qpi_info[i].values));
+	}
+}
+
+int
+pf_uncoreqpi_setup(struct _node *node)
+{
+	struct perf_event_attr attr;
+	node_qpi_t *qpi = &node->qpi;
+	int i;
+	
+	for (i = 0; i < qpi->qpi_num; i++) {
+		if (qpi->qpi_info[i].type == 0)
+			continue;
+
+		qpi->qpi_info[i].value_scaled = 0;
+		memset(qpi->qpi_info[i].values, 0, sizeof(qpi->qpi_info[i].values));
+		
+		memset(&attr, 0, sizeof (attr));
+		attr.type = qpi->qpi_info[i].type;
+		attr.size = sizeof(attr);
+		attr.config = 0x600;
+		attr.disabled = 1;
+		attr.inherit = 1;
+		attr.read_format =
+			PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
+
+		if ((qpi->qpi_info[i].fd = pf_event_open(&attr, -1,
+			node->cpus[0].cpuid, -1, 0)) < 0) {
+			debug_print(NULL, 2, "pf_uncoreqpi_setup: pf_event_open is failed "
+				"for node %d, qpi %d, cpu %d, type %d, config 0x%x\n",
+				node->nid, i, node->cpus[0].cpuid, attr.type, attr.config);
+			qpi->qpi_info[i].fd = INVALID_FD;
+			return (-1);
+		}
+
+		debug_print(NULL, 2, "pf_uncoreqpi_setup: pf_event_open is successful "
+			"for node %d, qpi %d, cpu %d, type %d, config 0x%x, fd %d\n",
+			node->nid, i, node->cpus[0].cpuid, attr.type, attr.config,
+			qpi->qpi_info[i].fd);
+	}
+
+	return (0);
+}
+
+int pf_uncoreqpi_start(struct _node *node)
+{
+	node_qpi_t *qpi = &node->qpi;
+	int i;
+	
+	for (i = 0; i < qpi->qpi_num; i++) {
+		if (qpi->qpi_info[i].fd != INVALID_FD) {
+			debug_print(NULL, 2, "pf_uncorqpi_start: "
+				"for node %d, qpi %d, cpu %d, type %d, fd %d\n",
+				node->nid, i, node->cpus[0].cpuid, qpi->qpi_info[i].type,
+				qpi->qpi_info[i].fd);
+			ioctl(qpi->qpi_info[i].fd, PERF_EVENT_IOC_ENABLE, 0);
+		}
+	}
+
+	return (0);
+}
+
+int pf_uncoreqpi_smpl(struct _node *node)
+{
+	node_qpi_t *qpi = &node->qpi;
+	uint64_t values[3];
+	int i;
+
+	for (i = 0; i < qpi->qpi_num; i++) {
+		if (qpi->qpi_info[i].fd != INVALID_FD) {
+
+			/*
+			 * struct read_format {
+			 *	{ u64	value; }
+			 *	{ u64	time_enabled; }
+			 *	{ u64	time_running; }
+			 * };
+			 */
+
+			if (read_fd(qpi->qpi_info[i].fd, values,
+				sizeof(values)) != 0) {
+
+				debug_print(NULL, 2,
+					"pf_uncoreqpi_smpl: read fd %d fail\n",
+					qpi->qpi_info[i].fd);
+				continue;
+			}
+
+			qpi->qpi_info[i].value_scaled = scale(
+				values[0] - qpi->qpi_info[i].values[0],
+				values[1] - qpi->qpi_info[i].values[1],
+				values[2] - qpi->qpi_info[i].values[2]);
+
+			debug_print(NULL, 2, "pf_uncoreqpi_smpl: "
+				"node %d, qpi %d, fd %d: "
+				"%" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n",
+				node->nid, i, qpi->qpi_info[i].fd,
+				values[0] - qpi->qpi_info[i].values[0],
+				values[1] - qpi->qpi_info[i].values[1],
+				values[2] - qpi->qpi_info[i].values[2]);
+
+			memcpy(qpi->qpi_info[i].values, values, sizeof(values));
+		}
+	}
+	
+	return 0;
 }

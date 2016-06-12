@@ -44,6 +44,8 @@ extern "C" {
 #define INVALID_CPUID	-1
 #define	NODE_VALID(node) ((node)->nid != INVALID_NID)
 
+#define NODE_QPI_MAX	3
+
 typedef struct _node_meminfo {
 	uint64_t mem_total;
 	uint64_t mem_free;
@@ -54,12 +56,26 @@ typedef struct _node_meminfo {
 	uint64_t mapped;
 } node_meminfo_t;
 
+typedef struct _qpi_info {
+	int id;
+	int type;
+	int fd;
+	uint64_t values[3];
+	uint64_t value_scaled;
+} qpi_info_t;
+
+typedef struct _node_qpi {
+	int qpi_num;
+	qpi_info_t qpi_info[NODE_QPI_MAX];
+} node_qpi_t;
+
 typedef struct _node {
 	int nid;
 	int ncpus;
 	perf_cpu_t cpus[NCPUS_NODE_MAX];
 	count_value_t countval;
 	node_meminfo_t meminfo;
+	node_qpi_t qpi;
 	boolean_t hotadd;
 	boolean_t hotremove;	
 } node_t;
@@ -94,6 +110,7 @@ extern void node_intval_update(int);
 extern void node_profiling_clear(void);
 extern node_t* node_valid_get(int);
 extern int node_cpuid_max(void);
+extern int node_qpi_init(void);
 
 #ifdef __cplusplus
 }

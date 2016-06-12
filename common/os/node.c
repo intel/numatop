@@ -508,3 +508,32 @@ node_cpuid_max(void)
 {
 	return (s_node_group.cpuid_max + 1);
 }
+
+int
+node_qpi_init(void)
+{
+	qpi_info_t qpi_tmp[NODE_QPI_MAX];
+	int qpi_num, i;
+	node_t *node;
+
+	qpi_num = os_sysfs_uncore_qpi_init(qpi_tmp, NODE_QPI_MAX);
+	if (qpi_num < 0)
+		return -1;
+
+	node_group_lock();
+
+	for (i = 0; i < NNODES_MAX; i++) {
+		node = node_get(i);
+		if (NODE_VALID(node) && (qpi_num > 0)) {
+			memcpy(node->qpi.qpi_info, qpi_tmp,
+				sizeof(node->qpi.qpi_info));
+			node->qpi.qpi_num = qpi_num;
+		}
+	}
+
+	node_group_unlock();
+
+	debug_print(NULL, 2, "%d QPI links per node\n", qpi_num);
+
+	return 0;
+}

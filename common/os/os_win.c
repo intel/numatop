@@ -205,11 +205,12 @@ nodedetail_line_show(win_reg_t *reg, char *title, char *value, int line)
 void
 os_nodedetail_data(dyn_nodedetail_t *dyn, win_reg_t *seg)
 {
-	char s1[256];
+	char s1[256], s2[32];
 	node_t *node;
 	win_countvalue_t value;
 	node_meminfo_t meminfo;
-	int i = 1;
+	int i = 1, j;
+	node_qpi_t *qpi;
 
 	reg_erase(seg);
 	node = node_get(dyn->nid);
@@ -293,6 +294,18 @@ os_nodedetail_data(dyn_nodedetail_t *dyn, win_reg_t *seg)
 	(void) snprintf(s1, sizeof (s1), "%.2fG",
 		(double)((double)(meminfo.mapped) / (double)(GB_BYTES)));
 	nodedetail_line_show(seg, "Mapped:", s1, i++);
+
+	/*
+	 * Display the QPI link bandwidth
+	 */
+	qpi = &node->qpi;
+
+	for (j = 0; j < qpi->qpi_num; j++) {		
+		snprintf(s1, sizeof (s1), "%.1fMB", 
+			ratio(qpi->qpi_info[j].value_scaled * 8, 1024 * 1024));
+		snprintf(s2, sizeof (s2), "QPI%d bandwidth:", j);
+		nodedetail_line_show(seg, s2, s1, i++);	
+	}
 
 	reg_refresh_nout(seg);
 }

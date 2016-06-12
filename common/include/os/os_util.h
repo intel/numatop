@@ -30,6 +30,7 @@
 #define	_NUMATOP_OS_UTIL_H
 
 #include <sys/types.h>
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <inttypes.h>
@@ -72,6 +73,7 @@ extern int sysfs_os_online_ncpus(void);
 extern boolean_t os_sysfs_meminfo(int, node_meminfo_t *);
 extern int os_sysfs_online_ncpus(void);
 extern int os_sysfs_cqm_llc_scale(const char*, double *);
+extern int os_sysfs_uncore_qpi_init(qpi_info_t *, int);
 
 #ifdef __cplusplus
 }

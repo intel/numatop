@@ -104,6 +104,9 @@ task_valid(perf_task_t *task)
 	case PERF_PQOS_CMT_START_ID:
 	case PERF_PQOS_CMT_SMPL_ID:
 	case PERF_PQOS_CMT_STOP_ID:
+	case PERF_UNCOREQPI_START_ID:
+	case PERF_UNCOREQPI_SMPL_ID:
+	case PERF_UNCOREQPI_STOP_ID:
 		return (B_TRUE);
 	default:
 		break;
@@ -268,6 +271,19 @@ perf_handler(void *arg)
 		case PERF_PQOS_CMT_STOP_ID:
 			os_pqos_proc_stop(&s_perf_ctl, &task);
 			perf_status_set(PERF_STATUS_PROFILING_STARTED);
+			break;
+
+		case PERF_UNCOREQPI_STOP_ID:
+			os_uncoreqpi_stop(&s_perf_ctl, &task);
+			perf_status_set(PERF_STATUS_PROFILING_STARTED);
+			break;
+
+		case PERF_UNCOREQPI_START_ID:
+			os_uncoreqpi_start(&s_perf_ctl, &task);
+			break;
+
+		case PERF_UNCOREQPI_SMPL_ID:
+			os_uncoreqpi_smpl(&s_perf_ctl, &task, &intval_ms);
 			break;
 
 		default:
@@ -679,4 +695,50 @@ L_EXIT:
 
 	proc_refcount_dec(proc);
 	return ret;
+}
+
+int perf_uncoreqpi_stop(int nid)
+{
+	perf_task_t task;
+	task_uncoreqpi_t *t;
+
+	(void) memset(&task, 0, sizeof (perf_task_t));
+	t = (task_uncoreqpi_t *)&task;
+	t->task_id = PERF_UNCOREQPI_STOP_ID;
+	t->nid = nid;
+	perf_task_set(&task);
+	return (perf_status_wait(PERF_STATUS_PROFILING_STARTED));
+}
+
+static int
+perf_uncoreqpi_start(int nid)
+{
+	perf_task_t task;
+	task_uncoreqpi_t *t;
+
+	(void) memset(&task, 0, sizeof (perf_task_t));
+	t = (task_uncoreqpi_t *)&task;
+	t->task_id = PERF_UNCOREQPI_START_ID;
+	t->nid = nid;
+	perf_task_set(&task);
+	return (perf_status_wait(PERF_STATUS_UNCOREQPI_STARTED));
+}
+
+int perf_uncoreqpi_setup(int nid)
+{
+	if (perf_uncoreqpi_start(nid) != 0)
+		return -1;
+		
+	return 0;
+}
+
+int perf_uncoreqpi_smpl(int nid)
+{
+	return (os_perf_uncoreqpi_smpl(&s_perf_ctl, nid));
+}
+
+boolean_t
+perf_uncoreqpi_started(void)
+{
+	return (os_perf_uncoreqpi_started(&s_perf_ctl));
 }
