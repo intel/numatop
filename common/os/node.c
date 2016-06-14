@@ -537,3 +537,32 @@ node_qpi_init(void)
 
 	return 0;
 }
+
+int
+node_imc_init(void)
+{
+	imc_info_t imc_tmp[NODE_IMC_MAX];
+	int imc_num, i;
+	node_t *node;
+
+	imc_num = os_sysfs_uncore_imc_init(imc_tmp, NODE_IMC_MAX);
+	if (imc_num < 0)
+		return -1;
+
+	node_group_lock();
+
+	for (i = 0; i < NNODES_MAX; i++) {
+		node = node_get(i);
+		if (NODE_VALID(node) && (imc_num > 0)) {
+			memcpy(node->imc.imc_info, imc_tmp,
+				sizeof(node->imc.imc_info));
+			node->imc.imc_num = imc_num;
+		}
+	}
+
+	node_group_unlock();
+
+	debug_print(NULL, 2, "%d memory controllers per node\n", imc_num);
+
+	return 0;
+}

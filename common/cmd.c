@@ -135,9 +135,9 @@ preop_switch2pqosmbm(cmd_t *cmd, boolean_t *smpl)
 }
 
 static int
-preop_switch2uncoreqpi(cmd_t *cmd, boolean_t *smpl)
+preop_switch2uncore(cmd_t *cmd, boolean_t *smpl)
 {
-	return (os_preop_switch2uncoreqpi(cmd, smpl));
+	return (os_preop_switch2uncore(cmd, smpl));
 }
 
 int
@@ -426,7 +426,7 @@ switch_table_init(void)
 	s_switch[WIN_TYPE_NODE_OVERVIEW][CMD_NODE_OVERVIEW_ID].op = NULL;
 	s_switch[WIN_TYPE_NODE_OVERVIEW][CMD_BACK_ID].op = op_page_prev;
 	s_switch[WIN_TYPE_NODE_OVERVIEW][CMD_NODE_DETAIL_ID].preop =
-		preop_switch2uncoreqpi;	
+		preop_switch2uncore;	
 	s_switch[WIN_TYPE_NODE_OVERVIEW][CMD_NODE_DETAIL_ID].op = op_page_next;
 
 	/*

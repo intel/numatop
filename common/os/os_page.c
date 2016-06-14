@@ -73,7 +73,7 @@ os_page_smpl_start(page_t *page)
 		if (disp_flag2_wait() != DISP_FLAG_PROFILING_DATA_READY)
 			break;
 
-		if (perf_uncoreqpi_smpl(CMD_NODE_DETAIL(cmd)->nid) != 0)
+		if (perf_uncore_smpl(CMD_NODE_DETAIL(cmd)->nid) != 0)
 			break;
 
 		return B_TRUE;

@@ -674,3 +674,32 @@ os_sysfs_uncore_qpi_init(qpi_info_t *qpi, int num)
 
 	return qpi_num;
 }
+
+int
+os_sysfs_uncore_imc_init(imc_info_t *imc, int num)
+{
+	int i, fd, imc_num = 0;
+	char path[PATH_MAX], buf[32];
+	
+	for (i = 0; i < num; i++)
+	{
+		snprintf(path, PATH_MAX, "/sys/devices/uncore_imc_%d/type", i);
+		if ((fd = open(path, O_RDONLY)) < 0)
+			return imc_num;
+
+		if (read(fd, buf, sizeof(buf)) < 0) {
+			close(fd);
+			return imc_num;
+		}		
+
+		imc_num++;
+		imc[i].type = atoi(buf);
+		imc[i].id = i;
+		imc[i].value_scaled = 0;
+		memset(imc[i].values, 0, sizeof(imc[i].values));
+		imc[i].fd = INVALID_FD;
+		close(fd);
+	}
+
+	return imc_num;
+}

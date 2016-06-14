@@ -140,8 +140,8 @@ node_cpu_string(node_t *node, char *s1, int size)
 
 	if (ncpus == 1) {
 		(void) snprintf(s2, sizeof (s2), "%d", cpuid_start);
-        (void) strncat(s1, s2, strlen(s2));
-        free(cpuid_arr);
+        	(void) strncat(s1, s2, strlen(s2));
+        	free(cpuid_arr);
 		return;
 	}
 
@@ -158,7 +158,7 @@ node_cpu_string(node_t *node, char *s1, int size)
 					(void) snprintf(s2, sizeof (s2),
 						"%d-%d ", cpuid_start, cpuid_start + l - 1);
 				}
-          	} else {
+          		} else {
 				if (l == 1) {
 					(void) snprintf(s2, sizeof (s2), "%d",
 						cpuid_start);
@@ -169,21 +169,21 @@ node_cpu_string(node_t *node, char *s1, int size)
 
 				(void) snprintf(s3, sizeof (s3), " %d",
 					cpuid_arr[j]);
-	          	(void) strncat(s2, s3, strlen(s3));
+	        	  	(void) strncat(s2, s3, strlen(s3));
 			}
 
-          	(void) strncat(s1, s2, strlen(s2));
-          	cpuid_start = cpuid_arr[j];
-           	l = 1;
+          		(void) strncat(s1, s2, strlen(s2));
+          		cpuid_start = cpuid_arr[j];
+           		l = 1;
 		} else {
-        	if (k == ncpus) {
-            	(void) snprintf(s2, sizeof (s2), "%d-%d",
-                	cpuid_start, cpuid_start + l);
-         		(void) strncat(s1, s2, strlen(s2));
-       		} else {
-            	l++;
+	        	if (k == ncpus) {
+        	    		(void) snprintf(s2, sizeof (s2), "%d-%d",
+                			cpuid_start, cpuid_start + l);
+         			(void) strncat(s1, s2, strlen(s2));
+       			} else {
+            			l++;
+       			}
        		}
-       	}
 	}
 
 	free(cpuid_arr);
@@ -194,7 +194,7 @@ nodedetail_line_show(win_reg_t *reg, char *title, char *value, int line)
 {
 	char s1[256];
 
-	snprintf(s1, sizeof (s1), "%-20s%15s", title, value);
+	snprintf(s1, sizeof (s1), "%-30s%15s", title, value);
 	reg_line_write(reg, line, ALIGN_LEFT, s1);
 	dump_write("%s\n", s1);
 }
@@ -211,6 +211,8 @@ os_nodedetail_data(dyn_nodedetail_t *dyn, win_reg_t *seg)
 	node_meminfo_t meminfo;
 	int i = 1, j;
 	node_qpi_t *qpi;
+	node_imc_t *imc;
+	uint64_t v = 0;
 
 	reg_erase(seg);
 	node = node_get(dyn->nid);
@@ -306,6 +308,18 @@ os_nodedetail_data(dyn_nodedetail_t *dyn, win_reg_t *seg)
 		snprintf(s2, sizeof (s2), "QPI%d bandwidth:", j);
 		nodedetail_line_show(seg, s2, s1, i++);	
 	}
+
+	/*
+	 * Display the memory controller bandwidth
+	 */
+	imc = &node->imc;
+
+	for (j = 0; j < imc->imc_num; j++) {
+		v += imc->imc_info[j].value_scaled * 64;
+	}
+
+	snprintf(s1, sizeof (s1), "%.1fMB", ratio(v, 1024 * 1024));
+	nodedetail_line_show(seg,  "Memory controller bandwidth:", s1, i++);	
 
 	reg_refresh_nout(seg);
 }

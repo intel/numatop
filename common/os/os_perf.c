@@ -842,15 +842,20 @@ os_perf_countchain_reset(perf_countchain_t *count_chain)
 }
 
 static int
-uncoreqpi_stop_all(void)
+uncore_stop_all(void)
 {
 	node_t *node;
 	int i;
 
 	for (i = 0; i < NNODES_MAX; i++) {
 		node = node_get(i);
-		if (NODE_VALID(node) && (node->qpi.qpi_num > 0))
-			pf_uncoreqpi_free(node);
+		if (NODE_VALID(node)) {
+			if (node->qpi.qpi_num > 0)
+				pf_uncoreqpi_free(node);
+				
+			if (node->imc.imc_num > 0)
+				pf_uncoreimc_free(node);
+		}
 	}
 
 	return 0;
@@ -871,8 +876,8 @@ os_allstop(void)
 		proc_pqos_func(NULL, os_pqos_cmt_proc_free);
 	}
 
-	if (perf_uncoreqpi_started()) {
-		uncoreqpi_stop_all();
+	if (perf_uncore_started()) {
+		uncore_stop_all();
 	}
 }
 
@@ -1258,65 +1263,90 @@ int os_pqos_proc_stop(perf_ctl_t *ctl, perf_task_t *task)
 	return (0);
 }
 
-int os_uncoreqpi_stop(perf_ctl_t *ctl, perf_task_t *task)
+int os_uncore_stop(perf_ctl_t *ctl, perf_task_t *task)
 {
-	task_uncoreqpi_t *t = (task_uncoreqpi_t *)task;
+	task_uncore_t *t = (task_uncore_t *)task;
 	node_t *node;
 	int i;
 	
 	if (t->nid >= 0) {
 		node = node_get(t->nid);
-		if (NODE_VALID(node) && (node->qpi.qpi_num > 0))
-			pf_uncoreqpi_free(node);
+		if (NODE_VALID(node)) {
+			if (node->qpi.qpi_num > 0)
+				pf_uncoreqpi_free(node);
+			
+			if (node->imc.imc_num > 0)
+				pf_uncoreimc_free(node);
+		}
 	} else {
 		for (i = 0; i < NNODES_MAX; i++) {
 			node = node_get(i);
-			if (NODE_VALID(node) && (node->qpi.qpi_num > 0))
-				pf_uncoreqpi_free(node);
+			if (NODE_VALID(node)) {
+				if (node->qpi.qpi_num > 0)
+					pf_uncoreqpi_free(node);
+
+				if (node->imc.imc_num > 0)
+					pf_uncoreimc_free(node);
+			}
 		}
 	}
 
 	return 0;
 }
 
-static int uncoreqpi_start(perf_ctl_t *ctl, int nid)
+static int uncore_start(perf_ctl_t *ctl, int nid)
 {
 	node_t *node;
+	int ret = -1;
 	
 	node = node_get(nid);
 	if (!NODE_VALID(node))
 		return -1;
 	
 	if (pf_uncoreqpi_setup(node) != 0)
-		return -1;
+		goto L_EXIT;
 	
+	if (pf_uncoreimc_setup(node) != 0)
+		goto L_EXIT;
+
 	if (pf_uncoreqpi_start(node) != 0)
-		return -1;
+		goto L_EXIT;
 	
-	return 0;
+	if (pf_uncoreimc_start(node) != 0)
+		goto L_EXIT;
+
+	ret = 0;
+
+L_EXIT:
+	if (ret < 0) {
+		pf_uncoreqpi_free(node);
+		pf_uncoreimc_free(node);
+	}
+
+	return ret;
 }
 
 int
-os_uncoreqpi_start(perf_ctl_t *ctl, perf_task_t *task)
+os_uncore_start(perf_ctl_t *ctl, perf_task_t *task)
 {
-	task_uncoreqpi_t *t = (task_uncoreqpi_t *)task;
+	task_uncore_t *t = (task_uncore_t *)task;
 
-	if (uncoreqpi_start(ctl, t->nid) != 0) {
+	if (uncore_start(ctl, t->nid) != 0) {
 		debug_print(NULL, 2,
-			"uncoreqpi_start is failed for node %d/%d\n",
+			"os_uncore_start is failed for node %d/%d\n",
 			t->nid);
-		perf_status_set(PERF_STATUS_UNCOREQPI_FAILED);
+		perf_status_set(PERF_STATUS_UNCORE_FAILED);
 		return (-1);
 	}
 
-	perf_status_set(PERF_STATUS_UNCOREQPI_STARTED);
+	perf_status_set(PERF_STATUS_UNCORE_STARTED);
 	return (0);
 }
 
 int
-os_uncoreqpi_smpl(perf_ctl_t *ctl, perf_task_t *task, int *intval_ms)
+os_uncore_smpl(perf_ctl_t *ctl, perf_task_t *task, int *intval_ms)
 {
-	task_uncoreqpi_t *t = (task_uncoreqpi_t *)task;
+	task_uncore_t *t = (task_uncore_t *)task;
 	node_t *node;
 	int ret;
 
@@ -1325,7 +1355,12 @@ os_uncoreqpi_smpl(perf_ctl_t *ctl, perf_task_t *task, int *intval_ms)
 		return -1;
 
 	ret = pf_uncoreqpi_smpl(node);
+	if (ret != 0) {
+		disp_profiling_data_fail();
+		return ret;
+	}
 
+	ret = pf_uncoreimc_smpl(node);
 	if (ret == 0)
 		disp_profiling_data_ready(*intval_ms);
 	else
@@ -1335,24 +1370,24 @@ os_uncoreqpi_smpl(perf_ctl_t *ctl, perf_task_t *task, int *intval_ms)
 }
 
 boolean_t
-os_perf_uncoreqpi_started(perf_ctl_t *ctl)
+os_perf_uncore_started(perf_ctl_t *ctl)
 {
-	if (ctl->status == PERF_STATUS_UNCOREQPI_STARTED)
+	if (ctl->status == PERF_STATUS_UNCORE_STARTED)
 		return (B_TRUE);
 
 	return (B_FALSE);
 }
 
 int
-os_perf_uncoreqpi_smpl(perf_ctl_t *ctl, int nid)
+os_perf_uncore_smpl(perf_ctl_t *ctl, int nid)
 {
 	perf_task_t task;
-	task_uncoreqpi_t *t;
+	task_uncore_t *t;
 
 	perf_smpl_wait();
 	memset(&task, 0, sizeof (perf_task_t));
-	t = (task_uncoreqpi_t *)&task;
-	t->task_id = PERF_UNCOREQPI_SMPL_ID;
+	t = (task_uncore_t *)&task;
+	t->task_id = PERF_UNCORE_SMPL_ID;
 	t->nid = nid;
 
 	perf_task_set(&task);

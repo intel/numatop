@@ -53,8 +53,8 @@ typedef enum {
 	PERF_STATUS_LL_FAILED,
 	PERF_STATUS_PQOS_CMT_STARTED,
 	PERF_STATUS_PQOS_CMT_FAILED,
-	PERF_STATUS_UNCOREQPI_STARTED,
-	PERF_STATUS_UNCOREQPI_FAILED,
+	PERF_STATUS_UNCORE_STARTED,
+	PERF_STATUS_UNCORE_FAILED,
 } perf_status_t;
 
 typedef enum {
@@ -72,9 +72,9 @@ typedef enum {
 	PERF_PQOS_CMT_START_ID,
 	PERF_PQOS_CMT_SMPL_ID,
 	PERF_PQOS_CMT_STOP_ID,
-	PERF_UNCOREQPI_START_ID,
-	PERF_UNCOREQPI_SMPL_ID,
-	PERF_UNCOREQPI_STOP_ID,
+	PERF_UNCORE_START_ID,
+	PERF_UNCORE_SMPL_ID,
+	PERF_UNCORE_STOP_ID,
 } perf_taskid_t;
 
 typedef struct _task_quit {
@@ -119,10 +119,10 @@ typedef struct _task_pqos_cmt {
 	int flags;
 } task_pqos_cmt_t;
 
-typedef struct _task_uncoreqpi {
+typedef struct _task_uncore {
 	perf_taskid_t task_id;
 	int nid;
-} task_uncoreqpi_t;
+} task_uncore_t;
 
 typedef union _perf_task {
 	task_quit_t quit;
@@ -133,7 +133,7 @@ typedef union _perf_task {
 	task_callchain_t callchain;
 	task_ll_t ll;
 	task_pqos_cmt_t pqos_cmt;
-	task_uncoreqpi_t uncoreqpi;
+	task_uncore_t uncore;
 } perf_task_t;
 
 typedef struct _perf_llrecgrp {
@@ -213,10 +213,10 @@ extern int perf_pqos_active_proc_setup(int, boolean_t);
 extern boolean_t perf_pqos_cmt_started(void);
 extern int perf_pqos_cmt_stop(pid_t, int);
 extern int perf_pqos_proc_setup(int, int, int);
-extern int perf_uncoreqpi_stop(int);
-extern int perf_uncoreqpi_setup(int);
-extern int perf_uncoreqpi_smpl(int);
-extern boolean_t perf_uncoreqpi_started(void);
+extern int perf_uncore_stop(int);
+extern int perf_uncore_setup(int);
+extern int perf_uncore_smpl(int);
+extern boolean_t perf_uncore_started(void);
 
 #ifdef __cplusplus
 }

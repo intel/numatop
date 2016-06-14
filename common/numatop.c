@@ -247,6 +247,7 @@ main(int argc, char *argv[])
 	}
 
 	node_qpi_init();
+	node_imc_init();
 
 	debug_print(NULL, 2, "Detected %d online CPUs\n", g_ncpus);
 	debug_print(NULL, 2, "LLC scale: occupancy %.1f, total bw %.1f, local bw %.1f\n",

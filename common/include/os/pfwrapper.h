@@ -138,6 +138,10 @@ void pf_uncoreqpi_free(struct _node *);
 int pf_uncoreqpi_setup(struct _node *);
 int pf_uncoreqpi_start(struct _node *);
 int pf_uncoreqpi_smpl(struct _node *);
+void pf_uncoreimc_free(struct _node *);
+int pf_uncoreimc_setup(struct _node *);
+int pf_uncoreimc_start(struct _node *);
+int pf_uncoreimc_smpl(struct _node *);
 
 #ifdef __cplusplus
 }

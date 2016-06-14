@@ -60,8 +60,8 @@ os_preop_switch2profiling(cmd_t *cmd, boolean_t *smpl)
 		*smpl = B_TRUE;
 	}
 
-	if (perf_uncoreqpi_started()) {
-		perf_uncoreqpi_stop(-1);
+	if (perf_uncore_started()) {
+		perf_uncore_stop(-1);
 		*smpl = B_TRUE;
 	}
 
@@ -288,7 +288,7 @@ os_preop_switch2pqosmbm(cmd_t *cmd, boolean_t *smpl)
 }
 
 int
-os_preop_switch2uncoreqpi(cmd_t *cmd, boolean_t *smpl)
+os_preop_switch2uncore(cmd_t *cmd, boolean_t *smpl)
 {
 	page_t *cur = page_current_get();
 	win_type_t type = PAGE_WIN_TYPE(cur);
@@ -302,9 +302,8 @@ os_preop_switch2uncoreqpi(cmd_t *cmd, boolean_t *smpl)
 		if (disp_flag2_wait() != DISP_FLAG_PROFILING_DATA_READY)
 			return -1;
 
-		perf_uncoreqpi_stop(-1);
-
-		ret = perf_uncoreqpi_setup(CMD_NODE_DETAIL(cmd)->nid);
+		perf_uncore_stop(-1);
+		ret = perf_uncore_setup(CMD_NODE_DETAIL(cmd)->nid);
 	}
 
 	return (ret);

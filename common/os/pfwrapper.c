@@ -1077,3 +1077,127 @@ int pf_uncoreqpi_smpl(struct _node *node)
 	
 	return 0;
 }
+
+void
+pf_uncoreimc_free(struct _node *node)
+{
+	int i;
+	node_imc_t *imc = &node->imc;
+
+	for (i = 0; i < imc->imc_num; i++) {
+		if (imc->imc_info[i].fd != INVALID_FD) {
+			debug_print(NULL, 2, "pf_uncoreimc_free: nid %d, imc %d, fd %d\n",
+				node->nid, i, imc->imc_info[i].fd);
+			close(imc->imc_info[i].fd);
+		}
+
+		imc->imc_info[i].fd = INVALID_FD;
+		imc->imc_info[i].value_scaled = 0;
+		memset(imc->imc_info[i].values, 0, sizeof(imc->imc_info[i].values));
+	}
+}
+
+int
+pf_uncoreimc_setup(struct _node *node)
+{
+	struct perf_event_attr attr;
+	node_imc_t *imc = &node->imc;
+	int i;
+
+	for (i = 0; i < imc->imc_num; i++) {
+		if (imc->imc_info[i].type == 0)
+			continue;
+
+		imc->imc_info[i].value_scaled = 0;
+		memset(imc->imc_info[i].values, 0, sizeof(imc->imc_info[i].values));
+		
+		memset(&attr, 0, sizeof (attr));
+		attr.type = imc->imc_info[i].type;
+		attr.size = sizeof(attr);
+		attr.config = 0xff04;
+		attr.disabled = 1;
+		attr.inherit = 1;
+		attr.read_format =
+			PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
+
+		if ((imc->imc_info[i].fd = pf_event_open(&attr, -1,
+			node->cpus[0].cpuid, -1, 0)) < 0) {
+			debug_print(NULL, 2, "pf_uncoreimc_setup: pf_event_open is failed "
+				"for node %d, imc %d, cpu %d, type %d, config 0x%x\n",
+				node->nid, i, node->cpus[0].cpuid, attr.type, attr.config);
+			imc->imc_info[i].fd = INVALID_FD;
+			return (-1);
+		}
+
+		debug_print(NULL, 2, "pf_uncoreimc_setup: pf_event_open is successful "
+			"for node %d, imc %d, cpu %d, type %d, config 0x%x, fd %d\n",
+			node->nid, i, node->cpus[0].cpuid, attr.type, attr.config,
+			imc->imc_info[i].fd);
+	}
+
+	return (0);
+}
+
+int pf_uncoreimc_start(struct _node *node)
+{
+	node_imc_t *imc = &node->imc;
+	int i;
+	
+	for (i = 0; i < imc->imc_num; i++) {
+		if (imc->imc_info[i].fd != INVALID_FD) {
+			debug_print(NULL, 2, "pf_uncoreimc_start: "
+				"for node %d, imc %d, cpu %d, type %d, fd %d\n",
+				node->nid, i, node->cpus[0].cpuid, imc->imc_info[i].type,
+				imc->imc_info[i].fd);
+			ioctl(imc->imc_info[i].fd, PERF_EVENT_IOC_ENABLE, 0);
+		}
+	}
+
+	return (0);
+}
+
+int pf_uncoreimc_smpl(struct _node *node)
+{
+	node_imc_t *imc = &node->imc;
+	uint64_t values[3];
+	int i;
+
+	for (i = 0; i < imc->imc_num; i++) {
+		if (imc->imc_info[i].fd != INVALID_FD) {
+
+			/*
+			 * struct read_format {
+			 *	{ u64	value; }
+			 *	{ u64	time_enabled; }
+			 *	{ u64	time_running; }
+			 * };
+			 */
+
+			if (read_fd(imc->imc_info[i].fd, values,
+				sizeof(values)) != 0) {
+
+				debug_print(NULL, 2,
+					"pf_uncoreimc_smpl: read fd %d fail\n",
+					imc->imc_info[i].fd);
+				continue;
+			}
+
+			imc->imc_info[i].value_scaled = scale(
+				values[0] - imc->imc_info[i].values[0],
+				values[1] - imc->imc_info[i].values[1],
+				values[2] - imc->imc_info[i].values[2]);
+
+			debug_print(NULL, 2, "pf_uncoreimc_smpl: "
+				"node %d, imc %d, fd %d: "
+				"%" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n",
+				node->nid, i, imc->imc_info[i].fd,
+				values[0] - imc->imc_info[i].values[0],
+				values[1] - imc->imc_info[i].values[1],
+				values[2] - imc->imc_info[i].values[2]);
+
+			memcpy(imc->imc_info[i].values, values, sizeof(values));
+		}
+	}
+	
+	return 0;
+}
