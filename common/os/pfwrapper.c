@@ -369,7 +369,7 @@ profiling_recbuf_update(pf_profiling_rec_t *rec_arr, int *nrec,
 {
 	int i;
 
-	if ((rec->pid == 0) || (rec->tid == 0)) {
+	if ((!nrec) || (rec->pid == 0) || (rec->tid == 0)) {
 		/* Just consider the user-land process/thread. */
 		return;	
 	}
