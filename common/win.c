@@ -3327,7 +3327,7 @@ pqos_mbm_data_show(dyn_win_t *win, boolean_t *note_out)
 	dyn_pqos_mbm_proc_t *dyn;
 	win_reg_t *r, *data_reg;
 	char content[WIN_LINECHAR_MAX], intval_buf[16];
-	int nprocs;
+	int nprocs = 0;
 	track_proc_t *proc = NULL;
 	track_lwp_t *lwp = NULL;
 	int intval;
