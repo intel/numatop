@@ -2357,7 +2357,7 @@ win_lat_data_show(track_proc_t *proc, dyn_lat_t *dyn, boolean_t *note_out)
 	win_reg_t *r;
 	int lat;
 	track_lwp_t *lwp = NULL;
-	char content[WIN_LINECHAR_MAX], intval_buf[16];
+	char content[WIN_LINECHAR_MAX], intval_buf[16], lat_buf[32];
 
 	*note_out = B_FALSE;
 
@@ -2371,20 +2371,25 @@ win_lat_data_show(track_proc_t *proc, dyn_lat_t *dyn, boolean_t *note_out)
 	}
 
 	dump_cache_enable();
-	(void) lat_data_get(proc, lwp, dyn, &lat);
+	if (lat_data_get(proc, lwp, dyn, &lat) < 0) {
+		strcpy(lat_buf, "unknown");
+	} else {
+		snprintf(lat_buf, sizeof(lat_buf), "%"PRIu64"ns", cyc2ns(lat));
+	}
 	dump_cache_disable();
+
 
 	disp_intval(intval_buf, 16);
 	if (lwp == NULL) {
 		(void) snprintf(content, sizeof (content),
 		    "Monitoring memory areas (pid: %d, "
-		    "AVG.LAT: %"PRIu64"ns, interval: %s)",
-		    proc->pid, cyc2ns(lat), intval_buf);
+		    "AVG.LAT: %s, interval: %s)",
+		    proc->pid, lat_buf, intval_buf);
 	} else {
 		(void) snprintf(content, sizeof (content),
 		    "Monitoring memory areas (lwpid: %d, "
-		    "AVG.LAT: %"PRIu64"ns, interval: %s)",
-		    lwp->id, cyc2ns(lat), intval_buf);
+		    "AVG.LAT: %s, interval: %s)",
+		    lwp->id, lat_buf, intval_buf);
 	}
 
 	r = &dyn->msg;
