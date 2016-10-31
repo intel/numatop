@@ -415,7 +415,7 @@ node_cpu_traverse(pfn_perf_cpu_op_t func, void *arg, boolean_t err_ret,
 	return (0);
 }
 
-uint64_t
+static uint64_t
 countval_sum(count_value_t *countval_arr, int cpuid_max, int nid,
 	count_id_t count_id)
 {
