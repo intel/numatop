@@ -2171,7 +2171,7 @@ lat_win_destroy(dyn_win_t *win)
  * probably is cut to:
  * ../usr/src/cmd/numatop/amd64/numatop
  */
-void
+static void
 bufdesc_cut(char *dst_desc, int dst_size, char *src_desc)
 {
 	int src_len;
