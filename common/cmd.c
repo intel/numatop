@@ -36,6 +36,7 @@
 #include <ctype.h>
 #include <strings.h>
 #include "include/types.h"
+#include "include/numatop.h"
 #include "include/cmd.h"
 #include "include/page.h"
 #include "include/win.h"

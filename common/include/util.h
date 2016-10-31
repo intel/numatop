@@ -86,7 +86,6 @@ typedef struct _dump_ctl {
 
 extern pid_t g_numatop_pid;
 extern struct timeval g_tvbase;
-extern int g_ncpus;
 extern int g_pagesize;
 extern double g_nsofclk;
 

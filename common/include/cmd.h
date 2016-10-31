@@ -227,8 +227,6 @@ typedef struct _switch {
 #define	CMD_UNCOREQPI(cmd) \
 	((cmd_uncoreqpi_t *)(cmd))
 
-extern int g_sortkey;
-
 extern void switch_table_init(void);
 extern int cmd_id_get(char);
 extern void cmd_execute(cmd_t *, boolean_t *);

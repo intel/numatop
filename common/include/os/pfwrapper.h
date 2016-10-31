@@ -33,6 +33,7 @@
 #include <pthread.h>
 #include "linux/perf_event.h"
 #include "../types.h"
+#include "../numatop.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -106,8 +107,6 @@ typedef struct _pf_ll_rbrec {
 	uint64_t latency;
 	unsigned int ip_num;
 } pf_ll_rbrec_t;
-
-extern precise_type_t g_precise;
 
 struct _perf_cpu;
 struct _perf_pqos;

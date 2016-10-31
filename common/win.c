@@ -39,6 +39,7 @@
 #include <signal.h>
 #include <curses.h>
 #include "include/types.h"
+#include "include/numatop.h"
 #include "include/util.h"
 #include "include/disp.h"
 #include "include/reg.h"

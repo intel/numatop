@@ -419,12 +419,6 @@ typedef struct _dyn_warn {
 /* CPU unhalted cycles in a second */
 extern uint64_t g_clkofsec;
 
-/* Number of online CPUs */
-extern int g_ncpus;
-
-/* The sorting key */
-extern int g_sortkey;
-
 extern void win_fix_init(void);
 extern void win_fix_fini(void);
 extern void win_warn_msg(warn_type_t);

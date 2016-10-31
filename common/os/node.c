@@ -37,6 +37,7 @@
 #include <string.h>
 #include <assert.h>
 #include "../include/types.h"
+#include "../include/numatop.h"
 #include "../include/util.h"
 #include "../include/os/os_util.h"
 #include "../include/os/pfwrapper.h"
