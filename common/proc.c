@@ -290,8 +290,8 @@ proc_alloc(void)
 static int
 lwp_id_cmp(const void *a, const void *b)
 {
-	track_lwp_t *lwp1 = (track_lwp_t *)a;
-	track_lwp_t *lwp2 = *((track_lwp_t **)b);
+	const track_lwp_t *lwp1 = (const track_lwp_t *)a;
+	const track_lwp_t *lwp2 = *((track_lwp_t *const *)b);
 
 	if (lwp1->id > lwp2->id) {
 		return (1);
@@ -336,8 +336,8 @@ proc_lwp_find(track_proc_t *proc, id_t lwpid)
 static int
 lwp_key_cmp(const void *a, const void *b)
 {
-	track_lwp_t *lwp1 = *((track_lwp_t **)a);
-	track_lwp_t *lwp2 = *((track_lwp_t **)b);
+	const track_lwp_t *lwp1 = *((track_lwp_t *const *)a);
+	const track_lwp_t *lwp2 = *((track_lwp_t *const *)b);
 
 	if (lwp1->key > lwp2->key) {
 		return (-1);
@@ -481,8 +481,8 @@ proc_key_compute(track_proc_t *proc, void *arg, boolean_t *end)
 static int
 proc_key_cmp(const void *a, const void *b)
 {
-	track_proc_t *proc1 = *((track_proc_t **)a);
-	track_proc_t *proc2 = *((track_proc_t **)b);
+	const track_proc_t *proc1 = *((track_proc_t *const *)a);
+	const track_proc_t *proc2 = *((track_proc_t *const *)b);
 
 	if (proc1->key > proc2->key) {
 		return (-1);
@@ -498,8 +498,8 @@ proc_key_cmp(const void *a, const void *b)
 static int
 proc_pid_cmp(const void *a, const void *b)
 {
-	track_proc_t *proc1 = *((track_proc_t **)a);
-	track_proc_t *proc2 = *((track_proc_t **)b);
+	const track_proc_t *proc1 = *((track_proc_t *const *)a);
+	const track_proc_t *proc2 = *((track_proc_t *const *)b);
 
 	if (proc1->pid > proc2->pid) {
 		return (1);
@@ -668,8 +668,8 @@ proc_obsolete(pid_t pid)
 static int
 pid_cmp(const void *a, const void *b)
 {
-	pid_t *pid1 = (pid_t *)a;
-	pid_t *pid2 = (pid_t *)b;
+	const pid_t *pid1 = (const pid_t *)a;
+	const pid_t *pid2 = (const pid_t *)b;
 
 	if (*pid1 > *pid2) {
 		return (1);
