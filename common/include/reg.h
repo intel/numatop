@@ -67,6 +67,10 @@ typedef struct _win_reg {
 	scroll_line_t scroll;
 } win_reg_t;
 
+/* Screen dimension */
+extern int g_scr_height;
+extern int g_scr_width;
+
 extern int reg_init(win_reg_t *, int, int, int, int, unsigned int);
 extern void reg_buf_init(win_reg_t *, void *,
 	void (*line_get)(win_reg_t *, int, char *, int));

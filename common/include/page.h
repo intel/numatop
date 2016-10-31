@@ -60,9 +60,6 @@ typedef struct _page_list {
 	int npages;
 } page_list_t;
 
-extern int g_scr_height;
-extern int g_scr_width;
-
 extern void page_list_init(void);
 extern void page_list_fini(void);
 extern page_t *page_create(cmd_t *);
