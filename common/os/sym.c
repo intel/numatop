@@ -340,8 +340,8 @@ L_EXIT:
 static int
 sym_cmp(const void *a, const void *b)
 {
-	sym_item_t *s1 = (sym_item_t *)a;
-	sym_item_t *s2 = (sym_item_t *)b;
+	const sym_item_t *s1 = (const sym_item_t *)a;
+	const sym_item_t *s2 = (const sym_item_t *)b;
 
 	if (s1->off < s2->off) {
 		return (-1);
@@ -743,8 +743,8 @@ sym_free(sym_t *sym)
 static int
 off_cmp(const void *a, const void *b)
 {
-	uint64_t off = *(uint64_t *)a;
-	sym_item_t *item = (sym_item_t *)b;
+	const uint64_t off = *(const uint64_t *)a;
+	const sym_item_t *item = (const sym_item_t *)b;
 	
 	if (off >= item->off + item->size) {
 		return (1);

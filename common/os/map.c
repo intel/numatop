@@ -265,8 +265,8 @@ map_proc_fini(track_proc_t *proc)
 static int
 entryaddr_cmp(const void *p1, const void *p2)
 {
-	uint64_t addr = *(uint64_t *)p1;
-	map_entry_t *entry = (map_entry_t *)p2;
+	const uint64_t addr = *(const uint64_t *)p1;
+	const map_entry_t *entry = (const map_entry_t *)p2;
 		
 	if (addr < entry->start_addr) {
 		return (-1);

@@ -416,18 +416,8 @@ typedef struct _dyn_warn {
 #define	DYN_PQOS_MBM_PROC(page) \
 	((dyn_pqos_mbm_proc_t *)((page)->dyn_win.dyn))
 
-/* Screen dimension */
-extern int g_scr_height;
-extern int g_scr_width;
-
 /* CPU unhalted cycles in a second */
 extern uint64_t g_clkofsec;
-
-/* Number of online CPUs */
-extern int g_ncpus;
-
-/* The sorting key */
-extern int g_sortkey;
 
 extern void win_fix_init(void);
 extern void win_fix_fini(void);

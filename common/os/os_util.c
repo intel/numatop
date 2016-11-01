@@ -40,7 +40,9 @@
 #include <errno.h>
 #include <limits.h>
 #include <locale.h>
+#include <math.h>
 #include "../include/types.h"
+#include "../include/numatop.h"
 #include "../include/util.h"
 #include "../include/os/os_util.h"
 
@@ -224,7 +226,7 @@ calibrate_cpuinfo(double *nsofclk, uint64_t *clkofsec)
 	free(line);
 	fclose(f);
 
-	if (freq == 0.0) {
+	if (fabsl(freq) < 1.0E-6) {
 		return (-1);
 	}
 

@@ -90,8 +90,8 @@ os_nodeoverview_data_build(char *buf, int size, nodeoverview_line_t *line,
 static int
 cpuid_cmp(const void *a, const void *b)
 {
-	int *id1 = (int *)a;
-	int *id2 = (int *)b;
+	const int *id1 = (const int *)a;
+	const int *id2 = (const int *)b;
 
 	if (*id1 > *id2) {
 		return (1);
@@ -553,8 +553,8 @@ os_llcallchain_win_destroy(dyn_win_t *win)
 static int
 bufaddr_cmp(const void *p1, const void *p2)
 {
-	uint64_t addr = (uint64_t)p1;
-	bufaddr_t *bufaddr = (bufaddr_t *)p2;
+	const uint64_t addr = (const uint64_t)p1;
+	const bufaddr_t *bufaddr = (const bufaddr_t *)p2;
 
 	if (addr < bufaddr->addr) {
 		return (-1);

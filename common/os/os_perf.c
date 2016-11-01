@@ -343,7 +343,7 @@ cpu_ll_stop(perf_cpu_t *cpu, void *arg)
 	return (0);
 }
 
-int
+static int
 llrec_add(perf_llrecgrp_t *grp, pf_ll_rec_t *record)
 {
 	os_perf_llrec_t *llrec;

@@ -181,8 +181,6 @@ typedef struct _perf_ctl {
 	uint64_t last_ms_pqos;
 } perf_ctl_t;
 
-extern precise_type_t g_precise;
-
 extern int perf_init(void);
 extern void perf_fini(void);
 extern int perf_allstop(void);

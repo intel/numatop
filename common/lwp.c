@@ -147,8 +147,8 @@ lwp_sort_next(track_proc_t *proc)
 static int
 id_cmp(const void *a, const void *b)
 {
-	int *id1 = (int *)a;
-	int *id2 = (int *)b;
+	const int *id1 = (const int *)a;
+	const int *id2 = (const int *)b;
 
 	if (*id1 > *id2) {
 		return (1);

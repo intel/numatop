@@ -26,70 +26,23 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_REG_H
-#define	_NUMATOP_REG_H
-
-#include <sys/types.h>
-#include <sys/time.h>
-#include <inttypes.h>
-#include "types.h"
+#ifndef _NUMATOP_H
+#define	_NUMATOP_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef enum {
-	ALIGN_LEFT = 0,
-	ALIGN_MIDDLE
-} reg_align_t;
+extern precise_type_t g_precise;
 
-typedef enum {
-	SCROLL_DOWN = 0,
-	SCROLL_UP
-} reg_scroll_t;
+/* Number of online CPUs */
+extern int g_ncpus;
 
-typedef struct _scroll_line {
-	boolean_t enabled;	/* indicate if support "scrolling" */
-	int highlight;	/* current highlight line. */
-	int page_start;
-} scroll_line_t;
-
-typedef struct _win_reg {
-	void *hdl;
-	int begin_x;	/* offset to stdscr */
-	int begin_y;	/* offset to stdscr */
-	int ncols_scr;
-	int nlines_scr;
-	unsigned int mode;
-	int nlines_total;
-	void *buf;
-	void (*line_get)(struct _win_reg *, int, char *, int);
-	scroll_line_t scroll;
-} win_reg_t;
-
-/* Screen dimension */
-extern int g_scr_height;
-extern int g_scr_width;
-
-extern int reg_init(win_reg_t *, int, int, int, int, unsigned int);
-extern void reg_buf_init(win_reg_t *, void *,
-	void (*line_get)(win_reg_t *, int, char *, int));
-extern void reg_scroll_init(win_reg_t *, boolean_t);
-extern void reg_erase(win_reg_t *);
-extern void reg_refresh(win_reg_t *);
-extern void reg_refresh_nout(win_reg_t *);
-extern void reg_update_all(void);
-extern void reg_win_destroy(win_reg_t *seg);
-extern void reg_line_write(win_reg_t *, int, reg_align_t, char *);
-extern void reg_highlight_write(win_reg_t *, int, int, char *);
-extern void reg_line_scroll(win_reg_t *, int);
-extern void reg_scroll_show(win_reg_t *, void *, int,
-	void (*str_build_func)(char *, int, int, void *));
-extern boolean_t reg_curses_init(boolean_t);
-extern void reg_curses_fini(void);
+/* The sorting key */
+extern int g_sortkey;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _NUMATOP_REG_H */
+#endif /* _NUMATOP_H */

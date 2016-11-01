@@ -57,7 +57,6 @@ static FILE *s_logfile;
 static debug_ctl_t s_debug_ctl;
 static dump_ctl_t s_dump_ctl;
 static char s_exit_msg[EXIT_MSG_SIZE];
-static dump_ctl_t s_dump_ctl;
 
 static unsigned int msdiff(struct timeval *, struct timeval *);
 

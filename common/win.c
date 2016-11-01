@@ -39,6 +39,7 @@
 #include <signal.h>
 #include <curses.h>
 #include "include/types.h"
+#include "include/numatop.h"
 #include "include/util.h"
 #include "include/disp.h"
 #include "include/reg.h"
@@ -2170,7 +2171,7 @@ lat_win_destroy(dyn_win_t *win)
  * probably is cut to:
  * ../usr/src/cmd/numatop/amd64/numatop
  */
-void
+static void
 bufdesc_cut(char *dst_desc, int dst_size, char *src_desc)
 {
 	int src_len;
@@ -2270,8 +2271,8 @@ win_lat_buf_fill(lat_line_t *lat_buf, int nlines, track_proc_t *proc,
 int
 win_lat_cmp(const void *p1, const void *p2)
 {
-	lat_line_t *l1 = (lat_line_t *)p1;
-	lat_line_t *l2 = (lat_line_t *)p2;
+	const lat_line_t *l1 = (const lat_line_t *)p1;
+	const lat_line_t *l2 = (const lat_line_t *)p2;
 
 	if (l1->naccess < l2->naccess) {
 		return (1);
