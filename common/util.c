@@ -399,6 +399,9 @@ cpu_type_get(void)
 		case 79:
 			type = CPU_BDX;
 			break;
+		case 85:
+			type = CPU_SKX;
+			break;
 		}
 	}
 

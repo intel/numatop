@@ -14,7 +14,7 @@ COMMON_OBJS = cmd.o disp.o lwp.o numatop.o page.o perf.o \
 OS_OBJS = os_cmd.o os_perf.o os_win.o node.o map.o \
 	os_util.o plat.o pfwrapper.o sym.o os_page.o
 
-INTEL_OBJS = wsm.o snb.o nhm.o bdw.o
+INTEL_OBJS = wsm.o snb.o nhm.o bdw.o skl.o
 
 all: $(PROG)
 

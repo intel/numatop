@@ -42,6 +42,7 @@
 #include "../../intel/include/wsm.h"
 #include "../../intel/include/snb.h"
 #include "../../intel/include/bdw.h"
+#include "../../intel/include/skl.h"
 
 boolean_t g_cmt_enabled;
 
@@ -55,7 +56,8 @@ s_plat_profiling_config[CPU_TYPE_NUM] = {
 	wsmep_profiling_config,
 	snbep_profiling_config,
 	snbep_profiling_config,
-	bdw_profiling_config
+	bdw_profiling_config,
+	skl_profiling_config
 };
 
 static pfn_plat_ll_config_t
@@ -68,7 +70,8 @@ s_plat_ll_config[CPU_TYPE_NUM] = {
 	wsmep_ll_config,
 	snbep_ll_config,
 	snbep_ll_config,
-	bdw_ll_config
+	bdw_ll_config,
+	skl_ll_config
 };
 
 static pfn_plat_offcore_num_t
@@ -81,7 +84,8 @@ s_plat_offcore_num[CPU_TYPE_NUM] = {
 	wsm_offcore_num,
 	snb_offcore_num,
 	snb_offcore_num,
-	bdw_offcore_num
+	bdw_offcore_num,
+	skl_offcore_num
 };
 
 static cpu_type_t s_cpu_type;
@@ -115,6 +119,8 @@ plat_detect(void)
 	case CPU_HSX:
 		/* fall through */
 	case CPU_BDX:
+		/* fall through */
+	case CPU_SKX:
 		ret = 0;
 		break;
 	default:
