@@ -305,7 +305,7 @@ os_nodedetail_data(dyn_nodedetail_t *dyn, win_reg_t *seg)
 	for (j = 0; j < qpi->qpi_num; j++) {		
 		snprintf(s1, sizeof (s1), "%.1fMB", 
 			ratio(qpi->qpi_info[j].value_scaled * 8, 1024 * 1024));
-		snprintf(s2, sizeof (s2), "QPI%d bandwidth:", j);
+		snprintf(s2, sizeof (s2), "QPI/UPI %d bandwidth:", j);
 		nodedetail_line_show(seg, s2, s1, i++);	
 	}
 

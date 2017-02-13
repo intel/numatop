@@ -521,6 +521,12 @@ node_qpi_init(void)
 	if (qpi_num < 0)
 		return -1;
 
+	if (qpi_num == 0) {
+		qpi_num = os_sysfs_uncore_upi_init(qpi_tmp, NODE_QPI_MAX);
+		if (qpi_num < 0)
+			return -1;
+	}
+
 	node_group_lock();
 
 	for (i = 0; i < NNODES_MAX; i++) {
@@ -534,7 +540,7 @@ node_qpi_init(void)
 
 	node_group_unlock();
 
-	debug_print(NULL, 2, "%d QPI links per node\n", qpi_num);
+	debug_print(NULL, 2, "%d QPI/UPI links per node\n", qpi_num);
 
 	return 0;
 }

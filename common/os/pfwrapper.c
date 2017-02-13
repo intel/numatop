@@ -979,18 +979,18 @@ pf_uncoreqpi_setup(struct _node *node)
 	struct perf_event_attr attr;
 	node_qpi_t *qpi = &node->qpi;
 	int i;
-	
+
 	for (i = 0; i < qpi->qpi_num; i++) {
 		if (qpi->qpi_info[i].type == 0)
 			continue;
 
 		qpi->qpi_info[i].value_scaled = 0;
 		memset(qpi->qpi_info[i].values, 0, sizeof(qpi->qpi_info[i].values));
-		
+
 		memset(&attr, 0, sizeof (attr));
 		attr.type = qpi->qpi_info[i].type;
 		attr.size = sizeof(attr);
-		attr.config = 0x600;
+		attr.config = qpi->qpi_info[i].config;
 		attr.disabled = 1;
 		attr.inherit = 1;
 		attr.read_format =
@@ -1018,7 +1018,7 @@ int pf_uncoreqpi_start(struct _node *node)
 {
 	node_qpi_t *qpi = &node->qpi;
 	int i;
-	
+
 	for (i = 0; i < qpi->qpi_num; i++) {
 		if (qpi->qpi_info[i].fd != INVALID_FD) {
 			debug_print(NULL, 2, "pf_uncorqpi_start: "
@@ -1074,7 +1074,7 @@ int pf_uncoreqpi_smpl(struct _node *node)
 			memcpy(qpi->qpi_info[i].values, values, sizeof(values));
 		}
 	}
-	
+
 	return 0;
 }
 

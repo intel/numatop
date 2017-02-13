@@ -61,6 +61,7 @@ typedef struct _qpi_info {
 	int id;
 	int type;
 	int fd;
+	unsigned int config;
 	uint64_t values[3];
 	uint64_t value_scaled;
 } qpi_info_t;

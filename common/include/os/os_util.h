@@ -74,6 +74,7 @@ extern boolean_t os_sysfs_meminfo(int, node_meminfo_t *);
 extern int os_sysfs_online_ncpus(void);
 extern int os_sysfs_cqm_llc_scale(const char*, double *);
 extern int os_sysfs_uncore_qpi_init(qpi_info_t *, int);
+extern int os_sysfs_uncore_upi_init(qpi_info_t *, int);
 extern int os_sysfs_uncore_imc_init(imc_info_t *, int);
 
 #ifdef __cplusplus
