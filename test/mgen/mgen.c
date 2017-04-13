@@ -634,7 +634,7 @@ dependent_read(void *buf, int cpu_consumer, int node_alloc, int meas_sec)
 	fprintf(stdout, "\nGenerating memory access from cpu%d to node%d for ~%ds ...\n",
 	    cpu_consumer, node_alloc, meas_sec);
 
-	fprintf(stdout, "(random seed to build random address array is %d.)\n", s_randseed);
+	fprintf(stdout, "(random seed to build random address array is %u.)\n", s_randseed);
 
 	printf("\n%9s   %13s\n", "Time", "Latency(ns)");
 	printf("-------------------------\n");

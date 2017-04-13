@@ -76,7 +76,7 @@ main(int argc, char *argv[])
 	int ret = 1, debug_level = 0;
 	FILE *log = NULL, *dump = NULL;
 	boolean_t locked = B_FALSE;
-	char c;
+	int c;
 
 	if (!os_authorized()) {
 		return (1);		
