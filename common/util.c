@@ -198,7 +198,7 @@ procfs_walk(char *path, int **id_arr, int *num)
 
 		if (i >= size) {
 			size = size << 1;
-			if ((arr2 = realloc(arr1, size)) == NULL) {
+			if ((arr2 = realloc(arr1, size * sizeof (int))) == NULL) {
 				free(arr1);
 				*id_arr = NULL;
 				*num = 0;
