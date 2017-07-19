@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013, Intel Corporation
+ * Copyright (c) 2017, IBM Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -26,25 +27,22 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_INTEL_BDW_H
-#define	_NUMATOP_INTEL_BDW_H
+#ifndef _NUMATOP_INTEL_TYPES_H
+#define _NUMATOP_INTEL_TYPES_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+typedef enum {
+	CPU_UNSUP = 0,
+	CPU_WSM_EX,
+	CPU_SNB_EP,
+	CPU_NHM_EX,
+	CPU_NHM_EP,
+	CPU_WSM_EP,
+	CPU_IVB_EX,
+	CPU_HSX,
+	CPU_BDX,
+	CPU_SKX
+} cpu_type_t;
 
-#include <sys/types.h>
-#include <inttypes.h>
-#include "../../common/include/types.h"
+#define	CPU_TYPE_NUM	10
 
-struct _plat_event_config;
-
-extern void bdw_profiling_config(count_id_t, struct _plat_event_config *);
-extern void bdw_ll_config(struct _plat_event_config *);
-extern int bdw_offcore_num(void);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* _NUMATOP_INTEL_BDW_H */
+#endif /* _NUMATOP_INTEL_TYPES_H */

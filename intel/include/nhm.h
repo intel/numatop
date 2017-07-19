@@ -26,8 +26,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_NHM_H
-#define	_NUMATOP_NHM_H
+#ifndef _NUMATOP_INTEL_NHM_H
+#define	_NUMATOP_INTEL_NHM_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,4 +49,4 @@ extern int nhm_offcore_num(void);
 }
 #endif
 
-#endif /* _NUMATOP_NHM_H */
+#endif /* _NUMATOP_INTEL_NHM_H */

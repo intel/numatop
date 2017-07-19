@@ -14,12 +14,16 @@ COMMON_OBJS = cmd.o disp.o lwp.o numatop.o page.o perf.o \
 OS_OBJS = os_cmd.o os_perf.o os_win.o node.o map.o \
 	os_util.o plat.o pfwrapper.o sym.o os_page.o
 
-INTEL_OBJS = wsm.o snb.o nhm.o bdw.o skl.o
+ARCH_PATH = ./intel
+
+ARCH_OBJS = $(ARCH_PATH)/wsm.o $(ARCH_PATH)/snb.o $(ARCH_PATH)/nhm.o \
+	$(ARCH_PATH)/bdw.o $(ARCH_PATH)/skl.o $(ARCH_PATH)/plat.o \
+	$(ARCH_PATH)/util.o
 
 all: $(PROG)
 
-$(PROG): $(COMMON_OBJS) $(OS_OBJS) $(INTEL_OBJS)
-	$(LD) $(LDFLAGS) -o $@ $(COMMON_OBJS) $(OS_OBJS) $(INTEL_OBJS) $(LDLIBS)
+$(PROG): $(COMMON_OBJS) $(OS_OBJS) $(ARCH_OBJS)
+	$(LD) $(LDFLAGS) -o $@ $(COMMON_OBJS) $(OS_OBJS) $(ARCH_OBJS) $(LDLIBS)
 
 %.o: ./common/%.c ./common/include/*.h ./common/include/os/*.h
 	$(CC) $(CFLAGS) -o $@ -c $<
@@ -27,7 +31,7 @@ $(PROG): $(COMMON_OBJS) $(OS_OBJS) $(INTEL_OBJS)
 %.o: ./common/os/%.c ./common/include/*.h ./common/include/os/*.h
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-%.o: ./intel/%.c ./intel/include/*.h
+$(ARCH_PATH)/%.o: $(ARCH_PATH)/%.c $(ARCH_PATH)/include/*.h
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 install: $(PROG)
@@ -36,4 +40,4 @@ install: $(PROG)
 	mv -f numatop.8.gz $(MANDIR)/
 
 clean:
-	rm -rf *.o $(PROG)
+	rm -rf *.o $(ARCH_PATH)/*.o $(PROG)

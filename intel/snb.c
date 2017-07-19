@@ -35,10 +35,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <strings.h>
-#include "../common/include/types.h"
 #include "../common/include/os/linux/perf_event.h"
 #include "../common/include/os/plat.h"
-#include "../common/include/os/os_perf.h"
 #include "include/snb.h"
 
 static plat_event_config_t s_snb_ep_config[COUNT_NUM] = {
@@ -68,5 +66,5 @@ snbep_ll_config(plat_event_config_t *cfg)
 int
 snb_offcore_num(void)
 {
-	return (2);	
+	return (2);
 }

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013, Intel Corporation
+ * Copyright (c) 2017, IBM Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -26,25 +27,34 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_INTEL_BDW_H
-#define	_NUMATOP_INTEL_BDW_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <sys/types.h>
 #include <inttypes.h>
-#include "../../common/include/types.h"
 
-struct _plat_event_config;
+/*
+* Get the TSC cycles.
+*/
+#ifdef __x86_64__
+uint64_t
+rdtsc(void)
+{
+	uint64_t var;
+	uint32_t hi, lo;
 
-extern void bdw_profiling_config(count_id_t, struct _plat_event_config *);
-extern void bdw_ll_config(struct _plat_event_config *);
-extern int bdw_offcore_num(void);
+	__asm volatile
+	    ("rdtsc" : "=a" (lo), "=d" (hi));
 
-#ifdef __cplusplus
+	/* LINTED E_VAR_USED_BEFORE_SET */
+	var = ((uint64_t)hi << 32) | lo;
+	return (var);
+}
+#else
+uint64_t
+rdtsc(void)
+{
+	uint64_t var;
+
+	__asm volatile
+	    ("rdtsc" : "=A" (var));
+
+	return (var);
 }
 #endif
-
-#endif /* _NUMATOP_INTEL_BDW_H */

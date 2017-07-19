@@ -44,21 +44,6 @@ typedef enum {
 #define PRECISE_NUM	3
 
 typedef enum {
-	CPU_UNSUP = 0,
-	CPU_WSM_EX,
-	CPU_SNB_EP,
-	CPU_NHM_EX,
-	CPU_NHM_EP,
-	CPU_WSM_EP,
-	CPU_IVB_EX,
-	CPU_HSX,
-	CPU_BDX,
-	CPU_SKX
-} cpu_type_t;
-
-#define	CPU_TYPE_NUM	10
-
-typedef enum {
 	SORT_KEY_INVALID = -1,
 	SORT_KEY_CPU = 0,
 	SORT_KEY_PID,

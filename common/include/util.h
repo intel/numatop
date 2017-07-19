@@ -55,22 +55,6 @@ extern "C" {
 #define	DUMP_CACHE_SIZE	256*1024
 #define	LOGFILE_PATH	"/tmp/numatop.log"
 
-typedef struct _cpuid_regs {
-	uint32_t r_eax;
-	uint32_t r_ebx;
-	uint32_t r_ecx;
-	uint32_t r_edx;
-} cpuid_regs_t;
-
-#define	CPU_FAMILY(eax) \
-	(((eax) & 0x0F00) >> 8)
-
-#define	CPU_MODEL(eax) \
-	(((eax) & 0x00F0) >> 4)
-
-#define	CPU_EXT_MODEL(eax) \
-	(((eax) & 0xF0000) >> 16)
-
 typedef struct _debug_ctl {
 	pthread_mutex_t mutex;
 	boolean_t inited;
@@ -100,7 +84,6 @@ extern int procfs_proc_enum(pid_t **, int *);
 extern void exit_msg_put(const char *fmt, ...);
 extern void exit_msg_print(void);
 extern uint64_t cyc2ns(uint64_t);
-extern cpu_type_t cpu_type_get(void);
 extern int dump_init(FILE *);
 extern void dump_fini(void);
 extern void dump_write(const char *fmt, ...);
@@ -110,6 +93,7 @@ extern void dump_cache_flush(void);
 extern void stderr_print(char *format, ...);
 extern int array_alloc(void **, int *, int *, int, int);
 extern void pagesize_init(void);
+extern uint64_t rdtsc(void);
 
 #ifdef __cplusplus
 }

@@ -163,6 +163,7 @@ pf_profiling_setup(struct _perf_cpu *cpu, int idx, pf_conf_t *conf)
 		PERF_SAMPLE_CALLCHAIN;
 	attr.read_format = PERF_FORMAT_GROUP |
 		PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
+	attr.size = sizeof(attr);
 
 	debug_print(NULL, 2, "pf_profiling_setup: attr.type = 0x%lx, "
 		"attr.config = 0x%lx, attr.config1 = 0x%lx\n",

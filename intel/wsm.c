@@ -35,10 +35,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <strings.h>
-#include "../common/include/types.h"
 #include "../common/include/os/linux/perf_event.h"
 #include "../common/include/os/plat.h"
-#include "../common/include/os/os_perf.h"
 #include "include/wsm.h"
 
 static plat_event_config_t s_wsmex_profiling[COUNT_NUM] = {
@@ -88,5 +86,5 @@ wsmep_ll_config(plat_event_config_t *cfg)
 int
 wsm_offcore_num(void)
 {
-	return (2);	
+	return (2);
 }

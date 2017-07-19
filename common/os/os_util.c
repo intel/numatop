@@ -123,36 +123,6 @@ os_procfs_lwp_valid(pid_t pid, int lwpid)
 }
 
 /*
- * Get the TSC cycles.
- */
-#ifdef __x86_64__
-static uint64_t
-rdtsc()
-{
-	uint64_t var;
-	uint32_t hi, lo;
-
-	__asm volatile
-	    ("rdtsc" : "=a" (lo), "=d" (hi));
-
-	/* LINTED E_VAR_USED_BEFORE_SET */
-	var = ((uint64_t)hi << 32) | lo;
-	return (var);
-}
-#else
-static uint64_t
-rdtsc()
-{
-	uint64_t var;
-
-	__asm volatile
-	    ("rdtsc" : "=A" (var));
-
-	return (var);
-}
-#endif
-
-/*
  * Bind current thread to a cpu or unbind current thread
  * from a cpu.
  */
