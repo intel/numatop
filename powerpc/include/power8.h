@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Intel Corporation
+ * Copyright (c) 2017, IBM Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -26,57 +26,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_PLAT_H
-#define	_NUMATOP_PLAT_H
-
-#include <sys/types.h>
-#include <inttypes.h>
-#include "../types.h"
-#ifdef __powerpc64__
-#include "../../../powerpc/include/types.h"
-#else
-#include "../../../intel/include/types.h"
-#endif
+#ifndef _NUMATOP_POWERPC_POWER8_H
+#define _NUMATOP_POWERPC_POWER8_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define PLAT_EVENT_DESC_SIZE	64
+#include <sys/types.h>
+#include <inttypes.h>
+#include "../../common/include/types.h"
 
-typedef struct _plat_event_config {
-	uint32_t type;
-	/*
-	 * config = "code + umask" if type is PERF_TYPE_RAW or
-	 * event_id if type is PERF_TYPE_HARDWARE.
-	 */
-	uint64_t config;
-	uint64_t other_attr;
-	uint64_t extra_value;
-	char desc[PLAT_EVENT_DESC_SIZE];
-} plat_event_config_t;
+struct _plat_event_config;
 
-extern uint64_t g_sample_period[COUNT_NUM][PRECISE_NUM];
-extern cpu_type_t s_cpu_type;
-extern boolean_t g_cmt_enabled;
-
-typedef void (*pfn_plat_profiling_config_t)(count_id_t,
-    plat_event_config_t *);
-typedef void (*pfn_plat_ll_config_t)(plat_event_config_t *);
-typedef int (*pfn_plat_offcore_num_t)(void);
-
-extern pfn_plat_profiling_config_t s_plat_profiling_config[CPU_TYPE_NUM];
-extern pfn_plat_ll_config_t s_plat_ll_config[CPU_TYPE_NUM];
-extern pfn_plat_offcore_num_t s_plat_offcore_num[CPU_TYPE_NUM];
-
-extern int plat_detect(void);
-extern void plat_profiling_config(count_id_t, plat_event_config_t *);
-extern void plat_ll_config(plat_event_config_t *);
-extern void plat_config_get(count_id_t, plat_event_config_t *, plat_event_config_t *);
-extern int plat_offcore_num(void);
+extern void power8_profiling_config(count_id_t, struct _plat_event_config *);
+extern void power8_ll_config(plat_event_config_t *cfg);
+extern int power8_offcore_num(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _NUMATOP_PLAT_H */
+#endif /* _NUMATOP_POWERPC_POWER8_H */

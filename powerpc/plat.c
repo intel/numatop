@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Intel Corporation
+ * Copyright (c) 2017, IBM Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -26,57 +26,67 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_PLAT_H
-#define	_NUMATOP_PLAT_H
+#include <stdio.h>
+#include <stddef.h>
+#include <string.h>
+#include <stdlib.h>
+#include "../common/include/os/plat.h"
+#include "../common/include/os/os_util.h"
+#include "include/types.h"
+#include "include/power8.h"
 
-#include <sys/types.h>
-#include <inttypes.h>
-#include "../types.h"
-#ifdef __powerpc64__
-#include "../../../powerpc/include/types.h"
-#else
-#include "../../../intel/include/types.h"
-#endif
+pfn_plat_profiling_config_t
+s_plat_profiling_config[CPU_TYPE_NUM] = {
+	NULL,
+	power8_profiling_config
+};
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+pfn_plat_ll_config_t
+s_plat_ll_config[CPU_TYPE_NUM] = {
+	NULL,
+	power8_ll_config
+};
 
-#define PLAT_EVENT_DESC_SIZE	64
+pfn_plat_offcore_num_t
+s_plat_offcore_num[CPU_TYPE_NUM] = {
+	NULL,
+	power8_offcore_num
+};
 
-typedef struct _plat_event_config {
-	uint32_t type;
-	/*
-	 * config = "code + umask" if type is PERF_TYPE_RAW or
-	 * event_id if type is PERF_TYPE_HARDWARE.
-	 */
-	uint64_t config;
-	uint64_t other_attr;
-	uint64_t extra_value;
-	char desc[PLAT_EVENT_DESC_SIZE];
-} plat_event_config_t;
+/*
+ * I don't see intel CPUID analogue on powerpc. Using /proc/cpuinfo
+ * for now to findout processor version. Any better idea?
+ */
+int
+plat_detect(void)
+{
+	int ret = -1;
+	FILE *fp;
+	char *line = NULL, *c;
+	size_t len;
 
-extern uint64_t g_sample_period[COUNT_NUM][PRECISE_NUM];
-extern cpu_type_t s_cpu_type;
-extern boolean_t g_cmt_enabled;
+	if ((fp = fopen(CPUINFO_PATH, "r")) == NULL) {
+		return (-1);
+	}
 
-typedef void (*pfn_plat_profiling_config_t)(count_id_t,
-    plat_event_config_t *);
-typedef void (*pfn_plat_ll_config_t)(plat_event_config_t *);
-typedef int (*pfn_plat_offcore_num_t)(void);
+	while (getline(&line, &len, fp) > 0) {
+		if (strncmp(line, "cpu", 3)) {
+			continue;
+		}
 
-extern pfn_plat_profiling_config_t s_plat_profiling_config[CPU_TYPE_NUM];
-extern pfn_plat_ll_config_t s_plat_ll_config[CPU_TYPE_NUM];
-extern pfn_plat_offcore_num_t s_plat_offcore_num[CPU_TYPE_NUM];
+		if ((c = strchr(line, ':')) == NULL) {
+			goto out;
+		}
 
-extern int plat_detect(void);
-extern void plat_profiling_config(count_id_t, plat_event_config_t *);
-extern void plat_ll_config(plat_event_config_t *);
-extern void plat_config_get(count_id_t, plat_event_config_t *, plat_event_config_t *);
-extern int plat_offcore_num(void);
+		if (!strncmp(c + 2, "POWER8", 6)) {
+			s_cpu_type = CPU_POWER8;
+			ret = 0;
+			goto out;
+		}
+	}
 
-#ifdef __cplusplus
+out:
+	free(line);
+	fclose(fp);
+	return ret;
 }
-#endif
-
-#endif /* _NUMATOP_PLAT_H */

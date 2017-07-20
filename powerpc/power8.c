@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Intel Corporation
+ * Copyright (c) 2017, IBM Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -26,57 +26,43 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_PLAT_H
-#define	_NUMATOP_PLAT_H
-
-#include <sys/types.h>
 #include <inttypes.h>
-#include "../types.h"
-#ifdef __powerpc64__
-#include "../../../powerpc/include/types.h"
-#else
-#include "../../../intel/include/types.h"
-#endif
+#include <stdlib.h>
+#include <sys/types.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <strings.h>
+#include "../common/include/os/linux/perf_event.h"
+#include "../common/include/os/plat.h"
+#include "include/power8.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+static plat_event_config_t s_power8_profiling[COUNT_NUM] = {
+	{ PERF_TYPE_RAW, 0x600f4, 0, 0, "PM_RUN_CYC" },
+	{ PERF_TYPE_RAW, 0x4c04c, 0, 0, "PM_DATA_FROM_DMEM" },
+	{ PERF_TYPE_RAW, 0x1001e, 0, 0, "PM_CYC" },
+	{ PERF_TYPE_RAW, 0x500fa, 0, 0, "PM_RUN_INST_CMPL" },
+	{ PERF_TYPE_RAW, 0x2c048, 0, 0, "PM_DATA_FROM_LMEM" },
+};
 
-#define PLAT_EVENT_DESC_SIZE	64
+static plat_event_config_t s_power8_ll = {
+	PERF_TYPE_RAW, 0x0000, 0, 0, "PM_SUSPENDED"
+};
 
-typedef struct _plat_event_config {
-	uint32_t type;
-	/*
-	 * config = "code + umask" if type is PERF_TYPE_RAW or
-	 * event_id if type is PERF_TYPE_HARDWARE.
-	 */
-	uint64_t config;
-	uint64_t other_attr;
-	uint64_t extra_value;
-	char desc[PLAT_EVENT_DESC_SIZE];
-} plat_event_config_t;
-
-extern uint64_t g_sample_period[COUNT_NUM][PRECISE_NUM];
-extern cpu_type_t s_cpu_type;
-extern boolean_t g_cmt_enabled;
-
-typedef void (*pfn_plat_profiling_config_t)(count_id_t,
-    plat_event_config_t *);
-typedef void (*pfn_plat_ll_config_t)(plat_event_config_t *);
-typedef int (*pfn_plat_offcore_num_t)(void);
-
-extern pfn_plat_profiling_config_t s_plat_profiling_config[CPU_TYPE_NUM];
-extern pfn_plat_ll_config_t s_plat_ll_config[CPU_TYPE_NUM];
-extern pfn_plat_offcore_num_t s_plat_offcore_num[CPU_TYPE_NUM];
-
-extern int plat_detect(void);
-extern void plat_profiling_config(count_id_t, plat_event_config_t *);
-extern void plat_ll_config(plat_event_config_t *);
-extern void plat_config_get(count_id_t, plat_event_config_t *, plat_event_config_t *);
-extern int plat_offcore_num(void);
-
-#ifdef __cplusplus
+void
+power8_profiling_config(count_id_t count_id, plat_event_config_t *cfg)
+{
+	plat_config_get(count_id, cfg, s_power8_profiling);
 }
-#endif
 
-#endif /* _NUMATOP_PLAT_H */
+void
+power8_ll_config(plat_event_config_t *cfg)
+{
+	memcpy(cfg, &s_power8_ll, sizeof (plat_event_config_t));
+}
+
+int
+power8_offcore_num(void)
+{
+	return (2);
+}
