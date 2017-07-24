@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Intel Corporation
+ * Copyright (c) 2017, IBM Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -26,25 +26,67 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_INTEL_BDW_H
-#define	_NUMATOP_INTEL_BDW_H
+#include <stdio.h>
+#include <stddef.h>
+#include <string.h>
+#include <stdlib.h>
+#include "../common/include/os/plat.h"
+#include "../common/include/os/os_util.h"
+#include "include/types.h"
+#include "include/power8.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+pfn_plat_profiling_config_t
+s_plat_profiling_config[CPU_TYPE_NUM] = {
+	NULL,
+	power8_profiling_config
+};
 
-#include <sys/types.h>
-#include <inttypes.h>
-#include "../../common/include/types.h"
+pfn_plat_ll_config_t
+s_plat_ll_config[CPU_TYPE_NUM] = {
+	NULL,
+	power8_ll_config
+};
 
-struct _plat_event_config;
+pfn_plat_offcore_num_t
+s_plat_offcore_num[CPU_TYPE_NUM] = {
+	NULL,
+	power8_offcore_num
+};
 
-extern void bdw_profiling_config(count_id_t, struct _plat_event_config *);
-extern void bdw_ll_config(struct _plat_event_config *);
-extern int bdw_offcore_num(void);
+/*
+ * I don't see intel CPUID analogue on powerpc. Using /proc/cpuinfo
+ * for now to findout processor version. Any better idea?
+ */
+int
+plat_detect(void)
+{
+	int ret = -1;
+	FILE *fp;
+	char *line = NULL, *c;
+	size_t len;
 
-#ifdef __cplusplus
+	if ((fp = fopen(CPUINFO_PATH, "r")) == NULL) {
+		return (-1);
+	}
+
+	while (getline(&line, &len, fp) > 0) {
+		if (strncmp(line, "cpu", 3)) {
+			continue;
+		}
+
+		if ((c = strchr(line, ':')) == NULL) {
+			goto out;
+		}
+
+		if (!strncmp(c + 2, "POWER8", 6)) {
+			s_cpu_type = CPU_POWER8;
+			ret = 0;
+			goto out;
+		}
+	}
+
+out:
+	free(line);
+	fclose(fp);
+	return ret;
 }
-#endif
-
-#endif /* _NUMATOP_INTEL_BDW_H */

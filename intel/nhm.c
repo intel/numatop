@@ -35,7 +35,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <strings.h>
-#include "../common/include/types.h"
 #include "../common/include/os/linux/perf_event.h"
 #include "../common/include/os/plat.h"
 #include "../common/include/os/os_perf.h"
@@ -91,5 +90,5 @@ nhmep_ll_config(plat_event_config_t *cfg)
 int
 nhm_offcore_num(void)
 {
-	return (1);	
+	return (1);
 }

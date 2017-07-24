@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Intel Corporation
+ * Copyright (c) 2017, IBM Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -26,8 +26,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_INTEL_BDW_H
-#define	_NUMATOP_INTEL_BDW_H
+#ifndef _NUMATOP_POWERPC_POWER8_H
+#define _NUMATOP_POWERPC_POWER8_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,12 +39,12 @@ extern "C" {
 
 struct _plat_event_config;
 
-extern void bdw_profiling_config(count_id_t, struct _plat_event_config *);
-extern void bdw_ll_config(struct _plat_event_config *);
-extern int bdw_offcore_num(void);
+extern void power8_profiling_config(count_id_t, struct _plat_event_config *);
+extern void power8_ll_config(plat_event_config_t *cfg);
+extern int power8_offcore_num(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _NUMATOP_INTEL_BDW_H */
+#endif /* _NUMATOP_POWERPC_POWER8_H */

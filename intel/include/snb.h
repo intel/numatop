@@ -26,8 +26,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_SNB_H
-#define	_NUMATOP_SNB_H
+#ifndef _NUMATOP_INTEL_SNB_H
+#define	_NUMATOP_INTEL_SNB_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,4 +47,4 @@ extern int snb_offcore_num(void);
 }
 #endif
 
-#endif /* _NUMATOP_SNB_H */
+#endif /* _NUMATOP_INTEL_SNB_H */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Intel Corporation
+ * Copyright (c) 2017, IBM Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -26,25 +26,43 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_INTEL_BDW_H
-#define	_NUMATOP_INTEL_BDW_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <sys/types.h>
 #include <inttypes.h>
-#include "../../common/include/types.h"
+#include <stdlib.h>
+#include <sys/types.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <strings.h>
+#include "../common/include/os/linux/perf_event.h"
+#include "../common/include/os/plat.h"
+#include "include/power8.h"
 
-struct _plat_event_config;
+static plat_event_config_t s_power8_profiling[COUNT_NUM] = {
+	{ PERF_TYPE_RAW, 0x600f4, 0, 0, "PM_RUN_CYC" },
+	{ PERF_TYPE_RAW, 0x4c04c, 0, 0, "PM_DATA_FROM_DMEM" },
+	{ PERF_TYPE_RAW, 0x1001e, 0, 0, "PM_CYC" },
+	{ PERF_TYPE_RAW, 0x500fa, 0, 0, "PM_RUN_INST_CMPL" },
+	{ PERF_TYPE_RAW, 0x2c048, 0, 0, "PM_DATA_FROM_LMEM" },
+};
 
-extern void bdw_profiling_config(count_id_t, struct _plat_event_config *);
-extern void bdw_ll_config(struct _plat_event_config *);
-extern int bdw_offcore_num(void);
+static plat_event_config_t s_power8_ll = {
+	PERF_TYPE_RAW, 0x0000, 0, 0, "PM_SUSPENDED"
+};
 
-#ifdef __cplusplus
+void
+power8_profiling_config(count_id_t count_id, plat_event_config_t *cfg)
+{
+	plat_config_get(count_id, cfg, s_power8_profiling);
 }
-#endif
 
-#endif /* _NUMATOP_INTEL_BDW_H */
+void
+power8_ll_config(plat_event_config_t *cfg)
+{
+	memcpy(cfg, &s_power8_ll, sizeof (plat_event_config_t));
+}
+
+int
+power8_offcore_num(void)
+{
+	return (2);
+}

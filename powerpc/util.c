@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Intel Corporation
+ * Copyright (c) 2017, IBM Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -26,25 +26,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_INTEL_BDW_H
-#define	_NUMATOP_INTEL_BDW_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <sys/types.h>
 #include <inttypes.h>
-#include "../../common/include/types.h"
 
-struct _plat_event_config;
+/* PowerPC has Time Base (TB) register similar to intel TSC. */
+uint64_t
+rdtsc(void)
+{
+	uint64_t tb = 0;
 
-extern void bdw_profiling_config(count_id_t, struct _plat_event_config *);
-extern void bdw_ll_config(struct _plat_event_config *);
-extern int bdw_offcore_num(void);
+	__asm__ volatile("mftb %0" : "=r"(tb));
 
-#ifdef __cplusplus
+	return (tb);
 }
-#endif
-
-#endif /* _NUMATOP_INTEL_BDW_H */

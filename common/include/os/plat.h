@@ -32,6 +32,11 @@
 #include <sys/types.h>
 #include <inttypes.h>
 #include "../types.h"
+#ifdef __powerpc64__
+#include "../../../powerpc/include/types.h"
+#else
+#include "../../../intel/include/types.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,12 +57,17 @@ typedef struct _plat_event_config {
 } plat_event_config_t;
 
 extern uint64_t g_sample_period[COUNT_NUM][PRECISE_NUM];
+extern cpu_type_t s_cpu_type;
 extern boolean_t g_cmt_enabled;
 
 typedef void (*pfn_plat_profiling_config_t)(count_id_t,
     plat_event_config_t *);
 typedef void (*pfn_plat_ll_config_t)(plat_event_config_t *);
 typedef int (*pfn_plat_offcore_num_t)(void);
+
+extern pfn_plat_profiling_config_t s_plat_profiling_config[CPU_TYPE_NUM];
+extern pfn_plat_ll_config_t s_plat_ll_config[CPU_TYPE_NUM];
+extern pfn_plat_offcore_num_t s_plat_offcore_num[CPU_TYPE_NUM];
 
 extern int plat_detect(void);
 extern void plat_profiling_config(count_id_t, plat_event_config_t *);

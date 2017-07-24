@@ -63,6 +63,16 @@ extern "C" {
 #define mb() asm volatile("mfence":::"memory")
 #endif
 
+#if defined(__powerpc64__)
+#ifndef __NR_perf_event_open
+#define __NR_perf_event_open 319
+#endif
+
+#define rmb()  __asm__ __volatile__ ("sync" : : : "memory")
+#define wmb()  __asm__ __volatile__ ("sync" : : : "memory")
+#define mb()   __asm__ __volatile__ ("sync" : : : "memory")
+#endif
+
 typedef struct _pf_conf {
 	count_id_t count_id;
 	uint32_t type;

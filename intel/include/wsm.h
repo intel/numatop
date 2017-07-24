@@ -26,8 +26,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_WSM_H
-#define	_NUMATOP_WSM_H
+#ifndef _NUMATOP_INTEL_WSM_H
+#define	_NUMATOP_INTEL_WSM_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,4 +49,4 @@ extern int wsm_offcore_num(void);
 }
 #endif
 
-#endif /* _NUMATOP_WSM_H */
+#endif /* _NUMATOP_INTEL_WSM_H */

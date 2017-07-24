@@ -26,8 +26,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_SKL_H
-#define	_NUMATOP_SKL_H
+#ifndef _NUMATOP_INTEL_SKL_H
+#define	_NUMATOP_INTEL_SKL_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,4 +47,4 @@ extern int skl_offcore_num(void);
 }
 #endif
 
-#endif /* _NUMATOP_SKL_H */
+#endif /* _NUMATOP_INTEL_SKL_H */
