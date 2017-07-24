@@ -1,0 +1,46 @@
+Features supported on PowerPC:
+------------------------------
+
+Per process/thread:
+
+| Feature                                                   | Supported     |
+|-----------------------------------------------------------|---------------|
+| RMA (RMEM + DMEM)                                         | Y (only DMEM) |
+| LMA (LMEM)                                                | Y             |
+| CPI                                                       | Y             |
+| CPU%                                                      | Y (only Host) |
+| Memory area ADDR                                          | Y             |
+| Memory area SIZE                                          | Y             |
+| Memory area ACCESS%                                       | N             |
+| Memory area LAT(ns)                                       | N             |
+| Memory area DESC                                          | Y             |
+| Node ACCESS%                                              | N             |
+| Node LAT(ns)                                              | N             |
+| Call-chain when process generates RMA / LMA / CYCLES / IR | Y             |
+| Call-chain when process accesses the memory area          | N             |
+| PQOS CMT/MBM                                              | N             |
+
+Per Node:
+
+| Feature                                                   | Supported     |
+|-----------------------------------------------------------|---------------|
+| RMA (RMEM + DMEM)                                         | Y (only DMEM) |
+| LMA (LMEM)                                                | Y             |
+| CPU                                                       | Y             |
+| CPU%                                                      | Y (only Host) |
+| MEM total                                                 | Y             |
+| MEM free                                                  | Y             |
+| MEM active                                                | Y             |
+| MEM inactive                                              | Y             |
+| Dirty                                                     | Y             |
+| Writeback                                                 | Y             |
+| Mapped                                                    | Y             |
+| QPI/UPI 0 bandwidth                                       | N             |
+| QPI/UPI 1 bandwidth                                       | N             |
+| Memory controller bandwidth                               | N             |
+
+Other:
+
+| Feature                                                   | Supported     |
+|-----------------------------------------------------------|---------------|
+| mgen testcase                                             | N             |
