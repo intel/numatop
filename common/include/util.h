@@ -94,6 +94,7 @@ extern void stderr_print(char *format, ...);
 extern int array_alloc(void **, int *, int *, int, int);
 extern void pagesize_init(void);
 extern uint64_t rdtsc(void);
+extern int arch__cpuinfo_freq(double *freq, char *unit);
 
 #ifdef __cplusplus
 }

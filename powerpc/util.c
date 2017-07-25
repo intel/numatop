@@ -26,7 +26,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <inttypes.h>
+#include "../common/include/os/os_util.h"
 
 /* PowerPC has Time Base (TB) register similar to intel TSC. */
 uint64_t
@@ -37,4 +41,60 @@ rdtsc(void)
 	__asm__ volatile("mftb %0" : "=r"(tb));
 
 	return (tb);
+}
+
+int
+arch__cpuinfo_freq(double *freq, char *unit)
+{
+	FILE *f;
+	char *line = NULL, *c;
+	size_t len = 0;
+	int ret = -1;
+
+	if ((f = fopen(CPUINFO_PATH, "r")) == NULL) {
+		return -1;
+	}
+
+	while (getline(&line, &len, f) > 0) {
+		if (strncmp(line, "clock", sizeof ("clock") -1)) {
+			continue;
+		}
+
+		if (sscanf(line + strcspn(line, ":") + 1, "%lf%10s",
+			freq, unit) == 2) {
+			if (strcasecmp(unit, "GHz") == 0) {
+				*freq *= GHZ;
+			} else if (strcasecmp(unit, "MHz") == 0) {
+				*freq *= MHZ;
+			}
+			break;
+		}
+	}
+
+	/*
+	 * Hyperwiser does not expose cpufreq on PowerVMs(pSeries)
+	 * servers. Thus 'clock' field from /proc/cpuinfo shows
+	 * absolute max freq. While in case of PowerNV servers,
+	 * 'clock' field shows current freq for each individual
+	 * processor.
+	 *
+	 * Use 'clock' field to get freq on pSeries and fallback to
+	 * sysfs cpufreq approach for PowerNV.
+	 */
+	while (getline(&line, &len, f) > 0) {
+		if (strncmp(line, "platform", sizeof("sizeof") -1)) {
+			continue;
+		}
+
+		c = strchr(line, ':');
+		if (c - line + 2 < len &&
+		    !strncmp(c + 2, "pSeries", sizeof ("pSeries") - 1)) {
+			ret = 0;
+			break;
+		}
+	}
+
+	free(line);
+	fclose(f);
+	return ret;
 }
