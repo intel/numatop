@@ -30,6 +30,8 @@
 #ifndef _NUMATOP_INTEL_TYPES_H
 #define _NUMATOP_INTEL_TYPES_H
 
+#include "../../common/include/types.h"
+
 typedef enum {
 	CPU_UNSUP = 0,
 	CPU_WSM_EX,
@@ -44,5 +46,16 @@ typedef enum {
 } cpu_type_t;
 
 #define	CPU_TYPE_NUM	10
+
+typedef enum {
+	PERF_COUNT_INVALID = -1,
+	PERF_COUNT_CORE_CLK = 0,
+	PERF_COUNT_RMA,
+	PERF_COUNT_CLK,
+	PERF_COUNT_IR,
+	PERF_COUNT_LMA
+} perf_count_id_t;
+
+#define PERF_COUNT_NUM		5
 
 #endif /* _NUMATOP_INTEL_TYPES_H */

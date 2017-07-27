@@ -42,11 +42,11 @@
 #include "../include/os/map.h"
 #include "../include/os/os_cmd.h"
 
-static int s_callchain_countid[] = {
-	COUNT_RMA,
-	COUNT_LMA,
-	COUNT_CLK,
-	COUNT_IR
+static int s_callchain_ui_countid[] = {
+	UI_COUNT_RMA,
+	UI_COUNT_LMA,
+	UI_COUNT_CLK,
+	UI_COUNT_IR
 };
 
 /* ARGSUSED */
@@ -162,7 +162,7 @@ os_preop_switch2callchain(cmd_t *cmd, boolean_t *smpl)
 	}	
 
 	*smpl = B_TRUE;
-	return (perf_profiling_partpause(COUNT_RMA));
+	return (perf_profiling_partpause(UI_COUNT_RMA));
 }
 
 int
@@ -193,14 +193,14 @@ int
 os_preop_leavecallchain(cmd_t *cmd, boolean_t *smpl)
 {
 	page_t *cur = page_current_get();
-	count_id_t countid;
-	
-	if ((countid = DYN_CALLCHAIN(cur)->countid) != 0) {		
-		perf_profiling_restore(countid);
+	ui_count_id_t ui_countid;
+
+	if ((ui_countid = DYN_CALLCHAIN(cur)->ui_countid) != 0) {
+		perf_profiling_restore(ui_countid);
 	}
 
 	*smpl = B_TRUE;
-	return (0);	
+	return (0);
 }
 
 int
@@ -347,34 +347,35 @@ os_op_switch2ll(cmd_t *cmd, boolean_t smpl)
 	return (op_page_next(cmd, smpl));
 }
 
-static count_id_t
+static ui_count_id_t
 callchain_countid_set(int cmd_id, page_t *page)
 {
 	dyn_callchain_t *dyn = (dyn_callchain_t *)(page->dyn_win.dyn);
 
 	if ((cmd_id >= CMD_1_ID) && (cmd_id <= CMD_4_ID)) {
-		dyn->countid = s_callchain_countid[cmd_id - CMD_1_ID];
+		dyn->ui_countid = s_callchain_ui_countid[cmd_id - CMD_1_ID];
 	} else {
-		dyn->countid = COUNT_INVALID;
+		dyn->ui_countid = UI_COUNT_INVALID;
 	}
 
-	return (dyn->countid);
+	return (dyn->ui_countid);
 }
 
 int
 os_op_callchain_count(cmd_t *cmd, boolean_t smpl)
 {
 	page_t *cur;
-	count_id_t countid;
+	ui_count_id_t ui_countid;
 	int cmd_id;
 
 	if ((cur = page_current_get()) != NULL) {
 		cmd_id = CMD_ID(cmd);
-		if ((countid = callchain_countid_set(cmd_id, cur)) == COUNT_INVALID) {
+		ui_countid = callchain_countid_set(cmd_id, cur);
+		if (ui_countid == UI_COUNT_INVALID) {
 			return (0);	
 		}
 
-		perf_profiling_partpause(countid);
+		perf_profiling_partpause(ui_countid);
 		op_refresh(cmd, smpl);
 	}
 

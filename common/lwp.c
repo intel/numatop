@@ -278,10 +278,10 @@ lwp_refcount_dec(track_lwp_t *lwp)
 }
 
 static uint64_t
-count_value_get(track_lwp_t *lwp, count_id_t count_id)
+count_value_get(track_lwp_t *lwp, ui_count_id_t ui_count_id)
 {
 	return (node_countval_sum(lwp->countval_arr, lwp->cpuid_max,
-	    NODE_ALL, count_id));
+	    NODE_ALL, ui_count_id));
 }
 
 /*
@@ -294,7 +294,7 @@ lwp_key_compute(track_lwp_t *lwp, void *arg, boolean_t *end)
 
 	switch (sortkey) {
 	case SORT_KEY_CPU:
-		lwp->key = count_value_get(lwp, COUNT_CLK);
+		lwp->key = count_value_get(lwp, UI_COUNT_CLK);
 		break;
 
 	default:
@@ -309,7 +309,7 @@ lwp_key_compute(track_lwp_t *lwp, void *arg, boolean_t *end)
  * Update the lwp's per CPU perf data.
  */
 int
-lwp_countval_update(track_lwp_t *lwp, int cpu, count_id_t count_id,
+lwp_countval_update(track_lwp_t *lwp, int cpu, perf_count_id_t perf_count_id,
     uint64_t value)
 {
 	count_value_t *countval, *arr_new;
@@ -333,7 +333,7 @@ lwp_countval_update(track_lwp_t *lwp, int cpu, count_id_t count_id,
 	}
 
 	countval = &lwp->countval_arr[cpu];
-	countval->counts[count_id] += value;
+	countval->counts[perf_count_id] += value;
 	return (0);
 }
 

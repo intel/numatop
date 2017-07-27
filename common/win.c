@@ -329,10 +329,10 @@ win_countvalue_fill(win_countvalue_t *cv,
 	uint64_t rma, lma, ir, clk, all_clks;
 	double d;
 
-	rma = node_countval_sum(countval_arr, cpuid_max, nid, COUNT_RMA);
-	lma = node_countval_sum(countval_arr, cpuid_max, nid, COUNT_LMA);
-	clk = node_countval_sum(countval_arr, cpuid_max, nid, COUNT_CLK);
-	ir = node_countval_sum(countval_arr, cpuid_max, nid, COUNT_IR);
+	rma = node_countval_sum(countval_arr, cpuid_max, nid, UI_COUNT_RMA);
+	lma = node_countval_sum(countval_arr, cpuid_max, nid, UI_COUNT_LMA);
+	clk = node_countval_sum(countval_arr, cpuid_max, nid, UI_COUNT_CLK);
+	ir = node_countval_sum(countval_arr, cpuid_max, nid, UI_COUNT_IR);
 
 	cv->rpi = ratio(rma * 1000, ir);
 	cv->lpi = ratio(lma * 1000, ir);
@@ -1540,10 +1540,10 @@ win_node_countvalue(node_t *node, win_countvalue_t *cv)
 	double d;
 	uint64_t rma, lma, clk, ir, all_clks;
 
-	rma = node_countval_get(node, COUNT_RMA);
-	lma = node_countval_get(node, COUNT_LMA);
-	clk = node_countval_get(node, COUNT_CLK);
-	ir = node_countval_get(node, COUNT_IR);
+	rma = node_countval_get(node, UI_COUNT_RMA);
+	lma = node_countval_get(node, UI_COUNT_LMA);
+	clk = node_countval_get(node, UI_COUNT_CLK);
+	ir = node_countval_get(node, UI_COUNT_IR);
 
 	cv->rpi = ratio(rma * 1000, ir);
 	cv->lpi = ratio(lma * 1000, ir);
@@ -1861,7 +1861,7 @@ callchain_dyn_create(page_t *page)
 
 	dyn->pid = cmd_callchain->pid;
 	dyn->lwpid = cmd_callchain->lwpid;
-	dyn->countid = COUNT_RMA;
+	dyn->ui_countid = UI_COUNT_RMA;
 
 	if ((i = reg_init(&dyn->msg, 0, 1, g_scr_width, 2, A_BOLD)) < 0)
 		goto L_EXIT;
@@ -1905,22 +1905,22 @@ callchain_win_destroy(dyn_win_t *win)
 }
 
 static void
-callchain_event_name(count_id_t count_id, char *buf, int size)
+callchain_event_name(ui_count_id_t ui_count_id, char *buf, int size)
 {
-	switch (count_id) {
-	case COUNT_RMA:
+	switch (ui_count_id) {
+	case UI_COUNT_RMA:
 		(void) strncpy(buf, "RMA", size);
 		break;
 
-	case COUNT_CLK:
+	case UI_COUNT_CLK:
 		(void) strncpy(buf, "Cycle", size);
 		break;
 
-	case COUNT_IR:
+	case UI_COUNT_IR:
 		(void) strncpy(buf, "IR", size);
 		break;
 
-	case COUNT_LMA:
+	case UI_COUNT_LMA:
 		(void) strncpy(buf, "LMA", size);
 		break;
 
@@ -1960,7 +1960,7 @@ callchain_data_show(dyn_win_t *win, boolean_t *note_out)
 
 	r = &dyn->msg;
 	reg_erase(r);
-	callchain_event_name(dyn->countid, event_name, 32);
+	callchain_event_name(dyn->ui_countid, event_name, 32);
 	disp_intval(intval_buf, 16);
 	if (lwpid == 0) {
 		(void) snprintf(content, WIN_LINECHAR_MAX,

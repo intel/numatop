@@ -74,7 +74,7 @@ extern "C" {
 #endif
 
 typedef struct _pf_conf {
-	count_id_t count_id;
+	perf_count_id_t perf_count_id;
 	uint32_t type;
 	uint64_t config;
 	uint64_t config1;
@@ -95,7 +95,7 @@ typedef struct _pf_profiling_rbrec {
 	uint32_t tid;
 	uint64_t time_enabled;
 	uint64_t time_running;
-	uint64_t counts[COUNT_NUM];
+	uint64_t counts[PERF_COUNT_NUM];
 	uint64_t ip_num;
 } pf_profiling_rbrec_t;
 
@@ -126,8 +126,8 @@ typedef int (*pfn_pf_event_op_t)(struct _perf_cpu *);
 
 int pf_ringsize_init(void);
 int pf_profiling_setup(struct _perf_cpu *, int, pf_conf_t *);
-int pf_profiling_start(struct _perf_cpu *, count_id_t);
-int pf_profiling_stop(struct _perf_cpu *, count_id_t);
+int pf_profiling_start(struct _perf_cpu *, perf_count_id_t);
+int pf_profiling_stop(struct _perf_cpu *, perf_count_id_t);
 int pf_profiling_allstart(struct _perf_cpu *);
 int pf_profiling_allstop(struct _perf_cpu *);
 void pf_profiling_record(struct _perf_cpu *, pf_profiling_rec_t *, int *);

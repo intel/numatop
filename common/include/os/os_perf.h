@@ -39,7 +39,7 @@ extern "C" {
 #endif
 
 #define PERF_REC_NUM	512
-#define PERF_FD_NUM		NCPUS_MAX * COUNT_NUM
+#define PERF_FD_NUM		NCPUS_MAX * PERF_COUNT_NUM
 #define INVALID_CODE_UMASK	(uint64_t)(-1)
 #define PERF_PQOS_CMT_MAX	10
 
@@ -61,7 +61,7 @@ typedef struct _os_perf_llrec {
 
 typedef struct _perf_cpu {
 	int cpuid;
-	int fds[COUNT_NUM];
+	int fds[PERF_COUNT_NUM];
 	int group_idx;
 	int map_len;
 	int map_mask;
@@ -99,7 +99,9 @@ extern boolean_t os_profiling_started(struct _perf_ctl *);
 extern int os_profiling_start(struct _perf_ctl *, union _perf_task *);
 extern int os_profiling_smpl(struct _perf_ctl *, union _perf_task *, int *);
 extern int os_profiling_partpause(struct _perf_ctl *, union _perf_task *);
+extern int os_profiling_multipause(struct _perf_ctl *, union _perf_task *);
 extern int os_profiling_restore(struct _perf_ctl *, union _perf_task *);
+extern int os_profiling_multi_restore(struct _perf_ctl *, union _perf_task *);
 extern int os_callchain_start(struct _perf_ctl *, union _perf_task *);
 extern int os_callchain_smpl(struct _perf_ctl *, union _perf_task *, int *);
 extern int os_ll_start(struct _perf_ctl *, union _perf_task *);
@@ -107,8 +109,10 @@ extern int os_ll_smpl(struct _perf_ctl *, union _perf_task *, int *);
 extern int os_perf_init(void);
 extern void os_perf_fini(void);
 extern void os_perfthr_quit_wait(void);
-extern int os_perf_profiling_partpause(count_id_t);
-extern int os_perf_profiling_restore(count_id_t);
+extern int os_perf_profiling_partpause(perf_count_id_t);
+extern int os_perf_profiling_multipause(perf_count_id_t *);
+extern int os_perf_profiling_restore(perf_count_id_t);
+extern int os_perf_profiling_multi_restore(perf_count_id_t *);
 extern int os_perf_callchain_start(pid_t, int);
 extern int os_perf_callchain_smpl(void);
 extern int os_perf_ll_smpl(struct _perf_ctl *, pid_t, int);

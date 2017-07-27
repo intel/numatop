@@ -39,8 +39,8 @@ extern "C" {
 
 struct _plat_event_config;
 
-extern void nhmex_profiling_config(count_id_t, struct _plat_event_config *);
-extern void nhmep_profiling_config(count_id_t, struct _plat_event_config *);
+extern void nhmex_profiling_config(perf_count_id_t, struct _plat_event_config *);
+extern void nhmep_profiling_config(perf_count_id_t, struct _plat_event_config *);
 extern void nhmex_ll_config(struct _plat_event_config *);
 extern void nhmep_ll_config(struct _plat_event_config *);
 extern int nhm_offcore_num(void);

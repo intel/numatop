@@ -208,20 +208,20 @@ pf_profiling_setup(struct _perf_cpu *cpu, int idx, pf_conf_t *conf)
 }
 
 int
-pf_profiling_start(struct _perf_cpu *cpu, count_id_t count_id)
+pf_profiling_start(struct _perf_cpu *cpu, perf_count_id_t perf_count_id)
 {
-	if (cpu->fds[count_id] != INVALID_FD) {
-		return (ioctl(cpu->fds[count_id], PERF_EVENT_IOC_ENABLE, 0));
+	if (cpu->fds[perf_count_id] != INVALID_FD) {
+		return (ioctl(cpu->fds[perf_count_id], PERF_EVENT_IOC_ENABLE, 0));
 	}
 	
 	return (0);
 }
 
 int
-pf_profiling_stop(struct _perf_cpu *cpu, count_id_t count_id)
+pf_profiling_stop(struct _perf_cpu *cpu, perf_count_id_t perf_count_id)
 {
-	if (cpu->fds[count_id] != INVALID_FD) {
-		return (ioctl(cpu->fds[count_id], PERF_EVENT_IOC_DISABLE, 0));
+	if (cpu->fds[perf_count_id] != INVALID_FD) {
+		return (ioctl(cpu->fds[perf_count_id], PERF_EVENT_IOC_DISABLE, 0));
 	}
 	
 	return (0);
@@ -625,7 +625,7 @@ pf_resource_free(struct _perf_cpu *cpu)
 {
 	int i;
 
-	for (i = 0; i < COUNT_NUM; i++) {
+	for (i = 0; i < PERF_COUNT_NUM; i++) {
 		if (cpu->fds[i] != INVALID_FD) {
 			close(cpu->fds[i]);
 			cpu->fds[i] = INVALID_FD;

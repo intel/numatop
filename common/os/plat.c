@@ -46,13 +46,13 @@ boolean_t g_cmt_enabled = B_FALSE;
  * Platform-independent function to get the event configuration for profiling.
  */
 void
-plat_profiling_config(count_id_t count_id, plat_event_config_t *cfg)
+plat_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
 {
 	pfn_plat_profiling_config_t pfn =
 	    s_plat_profiling_config[s_cpu_type];
 
 	if (pfn != NULL) {
-		pfn(count_id, cfg);
+		pfn(perf_count_id, cfg);
 	}
 }
 
@@ -71,14 +71,14 @@ plat_ll_config(plat_event_config_t *cfg)
 }
 
 void
-plat_config_get(count_id_t count_id, plat_event_config_t *cfg,
+plat_config_get(perf_count_id_t perf_count_id, plat_event_config_t *cfg,
 	plat_event_config_t *cfg_arr)
 {
-	cfg->type = cfg_arr[count_id].type;
-	cfg->config = cfg_arr[count_id].config;
-	cfg->other_attr = cfg_arr[count_id].other_attr;
-	cfg->extra_value = cfg_arr[count_id].extra_value;
-	strncpy(cfg->desc, cfg_arr[count_id].desc, PLAT_EVENT_DESC_SIZE);
+	cfg->type = cfg_arr[perf_count_id].type;
+	cfg->config = cfg_arr[perf_count_id].config;
+	cfg->other_attr = cfg_arr[perf_count_id].other_attr;
+	cfg->extra_value = cfg_arr[perf_count_id].extra_value;
+	strncpy(cfg->desc, cfg_arr[perf_count_id].desc, PLAT_EVENT_DESC_SIZE);
 	cfg->desc[PLAT_EVENT_DESC_SIZE - 1] = 0;
 }
 

@@ -26,28 +26,28 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_POWERPC_TYPES_H
-#define _NUMATOP_POWERPC_TYPES_H
+#ifndef _NUMATOP_UI_PERF_MAP_H
+#define _NUMATOP_UI_PERF_MAP_H
 
-#include "../../common/include/types.h"
+#include "types.h"
 
-typedef enum {
-	CPU_UNSUP = 0,
-	CPU_POWER8
-} cpu_type_t;
+/*
+ * Hardcoding 2 here because there is only one use case
+ * for powerpc and it uses 2 perf events to get RMA. If
+ * there is a case in future where more than 2 events are
+ * needed, this has to be changed.
+ */
+#define UI_PERF_MAP_MAX		2
 
-#define CPU_TYPE_NUM    2
+typedef struct _ui_perf_count_map_t {
+	ui_count_id_t ui_count_id;
+	int n_perf_count;
+	perf_count_id_t perf_count_ids[UI_PERF_MAP_MAX];
+} ui_perf_count_map_t;
 
-typedef enum {
-	PERF_COUNT_INVALID = -1,
-	PERF_COUNT_CORE_CLK = 0,
-	PERF_COUNT_RMA,
-	PERF_COUNT_CLK,
-	PERF_COUNT_IR,
-	PERF_COUNT_LMA,
-	PERF_COUNT_RMA_1
-} perf_count_id_t;
+extern ui_perf_count_map_t ui_perf_count_map[UI_COUNT_NUM];
 
-#define PERF_COUNT_NUM	6
+extern int get_ui_perf_count_map(ui_count_id_t, perf_count_id_t **);
+extern uint64_t ui_perf_count_aggr(ui_count_id_t, uint64_t *);
 
-#endif /* _NUMATOP_POWERPC_TYPES_H */
+#endif /* _NUMATOP_UI_PERF_MAP_H */

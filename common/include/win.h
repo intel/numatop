@@ -312,7 +312,7 @@ typedef struct _dyn_nodedetail {
 typedef struct _dyn_callchain {
 	pid_t pid;
 	int lwpid;
-	count_id_t countid;
+	ui_count_id_t ui_countid;
 	win_reg_t msg;
 	win_reg_t caption;
 	win_reg_t pad;

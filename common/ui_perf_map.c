@@ -26,28 +26,33 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_POWERPC_TYPES_H
-#define _NUMATOP_POWERPC_TYPES_H
+#include <stddef.h>
+#include "./include/types.h"
+#include "./include/ui_perf_map.h"
 
-#include "../../common/include/types.h"
+int
+get_ui_perf_count_map(ui_count_id_t ui_count_id, perf_count_id_t **perf_count_ids)
+{
+	if (ui_count_id == UI_COUNT_INVALID) {
+		return PERF_COUNT_INVALID;
+	}
 
-typedef enum {
-	CPU_UNSUP = 0,
-	CPU_POWER8
-} cpu_type_t;
+	*perf_count_ids = ui_perf_count_map[ui_count_id].perf_count_ids;
+	return ui_perf_count_map[ui_count_id].n_perf_count;
+}
 
-#define CPU_TYPE_NUM    2
+uint64_t
+ui_perf_count_aggr(ui_count_id_t ui_count_id, uint64_t *counts)
+{
+	int i = 0;
+	uint64_t tmp = 0;
+	int n_perf_count;
+	perf_count_id_t *perf_count_ids = NULL;
 
-typedef enum {
-	PERF_COUNT_INVALID = -1,
-	PERF_COUNT_CORE_CLK = 0,
-	PERF_COUNT_RMA,
-	PERF_COUNT_CLK,
-	PERF_COUNT_IR,
-	PERF_COUNT_LMA,
-	PERF_COUNT_RMA_1
-} perf_count_id_t;
+	n_perf_count = get_ui_perf_count_map(ui_count_id, &perf_count_ids);
 
-#define PERF_COUNT_NUM	6
-
-#endif /* _NUMATOP_POWERPC_TYPES_H */
+	for (i = 0; i < n_perf_count; i++) {
+		tmp += counts[perf_count_ids[i]];
+	}
+	return tmp;
+}

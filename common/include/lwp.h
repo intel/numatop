@@ -67,7 +67,7 @@ extern void lwp_enum_update(struct _track_proc *);
 extern int lwp_refcount_inc(track_lwp_t *);
 extern void lwp_refcount_dec(track_lwp_t *);
 extern int lwp_key_compute(track_lwp_t *, void *, boolean_t *end);
-extern int lwp_countval_update(track_lwp_t *, int, count_id_t, uint64_t);
+extern int lwp_countval_update(track_lwp_t *, int, perf_count_id_t, uint64_t);
 extern int lwp_intval_get(track_lwp_t *);
 extern void lwp_intval_update(struct _track_proc *, int intval_ms);
 extern void lwp_quitting_set(track_lwp_t *);

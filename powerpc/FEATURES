@@ -5,7 +5,7 @@ Per process/thread:
 
 | Feature                                                   | Supported     |
 |-----------------------------------------------------------|---------------|
-| RMA (RMEM + DMEM)                                         | Y (only DMEM) |
+| RMA (RMEM + DMEM)                                         | Y             |
 | LMA (LMEM)                                                | Y             |
 | CPI                                                       | Y             |
 | CPU%                                                      | Y             |
@@ -24,7 +24,7 @@ Per Node:
 
 | Feature                                                   | Supported     |
 |-----------------------------------------------------------|---------------|
-| RMA (RMEM + DMEM)                                         | Y (only DMEM) |
+| RMA (RMEM + DMEM)                                         | Y             |
 | LMA (LMEM)                                                | Y             |
 | CPU                                                       | Y             |
 | CPU%                                                      | Y             |

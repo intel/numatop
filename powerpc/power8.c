@@ -37,12 +37,13 @@
 #include "../common/include/os/plat.h"
 #include "include/power8.h"
 
-static plat_event_config_t s_power8_profiling[COUNT_NUM] = {
+static plat_event_config_t s_power8_profiling[PERF_COUNT_NUM] = {
 	{ PERF_TYPE_RAW, 0x600f4, 0, 0, "PM_RUN_CYC" },
 	{ PERF_TYPE_RAW, 0x4c04c, 0, 0, "PM_DATA_FROM_DMEM" },
 	{ PERF_TYPE_RAW, 0x1001e, 0, 0, "PM_CYC" },
 	{ PERF_TYPE_RAW, 0x500fa, 0, 0, "PM_RUN_INST_CMPL" },
 	{ PERF_TYPE_RAW, 0x2c048, 0, 0, "PM_DATA_FROM_LMEM" },
+	{ PERF_TYPE_RAW, 0x3c04a, 0, 0, "PM_DATA_FROM_RMEM" },
 };
 
 static plat_event_config_t s_power8_ll = {
@@ -50,9 +51,9 @@ static plat_event_config_t s_power8_ll = {
 };
 
 void
-power8_profiling_config(count_id_t count_id, plat_event_config_t *cfg)
+power8_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
 {
-	plat_config_get(count_id, cfg, s_power8_profiling);
+	plat_config_get(perf_count_id, cfg, s_power8_profiling);
 }
 
 void
@@ -64,5 +65,5 @@ power8_ll_config(plat_event_config_t *cfg)
 int
 power8_offcore_num(void)
 {
-	return (2);
+	return (3);
 }
