@@ -39,8 +39,8 @@ extern "C" {
 
 struct _plat_event_config;
 
-extern void wsmex_profiling_config(count_id_t, struct _plat_event_config *);
-extern void wsmep_profiling_config(count_id_t, struct _plat_event_config *);
+extern void wsmex_profiling_config(perf_count_id_t, struct _plat_event_config *);
+extern void wsmep_profiling_config(perf_count_id_t, struct _plat_event_config *);
 extern void wsmex_ll_config(struct _plat_event_config *);
 extern void wsmep_ll_config(struct _plat_event_config *);
 extern int wsm_offcore_num(void);

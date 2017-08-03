@@ -168,33 +168,12 @@ processor_unbind(void)
 static int
 calibrate_cpuinfo(double *nsofclk, uint64_t *clkofsec)
 {
-	FILE *f;
-	char *line = NULL, unit[11];
-	size_t len = 0;
+	char unit[11] = {0};
 	double freq = 0.0;
 
-	if ((f = fopen(CPUINFO_PATH, "r")) == NULL) {
-		return (-1);
+	if (arch__cpuinfo_freq(&freq, unit)) {
+		return -1;
 	}
-
-	while (getline(&line, &len, f) > 0) {
-		if (strncmp(line, "model name", sizeof ("model name") - 1) != 0) {
-	    		continue;
-		}
-
-		if (sscanf(line + strcspn(line, "@") + 1, "%lf%10s",
-			&freq, unit) == 2) {
-			if (strcasecmp(unit, "GHz") == 0) {
-				freq *= GHZ;
-			} else if (strcasecmp(unit, "Mhz") == 0) {
-				freq *= MHZ;				
-			}
-			break;
-		}
-	}
-
-	free(line);
-	fclose(f);
 
 	if (fabsl(freq) < 1.0E-6) {
 		return (-1);

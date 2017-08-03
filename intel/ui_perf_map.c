@@ -26,28 +26,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_POWERPC_TYPES_H
-#define _NUMATOP_POWERPC_TYPES_H
+#include "../common/include/ui_perf_map.h"
 
-#include "../../common/include/types.h"
-
-typedef enum {
-	CPU_UNSUP = 0,
-	CPU_POWER8
-} cpu_type_t;
-
-#define CPU_TYPE_NUM    2
-
-typedef enum {
-	PERF_COUNT_INVALID = -1,
-	PERF_COUNT_CORE_CLK = 0,
-	PERF_COUNT_RMA,
-	PERF_COUNT_CLK,
-	PERF_COUNT_IR,
-	PERF_COUNT_LMA,
-	PERF_COUNT_RMA_1
-} perf_count_id_t;
-
-#define PERF_COUNT_NUM	6
-
-#endif /* _NUMATOP_POWERPC_TYPES_H */
+ui_perf_count_map_t ui_perf_count_map[UI_COUNT_NUM] = {
+	{ UI_COUNT_CORE_CLK, 0, { PERF_COUNT_INVALID, PERF_COUNT_INVALID } },
+	{ UI_COUNT_RMA,      1, { PERF_COUNT_RMA, PERF_COUNT_INVALID }     },
+	{ UI_COUNT_CLK,      1, { PERF_COUNT_CLK, PERF_COUNT_INVALID }     },
+	{ UI_COUNT_IR,       1, { PERF_COUNT_IR, PERF_COUNT_INVALID }      },
+	{ UI_COUNT_LMA,      1, { PERF_COUNT_LMA, PERF_COUNT_INVALID }     }
+};

@@ -39,7 +39,7 @@ extern "C" {
 
 struct _plat_event_config;
 
-extern void bdw_profiling_config(count_id_t, struct _plat_event_config *);
+extern void bdw_profiling_config(perf_count_id_t, struct _plat_event_config *);
 extern void bdw_ll_config(struct _plat_event_config *);
 extern int bdw_offcore_num(void);
 

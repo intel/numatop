@@ -39,7 +39,7 @@
 #include "../common/include/os/plat.h"
 #include "include/wsm.h"
 
-static plat_event_config_t s_wsmex_profiling[COUNT_NUM] = {
+static plat_event_config_t s_wsmex_profiling[PERF_COUNT_NUM] = {
 	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.core" },
 	{ PERF_TYPE_RAW, 0x01B7, 0x53, 0x2011, "off_core_response_0" },
 	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_REF_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.ref" },
@@ -47,7 +47,7 @@ static plat_event_config_t s_wsmex_profiling[COUNT_NUM] = {
 	{ PERF_TYPE_RAW, 0x01BB, 0x53, 0x5011, "off_core_response_1" }
 };
 
-static plat_event_config_t s_wsmep_profiling[COUNT_NUM] = {
+static plat_event_config_t s_wsmep_profiling[PERF_COUNT_NUM] = {
 	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.core" },
 	{ PERF_TYPE_RAW, 0x01B7, 0x53, 0x2011, "off_core_response_0" },
 	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_REF_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.ref" },
@@ -60,15 +60,15 @@ static plat_event_config_t s_wsm_ll = {
 };
 
 void
-wsmex_profiling_config(count_id_t count_id, plat_event_config_t *cfg)
+wsmex_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
 {
-	plat_config_get(count_id, cfg, s_wsmex_profiling);
+	plat_config_get(perf_count_id, cfg, s_wsmex_profiling);
 }
 
 void
-wsmep_profiling_config(count_id_t count_id, plat_event_config_t *cfg)
+wsmep_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
 {
-	plat_config_get(count_id, cfg, s_wsmep_profiling);
+	plat_config_get(perf_count_id, cfg, s_wsmep_profiling);
 }
 
 void

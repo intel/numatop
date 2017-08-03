@@ -39,6 +39,7 @@
 #include "../include/types.h"
 #include "../include/numatop.h"
 #include "../include/util.h"
+#include "../include/ui_perf_map.h"
 #include "../include/os/os_util.h"
 #include "../include/os/pfwrapper.h"
 #include "../include/os/node.h"
@@ -338,18 +339,18 @@ node_intval_get(void)
  * Update the node's perf data.
  */
 void
-node_countval_update(node_t *node, count_id_t count_id, uint64_t value)
+node_countval_update(node_t *node, perf_count_id_t perf_count_id, uint64_t value)
 {
-	node->countval.counts[count_id] += value;
+	node->countval.counts[perf_count_id] += value;
 }
 
 /*
  * Return the perf data of specified node and count.
  */
 uint64_t
-node_countval_get(node_t *node, count_id_t count_id)
+node_countval_get(node_t *node, ui_count_id_t ui_count_id)
 {
-	return (node->countval.counts[count_id]);
+	return (ui_perf_count_aggr(ui_count_id, node->countval.counts));
 }
 
 /*
@@ -417,7 +418,7 @@ node_cpu_traverse(pfn_perf_cpu_op_t func, void *arg, boolean_t err_ret,
 
 static uint64_t
 countval_sum(count_value_t *countval_arr, int cpuid_max, int nid,
-	count_id_t count_id)
+	ui_count_id_t ui_count_id)
 {
 	uint64_t value = 0;
 	node_t *node;
@@ -434,7 +435,8 @@ countval_sum(count_value_t *countval_arr, int cpuid_max, int nid,
 		}
 
 		if ((cpuid = node->cpus[i].cpuid) != INVALID_CPUID) {
-			value += countval_arr[cpuid].counts[count_id];
+			value += ui_perf_count_aggr(ui_count_id,
+					countval_arr[cpuid].counts);
 			num++;
 		}
 	}
@@ -444,17 +446,17 @@ countval_sum(count_value_t *countval_arr, int cpuid_max, int nid,
 
 uint64_t
 node_countval_sum(count_value_t *countval_arr, int cpuid_max, int nid,
-	count_id_t count_id)
+	ui_count_id_t ui_count_id)
 {
 	int i;
 	uint64_t value = 0;
 
 	if (nid != NODE_ALL) {
-		return (countval_sum(countval_arr, cpuid_max, nid, count_id));
+		return (countval_sum(countval_arr, cpuid_max, nid, ui_count_id));
 	}
 
 	for (i = 0; i < NNODES_MAX; i++) {
-		value += countval_sum(countval_arr, cpuid_max, i, count_id);
+		value += countval_sum(countval_arr, cpuid_max, i, ui_count_id);
 	}
 
 	return (value);

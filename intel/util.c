@@ -27,7 +27,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <inttypes.h>
+#include "../common/include/os/os_util.h"
 
 /*
 * Get the TSC cycles.
@@ -58,3 +62,37 @@ rdtsc(void)
 	return (var);
 }
 #endif
+
+int
+arch__cpuinfo_freq(double *freq, char *unit)
+{
+	FILE *f;
+	char *line = NULL;
+	size_t len = 0;
+	int ret = -1;
+
+	if ((f = fopen(CPUINFO_PATH, "r")) == NULL) {
+		return (-1);
+	}
+
+	while (getline(&line, &len, f) > 0) {
+		if (strncmp(line, "model name", sizeof ("model name") - 1) != 0) {
+			continue;
+		}
+
+		if (sscanf(line + strcspn(line, "@") + 1, "%lf%10s",
+			freq, unit) == 2) {
+			if (strcasecmp(unit, "GHz") == 0) {
+				*freq *= GHZ;
+			} else if (strcasecmp(unit, "Mhz") == 0) {
+				*freq *= MHZ;
+			}
+			ret = 0;
+			break;
+		}
+	}
+
+	free(line);
+	fclose(f);
+	return ret;
+}

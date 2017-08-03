@@ -39,7 +39,7 @@ extern "C" {
 
 struct _plat_event_config;
 
-extern void snbep_profiling_config(count_id_t, struct _plat_event_config *);
+extern void snbep_profiling_config(perf_count_id_t, struct _plat_event_config *);
 extern void snbep_ll_config(struct _plat_event_config *);
 extern int snb_offcore_num(void);
 

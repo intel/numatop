@@ -413,10 +413,10 @@ proc_group_unlock(void)
 }
 
 static uint64_t
-count_value_get(track_proc_t *proc, count_id_t count_id)
+count_value_get(track_proc_t *proc, ui_count_id_t ui_count_id)
 {
 	return (node_countval_sum(proc->countval_arr, proc->cpuid_max,
-	    NODE_ALL, count_id));
+	    NODE_ALL, ui_count_id));
 }
 
 /*
@@ -431,7 +431,7 @@ proc_key_compute(track_proc_t *proc, void *arg, boolean_t *end)
 
 	switch (sortkey) {
 	case SORT_KEY_CPU:
-		proc->key = count_value_get(proc, COUNT_CLK);
+		proc->key = count_value_get(proc, UI_COUNT_CLK);
 		break;
 
 	case SORT_KEY_PID:
@@ -439,34 +439,34 @@ proc_key_compute(track_proc_t *proc, void *arg, boolean_t *end)
 		break;
 
 	case SORT_KEY_RPI:
-		rma = count_value_get(proc, COUNT_RMA);
-		ir = count_value_get(proc, COUNT_IR);
+		rma = count_value_get(proc, UI_COUNT_RMA);
+		ir = count_value_get(proc, UI_COUNT_IR);
 		proc->key = (uint64_t)ratio(rma * 1000, ir);
 		break;
 
 	case SORT_KEY_LPI:
-		lma = count_value_get(proc, COUNT_LMA);
-		ir = count_value_get(proc, COUNT_IR);
+		lma = count_value_get(proc, UI_COUNT_LMA);
+		ir = count_value_get(proc, UI_COUNT_IR);
 		proc->key = (uint64_t)ratio(lma * 1000, ir);
 		break;
 
 	case SORT_KEY_CPI:
-		clk = count_value_get(proc, COUNT_CLK);
-		ir = count_value_get(proc, COUNT_IR);
+		clk = count_value_get(proc, UI_COUNT_CLK);
+		ir = count_value_get(proc, UI_COUNT_IR);
 		proc->key = (uint64_t)ratio(clk * 1000, ir);
 		break;
 
 	case SORT_KEY_RMA:
-		proc->key = count_value_get(proc, COUNT_RMA);
+		proc->key = count_value_get(proc, UI_COUNT_RMA);
 		break;
 
 	case SORT_KEY_LMA:
-		proc->key = count_value_get(proc, COUNT_LMA);
+		proc->key = count_value_get(proc, UI_COUNT_LMA);
 		break;
 
 	case SORT_KEY_RL:
-		rma = count_value_get(proc, COUNT_RMA);
-		lma = count_value_get(proc, COUNT_LMA);
+		rma = count_value_get(proc, UI_COUNT_RMA);
+		lma = count_value_get(proc, UI_COUNT_LMA);
 		proc->key = (uint64_t)ratio(rma * 1000, lma);
 		break;
 
@@ -863,7 +863,7 @@ proc_lwp_traverse(track_proc_t *proc,
  * Update the process's per CPU perf data.
  */
 int
-proc_countval_update(track_proc_t *proc, int cpu, count_id_t count_id,
+proc_countval_update(track_proc_t *proc, int cpu, perf_count_id_t perf_count_id,
     uint64_t value)
 {
 	count_value_t *countval, *arr_new;
@@ -887,7 +887,7 @@ proc_countval_update(track_proc_t *proc, int cpu, count_id_t count_id,
 	}
 
 	countval = &proc->countval_arr[cpu];
-	countval->counts[count_id] += value;
+	countval->counts[perf_count_id] += value;
 	return (0);
 }
 

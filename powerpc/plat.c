@@ -53,40 +53,25 @@ s_plat_offcore_num[CPU_TYPE_NUM] = {
 	power8_offcore_num
 };
 
-/*
- * I don't see intel CPUID analogue on powerpc. Using /proc/cpuinfo
- * for now to findout processor version. Any better idea?
- */
+#define SPRN_PVR	0x11F
+#define PVR_VER(pvr)	(((pvr) >> 16) & 0xFFFF)
+
 int
 plat_detect(void)
 {
 	int ret = -1;
-	FILE *fp;
-	char *line = NULL, *c;
-	size_t len;
+	int pvr = 0;
 
-	if ((fp = fopen(CPUINFO_PATH, "r")) == NULL) {
-		return (-1);
+	asm __volatile__
+	    ("mfspr %0,%1" : "=r"(pvr) : "i"(SPRN_PVR));
+
+	switch(PVR_VER(pvr)) {
+	case 0x4b:
+	case 0x4c:
+	case 0x4d:
+		s_cpu_type = CPU_POWER8;
+		ret = 0;
 	}
 
-	while (getline(&line, &len, fp) > 0) {
-		if (strncmp(line, "cpu", 3)) {
-			continue;
-		}
-
-		if ((c = strchr(line, ':')) == NULL) {
-			goto out;
-		}
-
-		if (!strncmp(c + 2, "POWER8", 6)) {
-			s_cpu_type = CPU_POWER8;
-			ret = 0;
-			goto out;
-		}
-	}
-
-out:
-	free(line);
-	fclose(fp);
 	return ret;
 }

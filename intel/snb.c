@@ -39,7 +39,7 @@
 #include "../common/include/os/plat.h"
 #include "include/snb.h"
 
-static plat_event_config_t s_snb_ep_config[COUNT_NUM] = {
+static plat_event_config_t s_snb_ep_config[PERF_COUNT_NUM] = {
 	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.core" },
 	{ PERF_TYPE_RAW, 0x01B7, 0x53, 0x67f800001, "off_core_response_0" },
 	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_REF_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.ref" },
@@ -52,9 +52,9 @@ static plat_event_config_t s_snb_ll = {
 };
 
 void
-snbep_profiling_config(count_id_t count_id, plat_event_config_t *cfg)
+snbep_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
 {
-	plat_config_get(count_id, cfg, s_snb_ep_config);
+	plat_config_get(perf_count_id, cfg, s_snb_ep_config);
 }
 
 void

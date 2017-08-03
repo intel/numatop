@@ -115,12 +115,12 @@ extern void node_group_unlock(void);
 extern node_t *node_by_cpu(int);
 extern int node_ncpus(node_t *);
 extern int node_intval_get(void);
-extern void node_countval_update(node_t *, count_id_t, uint64_t);
-extern uint64_t node_countval_get(node_t *, count_id_t);
+extern void node_countval_update(node_t *, perf_count_id_t, uint64_t);
+extern uint64_t node_countval_get(node_t *, ui_count_id_t);
 extern void node_meminfo(int, node_meminfo_t *);
 extern int node_cpu_traverse(pfn_perf_cpu_op_t, void *, boolean_t,
 	pfn_perf_cpu_op_t);
-extern uint64_t node_countval_sum(count_value_t *, int, int, count_id_t);
+extern uint64_t node_countval_sum(count_value_t *, int, int, ui_count_id_t);
 extern perf_cpu_t* node_cpus(node_t *);
 extern void node_intval_update(int);
 extern void node_profiling_clear(void);

@@ -40,7 +40,7 @@
 #include "../common/include/os/os_perf.h"
 #include "include/nhm.h"
 
-static plat_event_config_t s_nhm_profiling[COUNT_NUM] = {
+static plat_event_config_t s_nhm_profiling[PERF_COUNT_NUM] = {
 	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.core" },
 	{ PERF_TYPE_RAW, 0x01B7, 0x53, 0x2011, "off_core_response_0" },
 	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_REF_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.ref" },
@@ -53,26 +53,26 @@ static plat_event_config_t s_nhm_ll = {
 };
 
 static void
-config_get(count_id_t count_id, plat_event_config_t *cfg, plat_event_config_t *cfg_arr)
+config_get(perf_count_id_t perf_count_id, plat_event_config_t *cfg, plat_event_config_t *cfg_arr)
 {
-	cfg->type = cfg_arr[count_id].type;
-	cfg->config = cfg_arr[count_id].config;
-	cfg->other_attr = cfg_arr[count_id].other_attr;
-	cfg->extra_value = cfg_arr[count_id].extra_value;
-	strncpy(cfg->desc, cfg_arr[count_id].desc, PLAT_EVENT_DESC_SIZE);
+	cfg->type = cfg_arr[perf_count_id].type;
+	cfg->config = cfg_arr[perf_count_id].config;
+	cfg->other_attr = cfg_arr[perf_count_id].other_attr;
+	cfg->extra_value = cfg_arr[perf_count_id].extra_value;
+	strncpy(cfg->desc, cfg_arr[perf_count_id].desc, PLAT_EVENT_DESC_SIZE);
 	cfg->desc[PLAT_EVENT_DESC_SIZE - 1] = 0;
 }
 
 void
-nhmex_profiling_config(count_id_t count_id, plat_event_config_t *cfg)
+nhmex_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
 {
-	config_get(count_id, cfg, s_nhm_profiling);
+	config_get(perf_count_id, cfg, s_nhm_profiling);
 }
 
 void
-nhmep_profiling_config(count_id_t count_id, plat_event_config_t *cfg)
+nhmep_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
 {
-	config_get(count_id, cfg, s_nhm_profiling);
+	config_get(perf_count_id, cfg, s_nhm_profiling);
 }
 
 void

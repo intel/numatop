@@ -29,7 +29,13 @@
 #ifndef _NUMATOP_TYPES_H
 #define	_NUMATOP_TYPES_H
 
+#include <stdint.h>
 #include "./os/os_types.h"
+#ifdef __powerpc64__
+#include "../../powerpc/include/types.h"
+#else
+#include "../../intel/include/types.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,42 +83,46 @@ typedef enum {
 
 #define SMPL_PERIOD_INFINITE			0XFFFFFFFFFFFFFFULL
 #define SMPL_PERIOD_RMA_DEFAULT			10000
+#define SMPL_PERIOD_RMA_1_DEFAULT		10000
 #define SMPL_PERIOD_LMA_DEFAULT			10000
 #define SMPL_PERIOD_CLK_DEFAULT			10000000
 #define SMPL_PERIOD_CORECLK_DEFAULT		SMPL_PERIOD_INFINITE
 #define SMPL_PERIOD_IR_DEFAULT			10000000
 
 #define SMPL_PERIOD_RMA_MIN			5000
+#define SMPL_PERIOD_RMA_1_MIN			5000
 #define SMPL_PERIOD_LMA_MIN			5000
 #define SMPL_PERIOD_CLK_MIN			1000000
 #define SMPL_PERIOD_CORECLK_MIN			SMPL_PERIOD_INFINITE
 #define SMPL_PERIOD_IR_MIN			1000000
 
 #define SMPL_PERIOD_RMA_MAX			100000
+#define SMPL_PERIOD_RMA_1_MAX			100000
 #define SMPL_PERIOD_LMA_MAX			100000
 #define SMPL_PERIOD_CLK_MAX			100000000
 #define SMPL_PERIOD_CORECLK_MAX			SMPL_PERIOD_INFINITE
 #define SMPL_PERIOD_IR_MAX			100000000
 
 typedef enum {
-	COUNT_INVALID = -1,
-	COUNT_CORE_CLK = 0,
-	COUNT_RMA,
-	COUNT_CLK,
-	COUNT_IR,
-	COUNT_LMA
-} count_id_t;
+	UI_COUNT_INVALID = -1,
+	UI_COUNT_CORE_CLK = 0,
+	UI_COUNT_RMA,
+	UI_COUNT_CLK,
+	UI_COUNT_IR,
+	UI_COUNT_LMA
+} ui_count_id_t;
 
-#define COUNT_NUM		5
+#define UI_COUNT_NUM		5
+
 #define	NNODES_MAX		64
-#define NCPUS_NODE_MAX	64
+#define NCPUS_NODE_MAX	128
 #define	NCPUS_MAX		(NNODES_MAX * NCPUS_NODE_MAX)
 #define NPROCS_NAX		4096
 #define	LL_THRESH		128
 #define LL_PERIOD		1000
 
 typedef struct _count_value {
-	uint64_t counts[COUNT_NUM];
+	uint64_t counts[PERF_COUNT_NUM];
 } count_value_t;
 
 typedef struct _bufaddr {

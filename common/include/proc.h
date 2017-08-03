@@ -112,7 +112,7 @@ extern int proc_refcount_inc(track_proc_t *);
 extern void proc_refcount_dec(track_proc_t *);
 extern void proc_lwp_traverse(track_proc_t *,
 	int (*func)(track_lwp_t *, void *, boolean_t *), void *);
-extern int proc_countval_update(track_proc_t *, int, count_id_t, uint64_t);
+extern int proc_countval_update(track_proc_t *, int, perf_count_id_t, uint64_t);
 extern void proc_intval_update(int);
 extern int proc_intval_get(track_proc_t *);
 extern void proc_profiling_clear(void);

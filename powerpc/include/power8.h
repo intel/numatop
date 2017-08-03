@@ -39,7 +39,7 @@ extern "C" {
 
 struct _plat_event_config;
 
-extern void power8_profiling_config(count_id_t, struct _plat_event_config *);
+extern void power8_profiling_config(perf_count_id_t, struct _plat_event_config *);
 extern void power8_ll_config(plat_event_config_t *cfg);
 extern int power8_offcore_num(void);
 

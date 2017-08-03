@@ -41,13 +41,14 @@
 #include "include/lwp.h"
 #include "include/util.h"
 #include "include/disp.h"
+#include "include/ui_perf_map.h"
 #include "include/os/plat.h"
 #include "include/os/node.h"
 #include "include/os/os_perf.h"
 
 static perf_ctl_t s_perf_ctl;
 
-uint64_t g_sample_period[COUNT_NUM][PRECISE_NUM] = {
+uint64_t g_sample_period[PERF_COUNT_NUM][PRECISE_NUM] = {
 	{ SMPL_PERIOD_CORECLK_DEFAULT,
 	  SMPL_PERIOD_CORECLK_MIN,
 	  SMPL_PERIOD_CORECLK_MAX
@@ -67,7 +68,13 @@ uint64_t g_sample_period[COUNT_NUM][PRECISE_NUM] = {
 	{ SMPL_PERIOD_LMA_DEFAULT,
 	  SMPL_PERIOD_LMA_MIN,
 	  SMPL_PERIOD_LMA_MAX
+	},
+#ifdef __powerpc64__
+	{ SMPL_PERIOD_RMA_1_DEFAULT,
+	  SMPL_PERIOD_RMA_1_MIN,
+	  SMPL_PERIOD_RMA_1_MAX
 	}
+#endif
 };
 
 typedef struct _perf_pqos_arg {
@@ -87,7 +94,11 @@ task_valid(perf_task_t *task)
 		/* fall through */
 	case PERF_PROFILING_PARTPAUSE_ID:
 		/* fall through */
+	case PERF_PROFILING_MULTIPAUSE_ID:
+		/* fall through */
 	case PERF_PROFILING_RESTORE_ID:
+		/* fall through */
+	case PERF_PROFILING_MULTI_RESTORE_ID:
 		/* fall through */
 	case PERF_LL_START_ID:
 		/* fall through */
@@ -239,11 +250,19 @@ perf_handler(void *arg)
 		case PERF_PROFILING_PARTPAUSE_ID:
 			(void) os_profiling_partpause(&s_perf_ctl, &task);
 			break;
-			
+
+		case PERF_PROFILING_MULTIPAUSE_ID:
+			(void) os_profiling_multipause(&s_perf_ctl, &task);
+			break;
+
 		case PERF_PROFILING_RESTORE_ID:
 			(void) os_profiling_restore(&s_perf_ctl, &task);
 			break;
-		
+
+		case PERF_PROFILING_MULTI_RESTORE_ID:
+			(void) os_profiling_multi_restore(&s_perf_ctl, &task);
+			break;
+
 		case PERF_CALLCHAIN_START_ID:
 			(void) os_callchain_start(&s_perf_ctl, &task);
 			break;
@@ -474,15 +493,31 @@ perf_profiling_smpl(boolean_t use_dispflag1)
 }
 
 int
-perf_profiling_partpause(count_id_t count_id)
+perf_profiling_partpause(ui_count_id_t ui_count_id)
 {
-	return (os_perf_profiling_partpause(count_id));
+	perf_count_id_t *perf_count_ids = NULL;
+	int n_perf_count;
+
+	n_perf_count = get_ui_perf_count_map(ui_count_id, &perf_count_ids);
+	if (n_perf_count > 1) {
+		return (os_perf_profiling_multipause(perf_count_ids));
+	} else {
+		return (os_perf_profiling_partpause(perf_count_ids[0]));
+	}
 }
 
 int
-perf_profiling_restore(count_id_t count_id)
+perf_profiling_restore(ui_count_id_t ui_count_id)
 {
-	return (os_perf_profiling_restore(count_id));
+	perf_count_id_t *perf_count_ids = NULL;
+	int n_perf_count;
+
+	n_perf_count = get_ui_perf_count_map(ui_count_id, &perf_count_ids);
+	if (n_perf_count > 1) {
+		return (os_perf_profiling_multi_restore(perf_count_ids));
+	} else  {
+		return (os_perf_profiling_restore(perf_count_ids[0]));
+	}
 }
 
 boolean_t

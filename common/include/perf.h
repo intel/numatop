@@ -46,6 +46,7 @@ typedef enum {
 	PERF_STATUS_IDLE = 0,
 	PERF_STATUS_PROFILING_STARTED,
 	PERF_STATUS_PROFILING_PART_STARTED,
+	PERF_STATUS_PROFILING_MULTI_STARTED,
 	PERF_STATUS_PROFILING_FAILED,
 	PERF_STATUS_CALLCHAIN_STARTED,
 	PERF_STATUS_CALLCHAIN_FAILED,
@@ -61,7 +62,9 @@ typedef enum {
 	PERF_INVALID_ID = 0,
 	PERF_PROFILING_START_ID,
 	PERF_PROFILING_PARTPAUSE_ID,
+	PERF_PROFILING_MULTIPAUSE_ID,
 	PERF_PROFILING_RESTORE_ID,
+	PERF_PROFILING_MULTI_RESTORE_ID,
 	PERF_PROFILING_SMPL_ID,
 	PERF_CALLCHAIN_START_ID,
 	PERF_CALLCHAIN_SMPL_ID,
@@ -92,13 +95,23 @@ typedef struct _task_profiling {
 
 typedef struct _task_partpause {
 	perf_taskid_t task_id;
-	count_id_t count_id;
+	perf_count_id_t perf_count_id;
 } task_partpause_t;
+
+typedef struct _task_multipause {
+	perf_taskid_t task_id;
+	perf_count_id_t *perf_count_ids;
+} task_multipause_t;
 
 typedef struct _task_restore {
 	perf_taskid_t task_id;
-	count_id_t count_id;
+	perf_count_id_t perf_count_id;
 } task_restore_t;
+
+typedef struct _task_multi_restore {
+	perf_taskid_t task_id;
+	perf_count_id_t *perf_count_ids;
+} task_multi_restore_t;
 
 typedef struct _task_callchain {
 	perf_taskid_t task_id;
@@ -156,7 +169,7 @@ typedef struct _perf_chainrecgrp {
 } perf_chainrecgrp_t;
 
 typedef struct _perf_countchain {
-	perf_chainrecgrp_t chaingrps[COUNT_NUM];
+	perf_chainrecgrp_t chaingrps[PERF_COUNT_NUM];
 } perf_countchain_t;
 
 #define	TASKID(task_addr) \
@@ -187,8 +200,8 @@ extern int perf_allstop(void);
 extern boolean_t perf_profiling_started(void);
 extern int perf_profiling_start(void);
 extern int perf_profiling_smpl(boolean_t);
-extern int perf_profiling_partpause(count_id_t);
-extern int perf_profiling_restore(count_id_t);
+extern int perf_profiling_partpause(ui_count_id_t);
+extern int perf_profiling_restore(ui_count_id_t);
 extern boolean_t perf_callchain_started(void);
 extern int perf_callchain_start(pid_t, int);
 extern int perf_callchain_smpl(void);

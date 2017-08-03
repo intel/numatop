@@ -45,6 +45,7 @@
 #include "../include/page.h"
 #include "../include/perf.h"
 #include "../include/win.h"
+#include "../include/ui_perf_map.h"
 #include "../include/os/node.h"
 #include "../include/os/os_perf.h"
 #include "../include/os/os_util.h"
@@ -408,7 +409,9 @@ os_callchain_list_show(dyn_callchain_t *dyn, track_proc_t *proc,
 	sym_chainlist_t chainlist;
 	win_reg_t *reg;
 	char content[WIN_LINECHAR_MAX];
-	int i;
+	int i, j;
+	int n_perf_count;
+	perf_count_id_t *perf_count_ids = NULL;
 
 	reg = &dyn->caption;
 	reg_erase(reg);	
@@ -435,12 +438,17 @@ os_callchain_list_show(dyn_callchain_t *dyn, track_proc_t *proc,
 	}
 
 	memset(&chainlist, 0, sizeof (sym_chainlist_t));
-	rec_grp = &count_chain->chaingrps[dyn->countid];
-	rec_arr = rec_grp->rec_arr;
 
-	for (i = 0; i < rec_grp->nrec_cur; i++) {
-		sym_callchain_add(&proc->sym, rec_arr[i].callchain.ips,
-			rec_arr[i].callchain.ip_num, &chainlist);		
+	n_perf_count = get_ui_perf_count_map(dyn->ui_countid, &perf_count_ids);
+
+	for (i = 0; i < n_perf_count; i++) {
+		rec_grp = &count_chain->chaingrps[perf_count_ids[i]];
+		rec_arr = rec_grp->rec_arr;
+
+		for (j = 0; j < rec_grp->nrec_cur; j++) {
+			sym_callchain_add(&proc->sym, rec_arr[j].callchain.ips,
+				rec_arr[j].callchain.ip_num, &chainlist);
+		}
 	}
 
 	chainlist_show(&chainlist, &dyn->data);

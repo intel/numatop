@@ -37,13 +37,14 @@
 #include "../include/util.h"
 #include "../include/disp.h"
 #include "../include/perf.h"
+#include "../include/ui_perf_map.h"
 #include "../include/os/pfwrapper.h"
 #include "../include/os/node.h"
 #include "../include/os/plat.h"
 #include "../include/os/os_perf.h"
 
 typedef struct _profiling_conf {
-	pf_conf_t conf_arr[COUNT_NUM];
+	pf_conf_t conf_arr[PERF_COUNT_NUM];
 } profiling_conf_t;
 
 static pf_profiling_rec_t *s_profiling_recbuf = NULL;
@@ -79,7 +80,7 @@ cpu_init(perf_cpu_t *cpu)
 {
 	int i;
 
-	for (i = 0; i < COUNT_NUM; i++) {
+	for (i = 0; i < PERF_COUNT_NUM; i++) {
 		cpu->fds[i] = INVALID_FD;	
 	}
 
@@ -93,7 +94,7 @@ cpu_profiling_setup(perf_cpu_t *cpu, void *arg)
 	int i, ret = 0;
 
 	cpu_init(cpu);
-	for (i = 0; i < COUNT_NUM; i++) {
+	for (i = 0; i < PERF_COUNT_NUM; i++) {
 		if (conf_arr[i].config == INVALID_CONFIG) {
 			/*
 			 * Invalid config is at the end of array.
@@ -142,7 +143,7 @@ countval_diff_base(perf_cpu_t *cpu, pf_profiling_rec_t *record)
 	count_value_t *countval_new = &record->countval;
 	int i;
 
-	for (i = 0; i < COUNT_NUM; i++) {
+	for (i = 0; i < PERF_COUNT_NUM; i++) {
 		countval_last->counts[i] = countval_new->counts[i];
 	}
 }
@@ -155,7 +156,7 @@ countval_diff(perf_cpu_t *cpu, pf_profiling_rec_t *record,
 	count_value_t *countval_new = &record->countval;
 	int i;
 
-	for (i = 0; i < COUNT_NUM; i++) {
+	for (i = 0; i < PERF_COUNT_NUM; i++) {
 		if (countval_last->counts[i] <= countval_new->counts[i]) {
 			diff->counts[i] = countval_new->counts[i] -
 				countval_last->counts[i];
@@ -169,13 +170,13 @@ countval_diff(perf_cpu_t *cpu, pf_profiling_rec_t *record,
 }
 
 static int
-chain_add(perf_countchain_t *count_chain, int count_id, uint64_t count_value,
+chain_add(perf_countchain_t *count_chain, int perf_count_id, uint64_t count_value,
 	uint64_t *ips, int ip_num)
 {
 	perf_chainrecgrp_t *grp;
 	perf_chainrec_t *rec;
 
-	grp = &count_chain->chaingrps[count_id];
+	grp = &count_chain->chaingrps[perf_count_id];
 	
 	if (array_alloc((void **)&grp->rec_arr, &grp->nrec_cur, &grp->nrec_max,
 		sizeof (perf_chainrec_t), PERF_REC_NUM) != 0) {
@@ -232,7 +233,7 @@ cpu_profiling_smpl(perf_cpu_t *cpu, void *arg)
 		}
 
  		pthread_mutex_lock(&proc->mutex);
-		for (j = 0; j < COUNT_NUM; j++) {
+		for (j = 0; j < PERF_COUNT_NUM; j++) {
 			if (!s_partpause_enabled) {
 				proc_countval_update(proc, cpu->cpuid, j, diff.counts[j]);			
 				lwp_countval_update(lwp, cpu->cpuid, j, diff.counts[j]);
@@ -275,15 +276,15 @@ cpu_profiling_setupstart(perf_cpu_t *cpu, void *arg)
 static int
 cpu_profiling_partpause(perf_cpu_t *cpu, void *arg)
 {
-	count_id_t count_id = (count_id_t)arg;
+	perf_count_id_t perf_count_id = (perf_count_id_t)arg;
 	int i;
 
-	if ((count_id == COUNT_INVALID) || (count_id == 0)) {
+	if ((perf_count_id == PERF_COUNT_INVALID) || (perf_count_id == 0)) {
 		return (pf_profiling_allstop(cpu));
 	}
 	
-	for (i = 1; i < COUNT_NUM; i++) {
-		if (i != count_id) {
+	for (i = 1; i < PERF_COUNT_NUM; i++) {
+		if (i != perf_count_id) {
 			pf_profiling_stop(cpu, i);
 		} else {
 			pf_profiling_start(cpu, i);	
@@ -294,23 +295,79 @@ cpu_profiling_partpause(perf_cpu_t *cpu, void *arg)
 }
 
 static int
+cpu_profiling_multipause(perf_cpu_t *cpu, void *arg)
+{
+	perf_count_id_t *perf_count_ids = (perf_count_id_t *)arg;
+	int i, j;
+	boolean_t tmp[PERF_COUNT_NUM]= {B_FALSE};
+
+	/*
+	 * Prepare tmp. Each element of tmp will hold either
+	 * True or False based on whether that event needs to
+	 * be enabled or disabled.
+	 */
+	for (i = 1; i < PERF_COUNT_NUM; i++) {
+		for (j = 0 ; j < UI_PERF_MAP_MAX; j++) {
+			if (i == perf_count_ids[j]) {
+				tmp[i] = B_TRUE;
+			}
+		}
+	}
+
+	for (i = 1; i < PERF_COUNT_NUM; i++) {
+		if (!tmp[i]) {
+			pf_profiling_stop(cpu, i);
+		} else {
+			pf_profiling_start(cpu, i);
+		}
+	}
+
+	return (0);
+}
+
+static int
 cpu_profiling_restore(perf_cpu_t *cpu, void *arg)
 {
-	count_id_t count_id = (count_id_t)arg;
+	perf_count_id_t perf_count_id = (perf_count_id_t)arg;
 	int i;
 
-	if ((count_id == COUNT_INVALID) || (count_id == 0)) {
+	if ((perf_count_id == PERF_COUNT_INVALID) || (perf_count_id == 0)) {
 		return (pf_profiling_allstart(cpu));
 	}
 
-	pf_profiling_stop(cpu, count_id);
+	pf_profiling_stop(cpu, perf_count_id);
 	
 	/*
 	 * Discard the existing records in ring buffer.
 	 */
 	pf_profiling_record(cpu, NULL, NULL);	
 
-	for (i = 1; i < COUNT_NUM; i++) {
+	for (i = 1; i < PERF_COUNT_NUM; i++) {
+		pf_profiling_start(cpu, i);
+	}
+
+	return (0);
+}
+
+static int
+cpu_profiling_multi_restore(perf_cpu_t *cpu, void *arg)
+{
+	perf_count_id_t *perf_count_ids = (perf_count_id_t *)arg;
+	int i;
+
+	for (i = 0; i < UI_PERF_MAP_MAX; i++) {
+		if (perf_count_ids[i] != PERF_COUNT_INVALID &&
+		    perf_count_ids[i] != PERF_COUNT_CORE_CLK) {
+			pf_profiling_stop(cpu, perf_count_ids[i]);
+		}
+	}
+
+	/*
+	 * Discard the existing records in ring buffer.
+	 */
+	pf_profiling_record(cpu, NULL, NULL);
+
+	for (i = 1; i < PERF_COUNT_NUM; i++) {
 		pf_profiling_start(cpu, i);
 	}
 
@@ -469,7 +526,17 @@ static int
 profiling_partpause(perf_ctl_t *ctl, task_partpause_t *task)
 {
 	node_cpu_traverse(cpu_profiling_partpause,
-		(void *)(task->count_id), B_FALSE, NULL);
+		(void *)(task->perf_count_id), B_FALSE, NULL);
+
+	s_partpause_enabled = B_TRUE;
+	return (0);
+}
+
+static int
+profiling_multipause(perf_ctl_t *ctl, task_multipause_t *task)
+{
+	node_cpu_traverse(cpu_profiling_multipause,
+		(void *)(task->perf_count_ids), B_FALSE, NULL);
 
 	s_partpause_enabled = B_TRUE;
 	return (0);	
@@ -479,7 +546,18 @@ static int
 profiling_restore(perf_ctl_t *ctl, task_restore_t *task)
 {
 	node_cpu_traverse(cpu_profiling_restore,
-		(void *)(task->count_id), B_FALSE, NULL);
+		(void *)(task->perf_count_id), B_FALSE, NULL);
+
+	s_partpause_enabled = B_FALSE;
+	ctl->last_ms = current_ms();
+	return (0);
+}
+
+static int
+profiling_multi_restore(perf_ctl_t *ctl, task_multi_restore_t *task)
+{
+	node_cpu_traverse(cpu_profiling_multi_restore,
+		(void *)(task->perf_count_ids), B_FALSE, NULL);
 
 	s_partpause_enabled = B_FALSE;
 	ctl->last_ms = current_ms();
@@ -603,6 +681,14 @@ os_profiling_partpause(perf_ctl_t *ctl, perf_task_t *task)
 }
 
 int
+os_profiling_multipause(perf_ctl_t *ctl, perf_task_t *task)
+{
+	profiling_multipause(ctl, (task_multipause_t *)(task));
+	perf_status_set(PERF_STATUS_PROFILING_MULTI_STARTED);
+	return (0);
+}
+
+int
 os_profiling_restore(perf_ctl_t *ctl, perf_task_t *task)
 {
 	proc_callchain_clear();
@@ -610,6 +696,16 @@ os_profiling_restore(perf_ctl_t *ctl, perf_task_t *task)
 	profiling_restore(ctl, (task_restore_t *)(task));
 	perf_status_set(PERF_STATUS_PROFILING_STARTED);
 	return (0);	
+}
+
+int
+os_profiling_multi_restore(perf_ctl_t *ctl, perf_task_t *task)
+{
+	proc_callchain_clear();
+	proc_profiling_clear();
+	profiling_multi_restore(ctl, (task_multi_restore_t *)(task));
+	perf_status_set(PERF_STATUS_PROFILING_STARTED);
+	return (0);
 }
 
 int
@@ -675,9 +771,9 @@ profiling_init(profiling_conf_t *conf)
 	pf_conf_t *conf_arr = conf->conf_arr;
 	int i;
 
-	for (i = 0; i < COUNT_NUM; i++) {
+	for (i = 0; i < PERF_COUNT_NUM; i++) {
 		plat_profiling_config(i, &cfg);
-		conf_arr[i].count_id = i;
+		conf_arr[i].perf_count_id = i;
 		conf_arr[i].type = cfg.type;
 
 		switch (conf_arr[i].type) {
@@ -708,7 +804,7 @@ ll_init(pf_conf_t *conf)
 	plat_event_config_t cfg;
 
 	plat_ll_config(&cfg);
-	conf->count_id = COUNT_INVALID;
+	conf->perf_count_id = PERF_COUNT_INVALID;
 	conf->type = cfg.type;
 	conf->config = (cfg.config) | (cfg.other_attr << 16);
 	conf->config1 = cfg.extra_value;
@@ -768,7 +864,7 @@ os_perfthr_quit_wait(void)
 }
 
 int
-os_perf_profiling_partpause(count_id_t count_id)
+os_perf_profiling_partpause(perf_count_id_t perf_count_id)
 {
 	perf_task_t task;
 	task_partpause_t *t;
@@ -776,13 +872,27 @@ os_perf_profiling_partpause(count_id_t count_id)
 	memset(&task, 0, sizeof (perf_task_t));
 	t = (task_partpause_t *)&task;
 	t->task_id = PERF_PROFILING_PARTPAUSE_ID;
-	t->count_id = count_id;
+	t->perf_count_id = perf_count_id;
 	perf_task_set(&task);
 	return (perf_status_wait(PERF_STATUS_PROFILING_PART_STARTED));
 }
 
 int
-os_perf_profiling_restore(count_id_t count_id)
+os_perf_profiling_multipause(perf_count_id_t *perf_count_ids)
+{
+	perf_task_t task;
+	task_multipause_t *t;
+
+	memset(&task, 0, sizeof (perf_task_t));
+	t = (task_multipause_t *)&task;
+	t->task_id = PERF_PROFILING_MULTIPAUSE_ID;
+	t->perf_count_ids = perf_count_ids;
+	perf_task_set(&task);
+	return (perf_status_wait(PERF_STATUS_PROFILING_MULTI_STARTED));
+}
+
+int
+os_perf_profiling_restore(perf_count_id_t perf_count_id)
 {
 	perf_task_t task;
 	task_restore_t *t;
@@ -790,7 +900,21 @@ os_perf_profiling_restore(count_id_t count_id)
 	memset(&task, 0, sizeof (perf_task_t));
 	t = (task_restore_t *)&task;
 	t->task_id = PERF_PROFILING_RESTORE_ID;
-	t->count_id = count_id;
+	t->perf_count_id = perf_count_id;
+	perf_task_set(&task);
+	return (perf_status_wait(PERF_STATUS_PROFILING_STARTED));
+}
+
+int
+os_perf_profiling_multi_restore(perf_count_id_t *perf_count_ids)
+{
+	perf_task_t task;
+	task_multi_restore_t *t;
+
+	memset(&task, 0, sizeof (perf_task_t));
+	t = (task_multi_restore_t *)&task;
+	t->task_id = PERF_PROFILING_MULTI_RESTORE_ID;
+	t->perf_count_ids = perf_count_ids;
 	perf_task_set(&task);
 	return (perf_status_wait(PERF_STATUS_PROFILING_STARTED));	
 }
@@ -831,7 +955,7 @@ os_perf_countchain_reset(perf_countchain_t *count_chain)
 	perf_chainrecgrp_t *grp;
 	int i;
 	
-	for (i = 0; i < COUNT_NUM; i++) {
+	for (i = 0; i < PERF_COUNT_NUM; i++) {
 		grp = &count_chain->chaingrps[i];
 		if (grp->rec_arr != NULL) {
 			free(grp->rec_arr);	
@@ -1009,7 +1133,7 @@ os_perf_cpuarr_refresh(perf_cpu_t *cpu_arr, int cpu_num, int *cpuid_arr,
 
 			cpu_arr[j].cpuid = cpuid_arr[i];
 			cpu_arr[j].map_base = MAP_FAILED;
-			for (k = 0; k < COUNT_NUM; k++) {
+			for (k = 0; k < PERF_COUNT_NUM; k++) {
 				cpu_arr[j].fds[k] = INVALID_FD;
 			}
 

@@ -51,3 +51,7 @@ E5-16xx/24xx/26xx/46xx-series had better be updated to latest CPU microcode
 
 To learn about NumaTOP, please visit http://01.org/numatop
 
+PowerPC Support:
+----------------
+NumaTOP is also supported on PowerPC. Please check powerpc/FEATURES file
+for more details.
