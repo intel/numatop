@@ -36,7 +36,6 @@
 #include <ctype.h>
 #include <strings.h>
 #include "include/types.h"
-#include "include/numatop.h"
 #include "include/cmd.h"
 #include "include/page.h"
 #include "include/win.h"
@@ -44,6 +43,8 @@
 #include "include/os/os_page.h"
 #include "include/os/os_cmd.h"
 #include "include/os/plat.h"
+
+int g_sortkey;
 
 static int s_rawnum_sortkey[] = {
 	SORT_KEY_RMA,

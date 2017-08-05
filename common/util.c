@@ -51,6 +51,7 @@
 #include "include/os/node.h"
 
 int g_pagesize;
+struct timeval g_tvbase;
 
 static int s_debuglevel;
 static FILE *s_logfile;

@@ -42,7 +42,6 @@
 #include <locale.h>
 #include <math.h>
 #include "../include/types.h"
-#include "../include/numatop.h"
 #include "../include/util.h"
 #include "../include/os/os_util.h"
 

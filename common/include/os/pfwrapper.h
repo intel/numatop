@@ -33,7 +33,6 @@
 #include <pthread.h>
 #include "linux/perf_event.h"
 #include "../types.h"
-#include "../numatop.h"
 
 #ifdef __cplusplus
 extern "C" {

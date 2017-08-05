@@ -47,6 +47,9 @@ extern "C" {
 #define NODE_QPI_MAX	3
 #define NODE_IMC_MAX	8
 
+/* Number of online CPUs */
+extern int g_ncpus;
+
 typedef struct _node_meminfo {
 	uint64_t mem_total;
 	uint64_t mem_free;

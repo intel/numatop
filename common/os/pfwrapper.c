@@ -42,6 +42,7 @@
 #include "../include/util.h"
 #include "../include/os/pfwrapper.h"
 #include "../include/os/node.h"
+#include "../include/os/os_perf.h"
 
 static int s_mapsize, s_mapmask;
 

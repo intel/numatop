@@ -43,6 +43,8 @@
 #include "../include/os/plat.h"
 #include "../include/os/os_perf.h"
 
+precise_type_t g_precise;
+
 typedef struct _profiling_conf {
 	pf_conf_t conf_arr[PERF_COUNT_NUM];
 } profiling_conf_t;

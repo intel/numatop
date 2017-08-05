@@ -50,6 +50,8 @@
 #include "include/win.h"
 #include "include/os/node.h"
 
+int g_run_secs;
+
 static disp_ctl_t s_disp_ctl;
 static cons_ctl_t s_cons_ctl;
 

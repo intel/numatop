@@ -68,7 +68,6 @@ typedef struct _dump_ctl {
 	boolean_t cache_mode;
 } dump_ctl_t;
 
-extern pid_t g_numatop_pid;
 extern struct timeval g_tvbase;
 extern int g_pagesize;
 extern double g_nsofclk;

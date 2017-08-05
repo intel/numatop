@@ -38,6 +38,8 @@
 extern "C" {
 #endif
 
+extern precise_type_t g_precise;
+
 #define PERF_REC_NUM	512
 #define PERF_FD_NUM		NCPUS_MAX * PERF_COUNT_NUM
 #define INVALID_CODE_UMASK	(uint64_t)(-1)

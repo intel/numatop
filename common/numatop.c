@@ -51,21 +51,10 @@
 #include "include/os/plat.h"
 #include "include/os/node.h"
 #include "include/os/os_util.h"
+#include "include/os/os_perf.h"
 
 static void sigint_handler(int sig);
 static void print_usage(const char *exec_name);
-
-int g_ncpus;
-int g_sortkey;
-precise_type_t g_precise;
-pid_t g_numatop_pid;
-struct timeval g_tvbase;
-double g_llc_occupancy_scale;
-double g_llc_total_bw_scale;
-double g_llc_local_bw_scale;
-
-/* For automated test. */
-int g_run_secs;
 
 /*
  * The main function.
@@ -84,7 +73,6 @@ main(int argc, char *argv[])
 
 	g_sortkey = SORT_KEY_CPU;
 	g_precise = PRECISE_NORMAL;
-	g_numatop_pid = getpid();
 	g_run_secs = TIME_NSEC_MAX;
 	optind = 1;
 	opterr = 0;
