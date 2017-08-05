@@ -126,7 +126,7 @@ os_procfs_lwp_valid(pid_t pid, int lwpid)
  * Bind current thread to a cpu or unbind current thread
  * from a cpu.
  */
-static int
+int
 processor_bind(int cpu)
 {
 	cpu_set_t cs;
@@ -142,7 +142,7 @@ processor_bind(int cpu)
 	return (0);
 }
 
-static int
+int
 processor_unbind(void)
 {
 	cpu_set_t cs;

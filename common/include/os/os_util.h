@@ -66,6 +66,8 @@ extern int os_procfs_psinfo_get(pid_t, void *);
 extern int os_procfs_pname_get(pid_t, char *, int);
 extern int os_procfs_lwp_enum(pid_t, int **lwps, int *);
 extern boolean_t os_procfs_lwp_valid(pid_t, int);
+extern int processor_bind(int cpu);
+extern int processor_unbind(void);
 extern void os_calibrate(double *nsofclk, uint64_t *clkofsec);
 extern boolean_t os_sysfs_node_enum(int *, int, int *);
 extern boolean_t os_sysfs_cpu_enum(int, int *, int, int *);
