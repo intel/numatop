@@ -57,36 +57,13 @@
 #include <numa.h>
 #include "../../common/include/util.h"
 #include "../../common/include/os/os_util.h"
+#include "./include/util.h"
 
-#ifndef PATH_MAX
-#define	PATH_MAX	4096
-#endif
+double s_nsofclk;
+uint64_t s_clkofsec;
+double s_latest_avglat = 0.0;
 
-#define CPU0_CPUFREQ_PATH \
-	"/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"
-
-#define CPUINFO_PATH \
-	"/proc/cpuinfo"
-
-#define	MEAS_TIME_DEFAULT	5
-#define	MAX_VALUE	4294967295U
-#define	MHZ	1000000
-#define GHZ	1000000000
-#define	KHZ	1000
-#define	NS_SEC	1000000000
-#define	NS_MS	1000000
-#define	MS_SEC	1000
-#define MICROSEC	1000000
-#define BUF_SIZE	256 * 1024 * 1024
-#define RAND_ARRAY_SIZE	8192
-#define INVALID_RAND	-1
-#define BUF_ELE_SIZE	64
-#define READ_NUM	10240000
-
-static double s_nsofclk;
-static uint64_t s_clkofsec;
 static int s_rand_arr[RAND_ARRAY_SIZE];
-static double s_latest_avglat = 0.0;
 static struct timeval s_tvbase;
 static int s_ncpus;
 static void *s_buf = NULL;
@@ -359,49 +336,12 @@ buf_release(void *buf)
 	numa_free(buf, BUF_SIZE);	
 }
 
-static
-void buf_read(void *buf, int read_num)
-{
-	asm  volatile (
-		"xor %0, %0\n\t"
-"LOOP1:\n\t"
-		"mov (%1),%1\n\t"
-		"inc %0\n\t"
-		"cmp %2,%0\n\t"
-		"jb LOOP1\n\t"
-"STOP:\n\t"
-		::"b"(0), "d"(buf), "r"(read_num)
-	);
-}
-
-static void
-latency_calculate(uint64_t count, uint64_t dur_cyc, uint64_t total_cyc)
-{
-	double sec, lat;
-	
-	sec = (double)total_cyc / (double)s_clkofsec;
-	lat = ((double)dur_cyc * s_nsofclk) / (double)count;
-	printf("%8.1fs  %13.1f\n", sec, lat);
-	fflush(stdout);
-}
-
 static int
 dependent_read(void *buf, int cpu_consumer, int node_alloc, int meas_sec)
 {
-	uint64_t total_count = 0, dur_count = 0;
-	uint64_t start_tsc, end_tsc, prev_tsc;
-	uint64_t run_cyc, total_cyc, dur_cyc;
-
-	run_cyc = (uint64_t)((uint64_t)meas_sec * 
-	    (uint64_t)((double)(NS_SEC) * ((double)1.0 / s_nsofclk)));
-	    
 	if (processor_bind(cpu_consumer) != 0) {
 		return (-1);
 	}
-	
-	start_tsc = rdtsc();
-	end_tsc = start_tsc;
-	prev_tsc = start_tsc;
 
 	fprintf(stdout, "\n!!! The reported latency is not the official data\n");
 	fprintf(stdout, "    from Intel, it's just a tool to test numatop !!!\n");
@@ -411,43 +351,7 @@ dependent_read(void *buf, int cpu_consumer, int node_alloc, int meas_sec)
 
 	fprintf(stdout, "(random seed to build random address array is %u.)\n", s_randseed);
 
-	printf("\n%9s   %13s\n", "Time", "Latency(ns)");
-	printf("-------------------------\n");
-
-	while (1) {
-		total_cyc = end_tsc - start_tsc;
-		dur_cyc = end_tsc - prev_tsc;
-
-		if (dur_cyc >= s_clkofsec) {
-			latency_calculate(dur_count, dur_cyc, total_cyc);
-			prev_tsc = rdtsc();
-			dur_count = 0;
-		}
-
-		if (total_cyc >= run_cyc) {
-			break;
-		}
-
-		if (total_count > 0) {
-			s_latest_avglat = ((double)total_cyc * s_nsofclk) / (double)total_count;
-		}
-
-		buf_read(buf, READ_NUM);
-
-		dur_count += READ_NUM;
-		total_count += READ_NUM;
-		end_tsc = rdtsc();
-	}
-
-	printf("-------------------------\n");
-
-	if (total_count > 0) {
-		printf("%9s  %13.1f\n\n", "Average",
-		    ((double)total_cyc * s_nsofclk) / (double)total_count);
-	} else {
-		printf("%9s  %13.1f\n\n", "Average", 0.0);
-	}
+	arch__dependent_read(buf, meas_sec);
 
 	return (0);
 }
-
