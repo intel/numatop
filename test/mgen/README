@@ -1,9 +1,11 @@
 Building
 ---------
 1. To build mgen
-	make
+	cd <numatop home>/
+	make test
 
 2. To clean the built objects
+	cd <numatop home>/
 	make clean
 
 Note

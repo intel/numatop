@@ -8,11 +8,13 @@ CFLAGS = -g -Wall -O2
 LDFLAGS = -g
 LDLIBS = -lncurses -lpthread -lnuma
 
-COMMON_OBJS = cmd.o disp.o lwp.o numatop.o page.o perf.o \
-	proc.o reg.o util.o win.o ui_perf_map.o
+NUMATOP_OBJS = numatop.o
 
-OS_OBJS = os_cmd.o os_perf.o os_win.o node.o map.o \
-	os_util.o plat.o pfwrapper.o sym.o os_page.o
+COMMON_OBJS = cmd.o disp.o lwp.o page.o perf.o proc.o reg.o util.o \
+	win.o ui_perf_map.o
+
+OS_OBJS = os_cmd.o os_perf.o os_win.o node.o map.o os_util.o plat.o \
+	pfwrapper.o sym.o os_page.o
 
 ARCH := $(shell uname -m)
 
@@ -27,19 +29,32 @@ ARCH_OBJS = $(ARCH_PATH)/wsm.o $(ARCH_PATH)/snb.o $(ARCH_PATH)/nhm.o \
 	$(ARCH_PATH)/util.o $(ARCH_PATH)/ui_perf_map.o
 endif
 
-all: $(PROG)
+TEST_PATH = ./test/mgen
+TEST_PROG = $(TEST_PATH)/mgen
+TEST_OBJS = $(TEST_PATH)/mgen.o
 
-$(PROG): $(COMMON_OBJS) $(OS_OBJS) $(ARCH_OBJS)
-	$(LD) $(LDFLAGS) -o $@ $(COMMON_OBJS) $(OS_OBJS) $(ARCH_OBJS) $(LDLIBS)
-
-%.o: ./common/%.c ./common/include/*.h ./common/include/os/*.h
+%.o: ./common/%.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-%.o: ./common/os/%.c ./common/include/*.h ./common/include/os/*.h
+%.o: ./common/os/%.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-$(ARCH_PATH)/%.o: $(ARCH_PATH)/%.c $(ARCH_PATH)/include/*.h
+$(ARCH_PATH)/%.o: $(ARCH_PATH)/%.c
 	$(CC) $(CFLAGS) -o $@ -c $<
+
+all: $(PROG) test
+
+# build numatop tool
+$(PROG): $(NUMATOP_OBJS) $(COMMON_OBJS) $(OS_OBJS) $(ARCH_OBJS)
+	$(LD) $(LDFLAGS) -o $@ $(NUMATOP_OBJS) $(COMMON_OBJS) $(OS_OBJS) \
+	$(ARCH_OBJS) $(LDLIBS)
+
+# build mgen selftest
+test: $(TEST_PROG)
+
+$(TEST_PROG): $(TEST_OBJS) $(COMMON_OBJS) $(OS_OBJS) $(ARCH_OBJS)
+	$(LD) $(LDFLAGS) -o $@ $(TEST_OBJS) $(COMMON_OBJS) $(OS_OBJS) \
+	$(ARCH_OBJS) $(LDLIBS)
 
 install: $(PROG)
 	install -m 0755 $(PROG) $(PREFIXDIR)$(BINDIR)/
@@ -47,4 +62,4 @@ install: $(PROG)
 	mv -f numatop.8.gz $(MANDIR)/
 
 clean:
-	rm -rf *.o $(ARCH_PATH)/*.o $(PROG)
+	rm -rf *.o $(ARCH_PATH)/*.o $(TEST_PATH)/*.o $(PROG) $(TEST_PROG)
