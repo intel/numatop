@@ -151,12 +151,12 @@ msdiff(struct timeval *tva, struct timeval *tvb)
  * Get the current timestamp and convert it to milliseconds
  */
 uint64_t
-current_ms(void)
+current_ms(struct timeval *tvbase)
 {
 	struct timeval tvnow;
 
 	(void) gettimeofday(&tvnow, 0);
-	return (msdiff(&tvnow, &s_tvbase));
+	return (msdiff(&tvnow, tvbase));
 }
 
 /*
@@ -297,11 +297,11 @@ calibrate_by_tsc(double *nsofclk, double *clkofns, uint64_t *clkofsec)
 	 * Make sure the start_ms is at the beginning of
 	 * one millisecond.
 	 */
-	end_ms = current_ms();
-	while ((start_ms = current_ms()) == end_ms) {}
+	end_ms = current_ms(&s_tvbase);
+	while ((start_ms = current_ms(&s_tvbase)) == end_ms) {}
 
 	start_tsc = rdtsc();
-	while ((end_ms = current_ms()) < (start_ms + 100)) {}
+	while ((end_ms = current_ms(&s_tvbase)) < (start_ms + 100)) {}
 	end_tsc = rdtsc();
 
 	diff_ms = end_ms - start_ms;

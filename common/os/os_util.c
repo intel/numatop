@@ -254,11 +254,11 @@ calibrate_by_tsc(double *nsofclk, uint64_t *clkofsec)
 	 * Make sure the start_ms is at the beginning of
 	 * one millisecond.
 	 */
-	end_ms = current_ms();
-	while ((start_ms = current_ms()) == end_ms) {}
+	end_ms = current_ms(&g_tvbase);
+	while ((start_ms = current_ms(&g_tvbase)) == end_ms) {}
 
 	start_tsc = rdtsc();
-	while ((end_ms = current_ms()) < (start_ms + 100)) {}
+	while ((end_ms = current_ms(&g_tvbase)) < (start_ms + 100)) {}
 	end_tsc = rdtsc();
 
 	diff_ms = end_ms - start_ms;

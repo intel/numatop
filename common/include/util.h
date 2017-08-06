@@ -77,7 +77,7 @@ extern void *zalloc(size_t n);
 extern int debug_init(int, FILE *);
 extern void debug_fini(void);
 extern void debug_print(FILE *out, int level, const char *fmt, ...);
-extern uint64_t current_ms(void);
+extern uint64_t current_ms(struct timeval *);
 extern double ratio(uint64_t value1, uint64_t value2);
 extern int procfs_enum_id(char *, int **, int *);
 extern int procfs_proc_enum(pid_t **, int *);
