@@ -276,6 +276,22 @@ calibrate_by_tsc(double *nsofclk, uint64_t *clkofsec)
 	    "clkofsec = %lu\n", *nsofclk, *clkofsec);
 }
 
+/*
+ * calibrate_by_tsc() is the last method used by os_calibrate()
+ * to calculate cpu frequency if cpu freq is not available by both
+ * procfs and sysfs.
+ *
+ * On intel, calibrate_by_tsc() uses TSC register which gets updated
+ * in sync of processor clock and thus cpu freq can be calculated
+ * programmatically using this register.
+ *
+ * OTOH, PowerPC does not have analogue to TSC. There is a register
+ * called TB (Time Base) but it's get updated at constant freq and
+ * thus we can't find cpu frequency using TB register. But for
+ * powerpc, cpu frequency is always gets exposed via either procfs
+ * or sysfs and thus there is no point for depending on any other
+ * method for powerpc.
+ */
 void
 os_calibrate(void)
 {

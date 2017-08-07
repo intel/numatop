@@ -217,11 +217,6 @@ main(int argc, char *argv[])
 
 	dump = NULL;
 
-	/*
-	 * Calculate how many nanoseconds for a TSC cycle.
-	 */
-	os_calibrate();
-
 	os_sysfs_cqm_llc_scale(CQM_LLC_OCCUPANCY_SCALE_PATH, &g_llc_occupancy_scale);
 	os_sysfs_cqm_llc_scale(CQM_LLC_TOTAL_BW_SCALE_PATH, &g_llc_total_bw_scale);
 	os_sysfs_cqm_llc_scale(CQM_LLC_LOCAL_BW_SCALE_PATH, &g_llc_local_bw_scale);
@@ -248,6 +243,11 @@ main(int argc, char *argv[])
 
 	node_qpi_init();
 	node_imc_init();
+
+	/*
+	 * Calculate how many nanoseconds for a TSC cycle.
+	 */
+	os_calibrate();
 
 	debug_print(NULL, 2, "Detected %d online CPUs\n", g_ncpus);
 	debug_print(NULL, 2, "LLC scale: occupancy %.1f, total bw %.1f, local bw %.1f\n",

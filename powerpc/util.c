@@ -32,7 +32,6 @@
 #include <inttypes.h>
 #include "../common/include/os/os_util.h"
 
-/* PowerPC has Time Base (TB) register similar to intel TSC. */
 uint64_t
 rdtsc(void)
 {
