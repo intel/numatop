@@ -62,9 +62,9 @@
 double s_nsofclk;
 uint64_t s_clkofsec;
 double s_latest_avglat = 0.0;
+struct timeval s_tvbase;
 
 static int s_rand_arr[RAND_ARRAY_SIZE];
-static struct timeval s_tvbase;
 static int s_ncpus;
 static void *s_buf = NULL;
 static unsigned int s_randseed;
@@ -142,7 +142,7 @@ main(int argc, char *argv[])
 	int node_alloc = -1, cpu_consumer = -1;
 	int meas_sec = MEAS_TIME_DEFAULT;
 	int ret = -1;
-	char c;
+	int c;
 
 	s_randseed = 0;
 	optind = 1;

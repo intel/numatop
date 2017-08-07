@@ -58,6 +58,7 @@
 extern double s_nsofclk;
 extern uint64_t s_clkofsec;
 extern double s_latest_avglat;
+extern struct timeval s_tvbase;
 
 extern void arch__dependent_read(void *, int);
 
