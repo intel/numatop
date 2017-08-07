@@ -247,7 +247,7 @@ main(int argc, char *argv[])
 	/*
 	 * Calculate how many nanoseconds for a TSC cycle.
 	 */
-	os_calibrate();
+	os_calibrate(&g_nsofclk, &g_clkofsec);
 
 	debug_print(NULL, 2, "Detected %d online CPUs\n", g_ncpus);
 	debug_print(NULL, 2, "LLC scale: occupancy %.1f, total bw %.1f, local bw %.1f\n",

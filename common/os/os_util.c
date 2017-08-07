@@ -293,17 +293,17 @@ calibrate_by_tsc(double *nsofclk, uint64_t *clkofsec)
  * method for powerpc.
  */
 void
-os_calibrate(void)
+os_calibrate(double *nsofclk, uint64_t *clkofsec)
 {
-	if (calibrate_cpuinfo(&g_nsofclk, &g_clkofsec) == 0) {
+	if (calibrate_cpuinfo(nsofclk, clkofsec) == 0) {
 		return;
 	}
 	
-	if (calibrate_cpufreq(&g_nsofclk, &g_clkofsec) == 0) {
+	if (calibrate_cpufreq(nsofclk, clkofsec) == 0) {
 		return;	
 	}
 
-	calibrate_by_tsc(&g_nsofclk, &g_clkofsec);
+	calibrate_by_tsc(nsofclk, clkofsec);
 }
 
 static boolean_t
