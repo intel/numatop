@@ -279,7 +279,8 @@ cpu_profiling_partpause(perf_cpu_t *cpu, void *arg)
 	perf_count_id_t perf_count_id = (perf_count_id_t)arg;
 	int i;
 
-	if ((perf_count_id == PERF_COUNT_INVALID) || (perf_count_id == 0)) {
+	if (perf_count_id == PERF_COUNT_INVALID ||
+	    perf_count_id == PERF_COUNT_CORE_CLK) {
 		return (pf_profiling_allstop(cpu));
 	}
 	
@@ -331,7 +332,8 @@ cpu_profiling_restore(perf_cpu_t *cpu, void *arg)
 	perf_count_id_t perf_count_id = (perf_count_id_t)arg;
 	int i;
 
-	if ((perf_count_id == PERF_COUNT_INVALID) || (perf_count_id == 0)) {
+	if (perf_count_id == PERF_COUNT_INVALID ||
+	    perf_count_id == PERF_COUNT_CORE_CLK) {
 		return (pf_profiling_allstart(cpu));
 	}
 
