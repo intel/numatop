@@ -32,6 +32,8 @@
 #include <inttypes.h>
 #include "../common/include/os/os_util.h"
 
+#define KERNEL_ADDR_START	0xc000000000000000
+
 uint64_t
 rdtsc(void)
 {
@@ -96,4 +98,10 @@ arch__cpuinfo_freq(double *freq, char *unit)
 	free(line);
 	fclose(f);
 	return ret;
+}
+
+int
+is_userspace(uint64_t ip)
+{
+	return (ip < KERNEL_ADDR_START && ip != 0x0);
 }

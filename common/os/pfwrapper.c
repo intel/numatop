@@ -340,7 +340,7 @@ profiling_sample_read(struct perf_event_mmap_page *mhdr, int size,
 
 		size -= sizeof (value);
 		
-		if (value < KERNEL_ADDR_START) {
+		if (is_userspace(value)) {
 			/*
 			 * Only save the user-space address.
 			 */
@@ -535,7 +535,7 @@ ll_sample_read(struct perf_event_mmap_page *mhdr, int size,
 
 		size -= sizeof (value);
 		
-		if (value < KERNEL_ADDR_START) {
+		if (is_userspace(value)) {
 			/*
 			 * Only save the user-space address.
 			 */

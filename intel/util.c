@@ -33,6 +33,8 @@
 #include <inttypes.h>
 #include "../common/include/os/os_util.h"
 
+#define KERNEL_ADDR_START	0xffffffff80000000
+
 /*
 * Get the TSC cycles.
 */
@@ -95,4 +97,10 @@ arch__cpuinfo_freq(double *freq, char *unit)
 	free(line);
 	fclose(f);
 	return ret;
+}
+
+int
+is_userspace(uint64_t ip)
+{
+	return ip < KERNEL_ADDR_START;
 }
