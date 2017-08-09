@@ -35,6 +35,8 @@ common:	common code for all platforms.
 
 intel : Intel platform-specific code.
 
+powerpc: PowerPC platform-specific code.
+
 test  : mgen source code. mgen is a micro-test application which can
         generate memory access with runtime latency value among CPUs.
         Note that this application is only used for numatop testing!

@@ -65,6 +65,10 @@ rdtsc(void)
 }
 #endif
 
+/*
+ * Check the cpu name in proc info. Intel CPUs always have @ x.y
+ * Ghz and that is the TSC frequency.
+ */
 int
 arch__cpuinfo_freq(double *freq, char *unit)
 {

@@ -34,7 +34,7 @@ and different portions of the memory in a NUMA machine may be significantly diff
 \fBnumatop\fP is an observation tool for runtime memory locality characterization
 and analysis of processes and threads running on a NUMA system. It helps the user to
 characterize the NUMA behavior of processes and threads and to identify where the
-NUMA-related performance bottlenecks reside. The tool uses Intel performance counter
+NUMA-related performance bottlenecks reside. The tool uses hardware performance counter
 sampling technologies and associates the performance data with Linux system runtime
 information to provide real-time analysis in production systems. The tool can be used to:
 
@@ -500,4 +500,4 @@ in 3.9. The following steps show how to get and apply the patch set.
 \fBnumatop\fP supports the Intel Xeon processors: 5500-series, 6500/7500-series, 
 5600 series, E7-x8xx-series, and E5-16xx/24xx/26xx/46xx-series. 
 \fBNote\fP: CPU microcode version 0x618 or 0x70c or later is required on
-E5-16xx/24xx/26xx/46xx-series.
+E5-16xx/24xx/26xx/46xx-series. It also supports IBM Power8 processor.

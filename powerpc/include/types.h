@@ -31,6 +31,8 @@
 
 #include "../../common/include/types.h"
 
+#define CORP "IBM"
+
 typedef enum {
 	CPU_UNSUP = 0,
 	CPU_POWER8

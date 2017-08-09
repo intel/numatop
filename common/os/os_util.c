@@ -160,10 +160,6 @@ processor_unbind(void)
 	return (0);
 }
 
-/*
- * Check the cpu name in proc info. Intel CPUs always have @ x.y
- * Ghz and that is the TSC frequency.
- */
 static int
 calibrate_cpuinfo(double *nsofclk, uint64_t *clkofsec)
 {

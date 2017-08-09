@@ -31,7 +31,7 @@
  * (Remote Memory Access) with latency information on NUMA system.
  *
  * Please note the latencies reported by mgen are not the official data
- * from Intel. It is just a tool to test numatop. 
+ * from Intel/IBM. It is just a tool to test numatop.
  */
 
 #define _GNU_SOURCE
@@ -344,7 +344,7 @@ dependent_read(void *buf, int cpu_consumer, int node_alloc, int meas_sec)
 	}
 
 	fprintf(stdout, "\n!!! The reported latency is not the official data\n");
-	fprintf(stdout, "    from Intel, it's just a tool to test numatop !!!\n");
+	fprintf(stdout, "    from " CORP ", it's just a tool to test numatop !!!\n");
 
 	fprintf(stdout, "\nGenerating memory access from cpu%d to node%d for ~%ds ...\n",
 	    cpu_consumer, node_alloc, meas_sec);
