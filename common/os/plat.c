@@ -40,7 +40,6 @@
 #include "../include/os/plat.h"
 
 cpu_type_t s_cpu_type = CPU_UNSUP;
-boolean_t g_cmt_enabled = B_FALSE;
 
 /*
  * Platform-independent function to get the event configuration for profiling.

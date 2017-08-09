@@ -210,7 +210,5 @@ plat_detect(void)
 		break;
 	}
 
-	g_cmt_enabled = (cpu_type == CPU_BDX) ? B_TRUE : B_FALSE;
-
 	return (ret);
 }

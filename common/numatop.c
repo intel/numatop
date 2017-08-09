@@ -205,9 +205,10 @@ main(int argc, char *argv[])
 
 	dump = NULL;
 
-	os_sysfs_cqm_llc_scale(CQM_LLC_OCCUPANCY_SCALE_PATH, &g_llc_occupancy_scale);
-	os_sysfs_cqm_llc_scale(CQM_LLC_TOTAL_BW_SCALE_PATH, &g_llc_total_bw_scale);
-	os_sysfs_cqm_llc_scale(CQM_LLC_LOCAL_BW_SCALE_PATH, &g_llc_local_bw_scale);
+	/*
+	 * Detect if the platform supports CQM/MBM.
+	 */
+	g_cmt_enabled = os_cmt_init();
 
 	if (map_init() != 0) {
 		goto L_EXIT3;
@@ -238,8 +239,8 @@ main(int argc, char *argv[])
 	os_calibrate(&g_nsofclk, &g_clkofsec);
 
 	debug_print(NULL, 2, "Detected %d online CPUs\n", g_ncpus);
-	debug_print(NULL, 2, "LLC scale: occupancy %.1f, total bw %.1f, local bw %.1f\n",
-		g_llc_occupancy_scale, g_llc_total_bw_scale, g_llc_local_bw_scale);
+	debug_print(NULL, 2, "Enabled CQM/MBM: %s\n",
+		(g_cmt_enabled) ? "yes" : "no");
 
 	stderr_print("NumaTOP is starting ...\n");
 
@@ -304,6 +305,9 @@ L_EXIT4:
 
 L_EXIT3:
 	dump_fini();
+
+	if (g_cmt_enabled)
+		os_cmt_fini();
 
 L_EXIT2:
 	debug_fini();

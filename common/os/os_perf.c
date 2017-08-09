@@ -42,6 +42,7 @@
 #include "../include/os/node.h"
 #include "../include/os/plat.h"
 #include "../include/os/os_perf.h"
+#include "../include/os/os_util.h"
 
 precise_type_t g_precise;
 
@@ -1172,7 +1173,7 @@ pqos_cmt_start(perf_ctl_t *ctl, int pid, int lwpid, int flags)
 	track_proc_t *proc;
 	track_lwp_t *lwp = NULL;
 	perf_pqos_t *pqos;
-	int ret = -1;
+	int ret;
 
 	if ((proc = proc_find(pid)) == NULL)
 		return -1;
@@ -1190,45 +1191,20 @@ pqos_cmt_start(perf_ctl_t *ctl, int pid, int lwpid, int flags)
 	}
 
 	memset(pqos, 0, sizeof(perf_pqos_t));
-	os_pqos_cmt_init(pqos);
+	pqos->flags = flags;
 
-	if (flags & PERF_PQOS_FLAG_LLC) {
-		if (pf_pqos_occupancy_setup(pqos, pid, lwpid) != 0)
-			goto L_EXIT;
-	}
-
-	if (flags & PERF_PQOS_FLAG_TOTAL_BW) {
-		if (pf_pqos_totalbw_setup(pqos, pid, lwpid) != 0)
-			goto L_EXIT;
-	}
-
-	if (flags & PERF_PQOS_FLAG_LOCAL_BW) {
-		if (pf_pqos_localbw_setup(pqos, pid, lwpid) != 0)
-			goto L_EXIT;
-	}
-
-	/* ctl->last_ms_pqos = current_ms(); */
-
-	if (pf_pqos_start(pqos) == 0)
-		ret = 0;
-
-L_EXIT:
-	if (ret != 0)
-		pf_pqos_resource_free(pqos);
+	ret = os_sysfs_cmt_task_set(pid, lwpid, pqos);
 
 	if (lwp != NULL)
 		lwp_refcount_dec(lwp);
 
 	proc_refcount_dec(proc);
-
 	return ret;
 }
 
 void os_pqos_cmt_init(perf_pqos_t *pqos)
 {
-	pqos->occupancy_fd = INVALID_FD;
-	pqos->totalbw_fd = INVALID_FD;
-	pqos->localbw_fd = INVALID_FD;
+
 }
 
 int
@@ -1313,10 +1289,18 @@ os_perf_pqos_free(perf_pqos_t *pqos)
 	pf_pqos_resource_free(pqos);
 }
 
+static int pqos_record(struct _perf_pqos *pqos)
+{
+	if (pqos->task_id == 0)
+		return 0;
+
+	return (os_sysfs_cmt_task_value(pqos, -1));
+}
+
 int os_pqos_cmt_proc_smpl(struct _track_proc *proc, void *arg, boolean_t *end)
 {
 	*end = B_FALSE;
-	pf_pqos_record(&proc->pqos);
+	pqos_record(&proc->pqos);
 	return 0;
 }
 
@@ -1324,7 +1308,7 @@ int
 os_pqos_cmt_lwp_smpl(track_lwp_t *lwp, void *arg, boolean_t *end)
 {
 	*end = B_FALSE;
-	pf_pqos_record(&lwp->pqos);
+	pqos_record(&lwp->pqos);
 	return 0;
 }
 
@@ -1332,14 +1316,14 @@ static int
 os_pqos_cmt_lwp_free(track_lwp_t *lwp, void *arg, boolean_t *end)
 {
 	*end = B_FALSE;
-	os_perf_pqos_free(&lwp->pqos);
+	/* os_perf_pqos_free(&lwp->pqos); */
 	return 0;
 }
 
 int os_pqos_cmt_proc_free(struct _track_proc *proc, void *arg, boolean_t *end)
 {
 	*end = B_FALSE;
-	os_perf_pqos_free(&proc->pqos);
+	/* os_perf_pqos_free(&proc->pqos); */
 
 	if (proc->lwp_pqosed) {
 		proc_lwp_traverse(proc, os_pqos_cmt_lwp_free, NULL);

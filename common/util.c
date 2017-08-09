@@ -52,6 +52,7 @@
 
 int g_pagesize;
 struct timeval g_tvbase;
+boolean_t g_cmt_enabled;
 
 static int s_debuglevel;
 static FILE *s_logfile;

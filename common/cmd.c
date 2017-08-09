@@ -302,10 +302,6 @@ switch_table_init(void)
 	s_switch[WIN_TYPE_RAW_NUM][CMD_3_ID].op = op_sort;
 	s_switch[WIN_TYPE_RAW_NUM][CMD_4_ID].op = op_sort;
 	s_switch[WIN_TYPE_RAW_NUM][CMD_5_ID].op = op_sort;
-	s_switch[WIN_TYPE_RAW_NUM][CMD_PQOS_CMT_ID].preop =
-		preop_switch2pqoscmt;
-	s_switch[WIN_TYPE_RAW_NUM][CMD_PQOS_CMT_ID].op =
-		op_page_next;
 
 	/*
 	 * Initialize for window type "WIN_TYPE_TOPNPROC"
@@ -316,10 +312,6 @@ switch_table_init(void)
 	s_switch[WIN_TYPE_TOPNPROC][CMD_3_ID].op = op_sort;
 	s_switch[WIN_TYPE_TOPNPROC][CMD_4_ID].op = op_sort;
 	s_switch[WIN_TYPE_TOPNPROC][CMD_5_ID].op = op_sort;
-	s_switch[WIN_TYPE_TOPNPROC][CMD_PQOS_CMT_ID].preop =
-		preop_switch2pqoscmt;
-	s_switch[WIN_TYPE_TOPNPROC][CMD_PQOS_CMT_ID].op =
-		op_page_next;
 
 	/*
 	 * Initialize for window type "WIN_TYPE_MONIPROC"

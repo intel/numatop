@@ -41,12 +41,14 @@
 #include <limits.h>
 #include <locale.h>
 #include <math.h>
+#include <sys/wait.h>
 #include "../include/types.h"
 #include "../include/util.h"
 #include "../include/os/os_util.h"
 
 uint64_t g_clkofsec;
 double g_nsofclk;
+unsigned int g_pqos_moni_id;
 
 boolean_t
 os_authorized(void)
@@ -695,4 +697,173 @@ os_sysfs_uncore_imc_init(imc_info_t *imc, int num)
 	}
 
 	return imc_num;
+}
+
+static boolean_t execute_command(const char *command, const char *type)
+{
+	FILE *fp;
+
+	fp = popen(command, type);
+	if (fp == NULL) {
+		debug_print(NULL, 2, "Execute '%s' failed (errno = %d)\n",
+			command, errno);
+		return B_FALSE;
+	}
+
+	pclose(fp);
+	debug_print(NULL, 2, "Execute '%s' ok\n", command);
+
+	return B_TRUE;
+}
+
+static boolean_t resctrl_mounted(void)
+{
+	char path[128];
+	FILE *fp;
+
+	snprintf(path, sizeof(path), "/sys/fs/resctrl/tasks");
+
+	if ((fp = fopen(path, "r")) == NULL)
+		return B_FALSE;
+
+	fclose(fp);
+	return B_TRUE;
+}
+
+boolean_t os_cmt_init(void)
+{
+	char command[128];
+
+	g_pqos_moni_id = 0;
+
+	if (resctrl_mounted())
+		return B_TRUE;
+
+	snprintf(command, sizeof(command),
+		"mount -t resctrl resctrl /sys/fs/resctrl 2>/dev/null");
+
+	if (!execute_command(command, "r"))
+		return B_FALSE;
+
+	return resctrl_mounted();
+}
+
+void os_cmt_fini(void)
+{
+	char command[128];
+
+	if (!resctrl_mounted())
+		return;
+
+	snprintf(command, sizeof(command),
+		"umount -f /sys/fs/resctrl 2>/dev/null");
+
+	execute_command(command, "r");
+	g_pqos_moni_id = 0;
+}
+
+int os_sysfs_cmt_task_set(int pid, int lwpid, struct _perf_pqos *pqos)
+{
+	char command[128], path[128];
+
+	if (lwpid)
+		pqos->task_id = lwpid;
+	else if (pid)
+		pqos->task_id = pid;
+	else
+		pqos->task_id = ++g_pqos_moni_id;
+
+	snprintf(path, sizeof(path),
+		"/sys/fs/resctrl/mon_groups/%d", pqos->task_id);
+
+	snprintf(command, sizeof(command), "rm -rf %s 2>/dev/null", path);
+	if (!execute_command(command, "r"))
+		return -1;
+
+	snprintf(command, sizeof(command), "mkdir %s 2>/dev/null", path);
+	if (!execute_command(command, "r"))
+		return -1;
+
+	if (lwpid == 0)
+		snprintf(command, sizeof(command),
+			"echo %d > %s/tasks", pid, path);
+	else
+		snprintf(command, sizeof(command),
+			"echo %d > %s/tasks", lwpid, path);
+
+	if (!execute_command(command, "r"))
+		return -1;
+
+	return 0;
+}
+
+static int cmt_task_node_value(const char *dir, int nid,
+	const char *field, uint64_t *val)
+{
+	FILE *fp;
+	char buf[LINE_SIZE], path[128];
+
+	*val = 0;
+
+	if (nid < 10) {
+		snprintf(path, sizeof(path),
+			"%s/mon_L3_0%d/%s", dir, nid, field);
+	} else {
+		snprintf(path, sizeof(path),
+			"%s/mon_L3_%d/%s", dir, nid, field);
+	}
+
+	if ((fp = fopen(path, "r")) == NULL)
+		return (-1);
+
+	if (fgets(buf, LINE_SIZE, fp) == NULL) {
+		fclose(fp);
+		return (-1);
+	}
+
+	fclose(fp);
+	*val = strtod(buf, NULL);
+
+	debug_print(NULL, 2, "%s: val = %" PRId64 ", nid = %d\n", path, *val, nid);
+
+	return 0;
+}
+
+static uint64_t cmt_field_value(char *dir, const char *field, int nid)
+{
+	uint64_t val = 0, tmp;
+	int i;
+
+	if (nid == -1) {
+		for (i = 0; i < NNODES_MAX; i++) {
+			if (cmt_task_node_value(dir, i, field,
+				&tmp) == 0)
+				val += tmp;
+		}
+	} else {
+		cmt_task_node_value(dir, nid, field, &val);
+	}
+
+	return val;
+}
+
+int os_sysfs_cmt_task_value(struct _perf_pqos *pqos, int nid)
+{
+	char dir[128];
+	uint64_t tmp;
+
+	snprintf(dir, sizeof(dir),
+		"/sys/fs/resctrl/mon_groups/%d/mon_data", pqos->task_id);
+
+	pqos->occupancy_scaled = cmt_field_value(dir, "llc_occupancy", nid);
+
+	tmp = cmt_field_value(dir, "mbm_total_bytes", nid);
+	pqos->totalbw_scaled = tmp - pqos->totalbw;
+	pqos->totalbw = tmp;
+
+	tmp = cmt_field_value(dir, "mbm_local_bytes", nid);
+	pqos->localbw_scaled = tmp - pqos->localbw;
+	pqos->localbw = tmp;
+
+	return 0;
 }

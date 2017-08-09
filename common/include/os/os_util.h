@@ -59,6 +59,8 @@ extern "C" {
 #define CQM_LLC_LOCAL_BW_SCALE_PATH \
 	"/sys/devices/intel_cqm/events/local_bytes.scale"
 
+struct _perf_pqos;
+
 extern boolean_t os_authorized(void);
 extern int os_numatop_lock(boolean_t *);
 extern void os_numatop_unlock(void);
@@ -78,6 +80,10 @@ extern int os_sysfs_cqm_llc_scale(const char*, double *);
 extern int os_sysfs_uncore_qpi_init(qpi_info_t *, int);
 extern int os_sysfs_uncore_upi_init(qpi_info_t *, int);
 extern int os_sysfs_uncore_imc_init(imc_info_t *, int);
+extern boolean_t os_cmt_init(void);
+extern void os_cmt_fini(void);
+extern int os_sysfs_cmt_task_set(int, int, struct _perf_pqos *);
+extern int os_sysfs_cmt_task_value(struct _perf_pqos *, int);
 
 #ifdef __cplusplus
 }

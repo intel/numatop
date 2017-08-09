@@ -646,7 +646,7 @@ int perf_pqos_active_proc_setup(int flags, boolean_t refresh)
 			break;
 		}
 
-		if (proc->pqos.occupancy_fd == INVALID_FD) {
+		if (!proc->pqos.task_id) {
 			s_pqos_arg[j].pid = proc->pid;
 			j++;
 		}
@@ -657,7 +657,7 @@ int perf_pqos_active_proc_setup(int flags, boolean_t refresh)
 			break;
 		}
 
-		if (proc->pqos.occupancy_fd != INVALID_FD)
+		if (!proc->pqos.task_id)
 			os_perf_pqos_free(&proc->pqos);
 	}
 
@@ -700,11 +700,14 @@ int perf_pqos_proc_setup(int pid, int lwpid, int flags)
 	track_proc_t *proc;
 	track_lwp_t *lwp = NULL;
 	int ret = 0;
+	boolean_t end;
 
 	if ((proc = proc_find(pid)) == NULL)
 		return -1;
 
-	if (proc->pqos.occupancy_fd != INVALID_FD) {
+	if (lwpid == 0 && proc->pqos.task_id) {
+		s_perf_ctl.last_ms_pqos = current_ms(&g_tvbase);
+		os_pqos_cmt_proc_smpl(proc, NULL, &end);
 		goto L_EXIT;
 	}
 
@@ -714,7 +717,9 @@ int perf_pqos_proc_setup(int pid, int lwpid, int flags)
 			goto L_EXIT;
 		}
 
-		if (lwp->pqos.occupancy_fd != INVALID_FD) {
+		if (lwp->pqos.task_id) {
+			s_perf_ctl.last_ms_pqos = current_ms(&g_tvbase);
+			os_pqos_cmt_lwp_smpl(lwp, NULL, &end);
 			goto L_EXIT;
 		}
 	}

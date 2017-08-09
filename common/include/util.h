@@ -71,6 +71,7 @@ typedef struct _dump_ctl {
 extern struct timeval g_tvbase;
 extern int g_pagesize;
 extern double g_nsofclk;
+extern boolean_t g_cmt_enabled;
 
 extern void *zalloc(size_t n);
 extern int debug_init(int, FILE *);

@@ -51,10 +51,6 @@
 #include "include/os/os_util.h"
 #include "include/os/os_win.h"
 
-double g_llc_occupancy_scale;
-double g_llc_total_bw_scale;
-double g_llc_local_bw_scale;
-
 static boolean_t s_first_load = B_TRUE;
 static win_reg_t s_note_reg;
 static win_reg_t s_title_reg;
@@ -520,7 +516,7 @@ win_note_show(char *note)
 	char *content;
 	char *p;
 
-	p = (g_cmt_enabled)? NOTE_DEFAULT_LLC : NOTE_DEFAULT;
+	p = NOTE_DEFAULT;
 
 	content = (note != NULL) ? note : p;
 	reg_erase(&s_note_reg);
@@ -550,12 +546,10 @@ topnproc_win_draw(dyn_win_t *win)
 	topnproc_data_show(win);
 
 	if (win->type == WIN_TYPE_TOPNPROC) {
-		note = (g_cmt_enabled)?
-			NOTE_TOPNPROC_LLC : NOTE_TOPNPROC;
+		note = NOTE_TOPNPROC;
 		win_note_show(note);
 	} else {
-		note = (g_cmt_enabled)?
-			NOTE_TOPNPROC_RAW_LLC : NOTE_TOPNPROC_RAW;
+		note = NOTE_TOPNPROC_RAW;
 		win_note_show(note);
 	}
 
@@ -2868,7 +2862,7 @@ pqos_cmt_proc_data_build(char *buf, int size,
 	    "%6s%15s%11.1f%11.1f%21.1f%10.1f",
 	    tmp, line->proc_name,
 	    value->rma, value->lma,
-	    ratio(line->llc_occupancy * g_llc_occupancy_scale,
+	    ratio(line->llc_occupancy,
 	        1048576),
 	    value->cpu * 100);
 }
@@ -2904,16 +2898,12 @@ pqos_cmt_proc_data_save(track_proc_t *proc, track_lwp_t *lwp, int intval,
 
 	if (lwp == NULL) {
 		line->llc_occupancy = proc->pqos.occupancy_scaled;
-		line->fd = proc->pqos.occupancy_fd;
-
 		win_countvalue_fill(&line->value, proc->countval_arr,
 			proc->cpuid_max, NODE_ALL, intval, g_ncpus);
 
 	} else {
 		line->llc_occupancy = lwp->pqos.occupancy_scaled;
-		line->fd = lwp->pqos.occupancy_fd;
 		line->lwpid = lwp->id;
-
 		win_countvalue_fill(&line->value, lwp->countval_arr,
 			lwp->cpuid_max, NODE_ALL, intval, g_ncpus);
 	}
@@ -3187,10 +3177,10 @@ pqos_mbm_proc_data_build(char *buf, int size,
 		snprintf(id, sizeof(id), "%d", line->lwpid);
 
 	snprintf(total_bw, sizeof(total_bw), "%.1fMB",
-		ratio(line->totalbw_scaled * g_llc_total_bw_scale, 1));
+		ratio(line->totalbw_scaled, 1048576));
 
 	snprintf(local_bw, sizeof(local_bw), "%.1fMB",
-		ratio(line->localbw_scaled * g_llc_local_bw_scale, 1));
+		ratio(line->localbw_scaled, 1048576));
 
 	snprintf(buf, size,
 	    "%6s%15s%10.1f%10.1f%14s%14s%9.1f",
@@ -3231,19 +3221,13 @@ pqos_mbm_proc_data_save(track_proc_t *proc, track_lwp_t *lwp, int intval,
 
 	if (lwp == NULL) {
 		line->totalbw_scaled = proc->pqos.totalbw_scaled;
-		line->totalbw_fd = proc->pqos.totalbw_fd;
 		line->localbw_scaled = proc->pqos.localbw_scaled;
-		line->localbw_fd = proc->pqos.localbw_fd;
-
 		win_countvalue_fill(&line->value, proc->countval_arr,
 			proc->cpuid_max, NODE_ALL, intval, g_ncpus);
 
 	} else {
 		line->totalbw_scaled = lwp->pqos.totalbw_scaled;
-		line->totalbw_fd = lwp->pqos.totalbw_fd;
 		line->localbw_scaled = lwp->pqos.localbw_scaled;
-		line->localbw_fd = lwp->pqos.localbw_fd;
-
 		win_countvalue_fill(&line->value, lwp->countval_arr,
 			lwp->cpuid_max, NODE_ALL, intval, g_ncpus);
 	}

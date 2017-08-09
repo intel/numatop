@@ -75,15 +75,13 @@ typedef struct _perf_cpu {
 } perf_cpu_t;
 
 typedef struct _perf_pqos {
-	int occupancy_fd;
-	int totalbw_fd;
-	int localbw_fd;
-	uint64_t occupancy_values[3];
+	int task_id;
+	int flags;
 	uint64_t occupancy_scaled;
-	uint64_t totalbw_values[3];
 	uint64_t totalbw_scaled;
-	uint64_t localbw_values[3];
 	uint64_t localbw_scaled;
+	uint64_t totalbw;
+	uint64_t localbw;
 } perf_pqos_t;
 
 typedef int (*pfn_perf_cpu_op_t)(struct _perf_cpu *, void *);
