@@ -42,6 +42,7 @@
 #include "../include/util.h"
 #include "../include/os/pfwrapper.h"
 #include "../include/os/node.h"
+#include "../include/os/os_perf.h"
 
 static int s_mapsize, s_mapmask;
 
@@ -340,7 +341,7 @@ profiling_sample_read(struct perf_event_mmap_page *mhdr, int size,
 
 		size -= sizeof (value);
 		
-		if (value < KERNEL_ADDR_START) {
+		if (is_userspace(value)) {
 			/*
 			 * Only save the user-space address.
 			 */
@@ -535,7 +536,7 @@ ll_sample_read(struct perf_event_mmap_page *mhdr, int size,
 
 		size -= sizeof (value);
 		
-		if (value < KERNEL_ADDR_START) {
+		if (is_userspace(value)) {
 			/*
 			 * Only save the user-space address.
 			 */

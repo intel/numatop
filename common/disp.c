@@ -50,6 +50,8 @@
 #include "include/win.h"
 #include "include/os/node.h"
 
+int g_run_secs;
+
 static disp_ctl_t s_disp_ctl;
 static cons_ctl_t s_cons_ctl;
 
@@ -485,7 +487,7 @@ disp_handler(void *arg)
 	pagelist_inited = B_TRUE;
 
 	timeout_set(&timeout, 0);
-	start_ms = current_ms();
+	start_ms = current_ms(&g_tvbase);
 
 	for (;;) {
 		status = 0;
@@ -507,7 +509,7 @@ disp_handler(void *arg)
 		s_disp_ctl.flag = DISP_FLAG_NONE;
 		(void) pthread_mutex_unlock(&s_disp_ctl.mutex);
 
-		diff_ms = current_ms() - start_ms;
+		diff_ms = current_ms(&g_tvbase) - start_ms;
 		if (g_run_secs <= diff_ms / MS_SEC) {
 			g_run_secs = TIME_NSEC_MAX;
 			debug_print(NULL, 2,

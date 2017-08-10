@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2013, Intel Corporation
  * Copyright (c) 2017, IBM Corporation
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,81 +28,83 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <inttypes.h>
-#include "../common/include/os/os_util.h"
+#include <stdint.h>
+#include "../include/util.h"
 
-#define KERNEL_ADDR_START	0xc000000000000000
+extern uint64_t current_ms(struct timeval *);
 
-uint64_t
-rdtsc(void)
+static
+void buf_read(void *buf, int read_num)
 {
-	uint64_t tb = 0;
-
-	__asm__ volatile("mftb %0" : "=r"(tb));
-
-	return (tb);
+	asm  volatile (
+		"mtctr %1\n\t"
+"LOOP1:\n\t"
+		"ld %0,0(%0)\n\t"
+		"bdnz LOOP1\n\t"
+"STOP:\n\t"
+		:: "r"(buf), "r"(read_num)
+	);
 }
 
-int
-arch__cpuinfo_freq(double *freq, char *unit)
+static void
+latency_calculate(uint64_t count, uint64_t dur_ms, uint64_t total_ms)
 {
-	FILE *f;
-	char *line = NULL, *c;
-	size_t len = 0;
-	int ret = -1;
+	double sec, lat;
 
-	if ((f = fopen(CPUINFO_PATH, "r")) == NULL) {
-		return -1;
-	}
-
-	while (getline(&line, &len, f) > 0) {
-		if (strncmp(line, "clock", sizeof ("clock") -1)) {
-			continue;
-		}
-
-		if (sscanf(line + strcspn(line, ":") + 1, "%lf%10s",
-			freq, unit) == 2) {
-			if (strcasecmp(unit, "GHz") == 0) {
-				*freq *= GHZ;
-			} else if (strcasecmp(unit, "MHz") == 0) {
-				*freq *= MHZ;
-			}
-			break;
-		}
-	}
-
-	/*
-	 * Hyperwiser does not expose cpufreq on PowerVMs(pSeries)
-	 * servers. Thus 'clock' field from /proc/cpuinfo shows
-	 * absolute max freq. While in case of PowerNV servers,
-	 * 'clock' field shows current freq for each individual
-	 * processor.
-	 *
-	 * Use 'clock' field to get freq on pSeries and fallback to
-	 * sysfs cpufreq approach for PowerNV.
-	 */
-	while (getline(&line, &len, f) > 0) {
-		if (strncmp(line, "platform", sizeof("sizeof") -1)) {
-			continue;
-		}
-
-		c = strchr(line, ':');
-		if (c - line + 2 < len &&
-		    !strncmp(c + 2, "pSeries", sizeof ("pSeries") - 1)) {
-			ret = 0;
-			break;
-		}
-	}
-
-	free(line);
-	fclose(f);
-	return ret;
+	sec = (double)total_ms / (double)MS_SEC;
+	lat = ((double)dur_ms * NS_MS) / (double)count;
+	printf("%8.1fs  %13.1f\n", sec, lat);
+	fflush(stdout);
 }
 
-int
-is_userspace(uint64_t ip)
+void
+arch__dependent_read(void *buf, int meas_sec)
 {
-	return (ip < KERNEL_ADDR_START && ip != 0x0);
+	uint64_t total_count = 0, dur_count = 0;
+	uint64_t start_ms, end_ms, prev_ms;
+	uint64_t run_ms, total_ms, dur_ms;
+
+	printf("\n%9s   %13s\n", "Time", "Latency(ns)");
+	printf("-------------------------\n");
+
+	run_ms = (uint64_t)meas_sec * MS_SEC;
+
+	start_ms = current_ms(&s_tvbase);
+	prev_ms = start_ms;
+	end_ms = start_ms;
+
+	while (1) {
+		total_ms = end_ms - start_ms;
+		dur_ms = end_ms - prev_ms;
+
+		if (dur_ms >= MS_SEC) {
+			latency_calculate(dur_count, dur_ms, total_ms);
+			prev_ms = current_ms(&s_tvbase);
+			dur_count = 0;
+		}
+
+		if (total_ms >= run_ms) {
+			break;
+		}
+
+		if (total_count > 0) {
+			s_latest_avglat = ((double)total_ms * NS_MS) /
+						(double)total_count;
+		}
+
+		buf_read(buf, READ_NUM);
+
+		dur_count += READ_NUM;
+		total_count += READ_NUM;
+		end_ms = current_ms(&s_tvbase);
+	}
+
+	printf("-------------------------\n");
+
+	if (total_count > 0) {
+		printf("%9s  %13.1f\n\n", "Average",
+			((double)total_ms * NS_MS) / (double)total_count);
+	} else {
+		printf("%9s  %13.1f\n\n", "Average", 0.0);
+	}
 }

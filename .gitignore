@@ -3,6 +3,7 @@
 *.patch
 
 /numatop
+/test/mgen/mgen
 
 /tags
 /TAGS

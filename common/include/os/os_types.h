@@ -39,7 +39,6 @@ typedef enum {
 } boolean_t;
 
 #define IP_NUM	32
-#define KERNEL_ADDR_START	0xffffffff80000000
 #define INVALID_FD	-1
 #define INVALID_CONFIG	(uint64_t)(-1)
 

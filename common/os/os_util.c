@@ -42,7 +42,6 @@
 #include <locale.h>
 #include <math.h>
 #include "../include/types.h"
-#include "../include/numatop.h"
 #include "../include/util.h"
 #include "../include/os/os_util.h"
 
@@ -126,7 +125,7 @@ os_procfs_lwp_valid(pid_t pid, int lwpid)
  * Bind current thread to a cpu or unbind current thread
  * from a cpu.
  */
-static int
+int
 processor_bind(int cpu)
 {
 	cpu_set_t cs;
@@ -142,7 +141,7 @@ processor_bind(int cpu)
 	return (0);
 }
 
-static int
+int
 processor_unbind(void)
 {
 	cpu_set_t cs;
@@ -161,10 +160,6 @@ processor_unbind(void)
 	return (0);
 }
 
-/*
- * Check the cpu name in proc info. Intel CPUs always have @ x.y
- * Ghz and that is the TSC frequency.
- */
 static int
 calibrate_cpuinfo(double *nsofclk, uint64_t *clkofsec)
 {
@@ -254,11 +249,11 @@ calibrate_by_tsc(double *nsofclk, uint64_t *clkofsec)
 	 * Make sure the start_ms is at the beginning of
 	 * one millisecond.
 	 */
-	end_ms = current_ms();
-	while ((start_ms = current_ms()) == end_ms) {}
+	end_ms = current_ms(&g_tvbase);
+	while ((start_ms = current_ms(&g_tvbase)) == end_ms) {}
 
 	start_tsc = rdtsc();
-	while ((end_ms = current_ms()) < (start_ms + 100)) {}
+	while ((end_ms = current_ms(&g_tvbase)) < (start_ms + 100)) {}
 	end_tsc = rdtsc();
 
 	diff_ms = end_ms - start_ms;
@@ -276,18 +271,34 @@ calibrate_by_tsc(double *nsofclk, uint64_t *clkofsec)
 	    "clkofsec = %lu\n", *nsofclk, *clkofsec);
 }
 
+/*
+ * calibrate_by_tsc() is the last method used by os_calibrate()
+ * to calculate cpu frequency if cpu freq is not available by both
+ * procfs and sysfs.
+ *
+ * On intel, calibrate_by_tsc() uses TSC register which gets updated
+ * in sync of processor clock and thus cpu freq can be calculated
+ * programmatically using this register.
+ *
+ * OTOH, PowerPC does not have analogue to TSC. There is a register
+ * called TB (Time Base) but it's get updated at constant freq and
+ * thus we can't find cpu frequency using TB register. But for
+ * powerpc, cpu frequency is always gets exposed via either procfs
+ * or sysfs and thus there is no point for depending on any other
+ * method for powerpc.
+ */
 void
-os_calibrate(void)
+os_calibrate(double *nsofclk, uint64_t *clkofsec)
 {
-	if (calibrate_cpuinfo(&g_nsofclk, &g_clkofsec) == 0) {
+	if (calibrate_cpuinfo(nsofclk, clkofsec) == 0) {
 		return;
 	}
 	
-	if (calibrate_cpufreq(&g_nsofclk, &g_clkofsec) == 0) {
+	if (calibrate_cpufreq(nsofclk, clkofsec) == 0) {
 		return;	
 	}
 
-	calibrate_by_tsc(&g_nsofclk, &g_clkofsec);
+	calibrate_by_tsc(nsofclk, clkofsec);
 }
 
 static boolean_t

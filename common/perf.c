@@ -356,7 +356,7 @@ perf_init(void)
 		goto L_EXIT;
 	}
 
-	s_perf_ctl.last_ms = current_ms();
+	s_perf_ctl.last_ms = current_ms(&g_tvbase);
 	if (perf_profiling_start() != 0) {
 		debug_print(NULL, 2, "perf_init: "
 		    "perf_profiling_start() failed\n");
@@ -469,7 +469,7 @@ perf_smpl_wait(void)
 {
 	int intval_diff;
 
-	intval_diff = current_ms() - s_perf_ctl.last_ms;
+	intval_diff = current_ms(&g_tvbase) - s_perf_ctl.last_ms;
 
 	if (PERF_INTVAL_MIN_MS > intval_diff) {
 		intval_diff = PERF_INTVAL_MIN_MS - intval_diff;
@@ -669,7 +669,7 @@ int perf_pqos_active_proc_setup(int flags, boolean_t refresh)
 	}
 
 	if ((j > 0) && (!refresh))
-		s_perf_ctl.last_ms_pqos = current_ms();
+		s_perf_ctl.last_ms_pqos = current_ms(&g_tvbase);
 
 	return 0;
 }
@@ -722,7 +722,7 @@ int perf_pqos_proc_setup(int pid, int lwpid, int flags)
 	if (perf_pqos_cmt_start(pid, lwpid, flags) != 0)
 		ret = -1;
 
-	s_perf_ctl.last_ms_pqos = current_ms();
+	s_perf_ctl.last_ms_pqos = current_ms(&g_tvbase);
 
 L_EXIT:
 	if (lwp != NULL)

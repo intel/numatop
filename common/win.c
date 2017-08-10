@@ -39,7 +39,6 @@
 #include <signal.h>
 #include <curses.h>
 #include "include/types.h"
-#include "include/numatop.h"
 #include "include/util.h"
 #include "include/disp.h"
 #include "include/reg.h"
@@ -52,9 +51,9 @@
 #include "include/os/os_util.h"
 #include "include/os/os_win.h"
 
-extern double g_llc_occupancy_scale;
-extern double g_llc_total_bw_scale;
-extern double g_llc_local_bw_scale;
+double g_llc_occupancy_scale;
+double g_llc_total_bw_scale;
+double g_llc_local_bw_scale;
 
 static boolean_t s_first_load = B_TRUE;
 static win_reg_t s_note_reg;

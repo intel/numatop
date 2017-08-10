@@ -32,6 +32,8 @@
 
 #include "../../common/include/types.h"
 
+#define CORP "Intel"
+
 typedef enum {
 	CPU_UNSUP = 0,
 	CPU_WSM_EX,

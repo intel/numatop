@@ -51,6 +51,7 @@
 #include "include/os/node.h"
 
 int g_pagesize;
+struct timeval g_tvbase;
 
 static int s_debuglevel;
 static FILE *s_logfile;
@@ -125,7 +126,7 @@ debug_print(FILE *out, int level, const char *fmt, ...)
 			if (s_logfile != NULL) {
 				(void) pthread_mutex_lock(&s_debug_ctl.mutex);
 				(void) fprintf(s_logfile,
-				    "%"PRIu64": ", current_ms() / 1000);
+				    "%"PRIu64": ", current_ms(&g_tvbase) / 1000);
 				va_start(ap, fmt);
 				(void) vfprintf(s_logfile, fmt, ap);
 				va_end(ap);
@@ -136,7 +137,7 @@ debug_print(FILE *out, int level, const char *fmt, ...)
 		} else {
 			(void) pthread_mutex_lock(&s_debug_ctl.mutex);
 			(void) fprintf(out,
-			    "%"PRIu64": ", current_ms() / 1000);
+			    "%"PRIu64": ", current_ms(&g_tvbase) / 1000);
 			va_start(ap, fmt);
 			(void) vfprintf(out, fmt, ap);
 			va_end(ap);
@@ -151,12 +152,12 @@ debug_print(FILE *out, int level, const char *fmt, ...)
  * (timing from numatop startup).
  */
 uint64_t
-current_ms(void)
+current_ms(struct timeval *tvbase)
 {
 	struct timeval tvnow;
 
 	(void) gettimeofday(&tvnow, 0);
-	return (msdiff(&tvnow, &g_tvbase));
+	return (msdiff(&tvnow, tvbase));
 }
 
 double

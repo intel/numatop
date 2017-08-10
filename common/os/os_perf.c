@@ -43,6 +43,8 @@
 #include "../include/os/plat.h"
 #include "../include/os/os_perf.h"
 
+precise_type_t g_precise;
+
 typedef struct _profiling_conf {
 	pf_conf_t conf_arr[PERF_COUNT_NUM];
 } profiling_conf_t;
@@ -279,7 +281,8 @@ cpu_profiling_partpause(perf_cpu_t *cpu, void *arg)
 	perf_count_id_t perf_count_id = (perf_count_id_t)arg;
 	int i;
 
-	if ((perf_count_id == PERF_COUNT_INVALID) || (perf_count_id == 0)) {
+	if (perf_count_id == PERF_COUNT_INVALID ||
+	    perf_count_id == PERF_COUNT_CORE_CLK) {
 		return (pf_profiling_allstop(cpu));
 	}
 	
@@ -331,7 +334,8 @@ cpu_profiling_restore(perf_cpu_t *cpu, void *arg)
 	perf_count_id_t perf_count_id = (perf_count_id_t)arg;
 	int i;
 
-	if ((perf_count_id == PERF_COUNT_INVALID) || (perf_count_id == 0)) {
+	if (perf_count_id == PERF_COUNT_INVALID ||
+	    perf_count_id == PERF_COUNT_CORE_CLK) {
 		return (pf_profiling_allstart(cpu));
 	}
 
@@ -507,18 +511,18 @@ profiling_start(perf_ctl_t *ctl, task_profiling_t *task)
 		return (-1);
 	}
 
-	ctl->last_ms = current_ms();
+	ctl->last_ms = current_ms(&g_tvbase);
 	return (0);
 }
 
 static int
 profiling_smpl(perf_ctl_t *ctl, task_profiling_t *task, int *intval_ms)
 {
-	*intval_ms = current_ms() - ctl->last_ms;
+	*intval_ms = current_ms(&g_tvbase) - ctl->last_ms;
 	proc_intval_update(*intval_ms);
 	node_intval_update(*intval_ms);
 	node_cpu_traverse(cpu_profiling_smpl, NULL, B_FALSE, cpu_profiling_setupstart);
-	ctl->last_ms = current_ms();
+	ctl->last_ms = current_ms(&g_tvbase);
 	return (0);	
 }
 
@@ -549,7 +553,7 @@ profiling_restore(perf_ctl_t *ctl, task_restore_t *task)
 		(void *)(task->perf_count_id), B_FALSE, NULL);
 
 	s_partpause_enabled = B_FALSE;
-	ctl->last_ms = current_ms();
+	ctl->last_ms = current_ms(&g_tvbase);
 	return (0);
 }
 
@@ -560,7 +564,7 @@ profiling_multi_restore(perf_ctl_t *ctl, task_multi_restore_t *task)
 		(void *)(task->perf_count_ids), B_FALSE, NULL);
 
 	s_partpause_enabled = B_FALSE;
-	ctl->last_ms = current_ms();
+	ctl->last_ms = current_ms(&g_tvbase);
 	return (0);	
 }
 
@@ -575,7 +579,7 @@ ll_start(perf_ctl_t *ctl)
 	/* Start to count on each CPU. */
 	node_cpu_traverse(cpu_ll_start, NULL, B_FALSE, NULL);
 
-	ctl->last_ms = current_ms();
+	ctl->last_ms = current_ms(&g_tvbase);
 	return (0);
 }
 
@@ -590,10 +594,10 @@ ll_stop(void)
 static int
 ll_smpl(perf_ctl_t *ctl, task_ll_t *task, int *intval_ms)
 {
-	*intval_ms = current_ms() - ctl->last_ms;
+	*intval_ms = current_ms(&g_tvbase) - ctl->last_ms;
 	proc_intval_update(*intval_ms);
 	node_cpu_traverse(cpu_ll_smpl, (void *)task, B_FALSE, cpu_ll_setupstart);
-	ctl->last_ms = current_ms();
+	ctl->last_ms = current_ms(&g_tvbase);
 	return (0);	
 }
 
@@ -1296,8 +1300,8 @@ os_pqos_cmt_smpl(perf_ctl_t *ctl, perf_task_t *task, int *intval_ms)
 		proc_refcount_dec(proc);
 	}
 
-	*intval_ms = current_ms() - ctl->last_ms_pqos;
-	ctl->last_ms_pqos = current_ms();
+	*intval_ms = current_ms(&g_tvbase) - ctl->last_ms_pqos;
+	ctl->last_ms_pqos = current_ms(&g_tvbase);
 	disp_pqos_cmt_data_ready(*intval_ms);
 
 	return (0);

@@ -37,7 +37,6 @@
 #include <string.h>
 #include <assert.h>
 #include "../include/types.h"
-#include "../include/numatop.h"
 #include "../include/util.h"
 #include "../include/ui_perf_map.h"
 #include "../include/os/os_util.h"
@@ -45,6 +44,7 @@
 #include "../include/os/node.h"
 
 static node_group_t s_node_group;
+int g_ncpus;
 
 static void
 node_init(node_t *node, int nid, boolean_t hotadd)

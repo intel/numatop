@@ -1,9 +1,11 @@
 Building
 ---------
 1. To build mgen
-	make
+	cd <numatop home>/
+	make test
 
 2. To clean the built objects
+	cd <numatop home>/
 	make clean
 
 Note
@@ -12,7 +14,7 @@ mgen is a micro-test application which can generate memory access with
 runtime latency between CPUs. 
 
 Please note the latencies reported by mgen are not the official latencies
-from Intel. It is just a tool to test numatop.
+from Intel/IBM. It is just a tool to test numatop.
 
 For example:
 

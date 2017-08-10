@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013, Intel Corporation
+ * Copyright (c) 2017, IBM Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -26,23 +27,39 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_H
-#define	_NUMATOP_H
+#ifndef _NUMATOP_TEST_UTIL_H
+#define _NUMATOP_TEST_UTIL_H
 
-#ifdef __cplusplus
-extern "C" {
+#ifndef PATH_MAX
+#define PATH_MAX	4096
 #endif
 
-extern precise_type_t g_precise;
+#define CPU0_CPUFREQ_PATH \
+	"/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"
 
-/* Number of online CPUs */
-extern int g_ncpus;
+#define CPUINFO_PATH \
+	"/proc/cpuinfo"
 
-/* The sorting key */
-extern int g_sortkey;
+#define MEAS_TIME_DEFAULT	5
+#define MAX_VALUE		4294967295U
+#define MHZ			1000000
+#define GHZ			1000000000
+#define KHZ			1000
+#define NS_SEC			1000000000
+#define NS_MS			1000000
+#define MS_SEC			1000
+#define MICROSEC		1000000
+#define BUF_SIZE		256 * 1024 * 1024
+#define RAND_ARRAY_SIZE		8192
+#define INVALID_RAND		-1
+#define BUF_ELE_SIZE		64
+#define READ_NUM		10240000
 
-#ifdef __cplusplus
-}
-#endif
+extern double s_nsofclk;
+extern uint64_t s_clkofsec;
+extern double s_latest_avglat;
+extern struct timeval s_tvbase;
 
-#endif /* _NUMATOP_H */
+extern void arch__dependent_read(void *, int);
+
+#endif /* _NUMATOP_TEST_UTIL_H */
