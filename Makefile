@@ -5,6 +5,7 @@ PROG = numatop
 CC = gcc
 LD = gcc
 CFLAGS = -g -Wall -O2
+TEST_CFLAGS = -g -Wall -O0
 LDFLAGS = -g
 LDLIBS = -lncurses -lpthread -lnuma
 
@@ -48,8 +49,11 @@ TEST_ARCH_OBJS = $(TEST_ARCH_PATH)/util.o
 $(ARCH_PATH)/%.o: $(ARCH_PATH)/%.c
 	$(CC) $(CFLAGS) -o $@ -c $<
 
+$(TEST_PATH)/%.o: $(TEST_PATH)/%.c
+	$(CC) $(TEST_CFLAGS) -o $@ -c $<
+
 $(TEST_ARCH_PATH)/%o: $(TEST_ARCH_PATH)/%.c
-	$(CC) $(CFLAGS) -o $@ -c $<
+	$(CC) $(TEST_CFLAGS) -o $@ -c $<
 
 all: $(PROG) test
 
