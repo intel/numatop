@@ -40,19 +40,22 @@ TEST_PROG = $(TEST_PATH)/mgen
 TEST_OBJS = $(TEST_PATH)/mgen.o
 TEST_ARCH_OBJS = $(TEST_ARCH_PATH)/util.o
 
-%.o: ./common/%.c
+DEP := $(wildcard ./common/include/*.h) $(wildcard ./common/include/os/*.h) \
+	$(wildcard $(ARCH_PATH)/include/*.h) $(wildcard $(TEST_PATH)/include/*.h)
+
+%.o: ./common/%.c $(DEP)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-%.o: ./common/os/%.c
+%.o: ./common/os/%.c $(DEP)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-$(ARCH_PATH)/%.o: $(ARCH_PATH)/%.c
+$(ARCH_PATH)/%.o: $(ARCH_PATH)/%.c $(DEP)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-$(TEST_PATH)/%.o: $(TEST_PATH)/%.c
+$(TEST_PATH)/%.o: $(TEST_PATH)/%.c $(DEP)
 	$(CC) $(TEST_CFLAGS) -o $@ -c $<
 
-$(TEST_ARCH_PATH)/%o: $(TEST_ARCH_PATH)/%.c
+$(TEST_ARCH_PATH)/%o: $(TEST_ARCH_PATH)/%.c $(DEP)
 	$(CC) $(TEST_CFLAGS) -o $@ -c $<
 
 all: $(PROG) test
