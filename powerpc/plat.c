@@ -34,27 +34,32 @@
 #include "../common/include/os/os_util.h"
 #include "include/types.h"
 #include "include/power8.h"
+#include "include/power9.h"
 
 pfn_plat_profiling_config_t
 s_plat_profiling_config[CPU_TYPE_NUM] = {
 	NULL,
-	power8_profiling_config
+	power8_profiling_config,
+	power9_profiling_config
 };
 
 pfn_plat_ll_config_t
 s_plat_ll_config[CPU_TYPE_NUM] = {
 	NULL,
-	power8_ll_config
+	power8_ll_config,
+	power9_ll_config
 };
 
 pfn_plat_offcore_num_t
 s_plat_offcore_num[CPU_TYPE_NUM] = {
 	NULL,
-	power8_offcore_num
+	power8_offcore_num,
+	power9_offcore_num
 };
 
 #define SPRN_PVR	0x11F
 #define PVR_VER(pvr)	(((pvr) >> 16) & 0xFFFF)
+#define PVR_REV(pvr)	(((pvr) >>  0) & 0xFFFF)
 
 int
 plat_detect(void)
@@ -71,6 +76,15 @@ plat_detect(void)
 	case 0x4d:
 		s_cpu_type = CPU_POWER8;
 		ret = 0;
+		break;
+	case 0x4e:
+		/* No support for Power9 DD1. */
+		if (PVR_REV(pvr) == 0x100)
+			break;
+
+		s_cpu_type = CPU_POWER9;
+		ret = 0;
+		break;
 	}
 
 	return ret;

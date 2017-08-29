@@ -23,8 +23,8 @@ ARCH := $(shell uname -m)
 
 ifneq (,$(filter $(ARCH),ppc64le ppc64))
 ARCH_PATH = ./powerpc
-ARCH_OBJS = $(ARCH_PATH)/power8.o $(ARCH_PATH)/plat.o $(ARCH_PATH)/util.o \
-	$(ARCH_PATH)/ui_perf_map.o
+ARCH_OBJS = $(ARCH_PATH)/power8.o $(ARCH_PATH)/power9.o $(ARCH_PATH)/plat.o \
+	$(ARCH_PATH)/util.o $(ARCH_PATH)/ui_perf_map.o
 
 TEST_ARCH_PATH = $(TEST_PATH)/powerpc
 else
