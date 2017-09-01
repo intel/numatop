@@ -26,31 +26,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_POWERPC_TYPES_H
-#define _NUMATOP_POWERPC_TYPES_H
+#ifndef _NUMATOP_POWERPC_POWER9_H
+#define _NUMATOP_POWERPC_POWER9_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <sys/types.h>
+#include <inttypes.h>
 #include "../../common/include/types.h"
 
-#define CORP "IBM"
+struct _plat_event_config;
 
-typedef enum {
-	CPU_UNSUP = 0,
-	CPU_POWER8,
-	CPU_POWER9
-} cpu_type_t;
+extern void power9_profiling_config(perf_count_id_t, struct _plat_event_config *);
+extern void power9_ll_config(plat_event_config_t *cfg);
+extern int power9_offcore_num(void);
 
-#define CPU_TYPE_NUM    3
+#ifdef __cplusplus
+}
+#endif
 
-typedef enum {
-	PERF_COUNT_INVALID = -1,
-	PERF_COUNT_CORE_CLK = 0,
-	PERF_COUNT_RMA,
-	PERF_COUNT_CLK,
-	PERF_COUNT_IR,
-	PERF_COUNT_LMA,
-	PERF_COUNT_RMA_1
-} perf_count_id_t;
-
-#define PERF_COUNT_NUM	6
-
-#endif /* _NUMATOP_POWERPC_TYPES_H */
+#endif /* _NUMATOP_POWERPC_POWER9_H */

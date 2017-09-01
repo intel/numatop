@@ -5,6 +5,7 @@ PROG = numatop
 CC = gcc
 LD = gcc
 CFLAGS = -g -Wall -O2
+TEST_CFLAGS = -g -Wall -O0
 LDFLAGS = -g
 LDLIBS = -lncurses -lpthread -lnuma
 
@@ -22,8 +23,8 @@ ARCH := $(shell uname -m)
 
 ifneq (,$(filter $(ARCH),ppc64le ppc64))
 ARCH_PATH = ./powerpc
-ARCH_OBJS = $(ARCH_PATH)/power8.o $(ARCH_PATH)/plat.o $(ARCH_PATH)/util.o \
-	$(ARCH_PATH)/ui_perf_map.o
+ARCH_OBJS = $(ARCH_PATH)/power8.o $(ARCH_PATH)/power9.o $(ARCH_PATH)/plat.o \
+	$(ARCH_PATH)/util.o $(ARCH_PATH)/ui_perf_map.o
 
 TEST_ARCH_PATH = $(TEST_PATH)/powerpc
 else
@@ -39,17 +40,23 @@ TEST_PROG = $(TEST_PATH)/mgen
 TEST_OBJS = $(TEST_PATH)/mgen.o
 TEST_ARCH_OBJS = $(TEST_ARCH_PATH)/util.o
 
-%.o: ./common/%.c
+DEP := $(wildcard ./common/include/*.h) $(wildcard ./common/include/os/*.h) \
+	$(wildcard $(ARCH_PATH)/include/*.h) $(wildcard $(TEST_PATH)/include/*.h)
+
+%.o: ./common/%.c $(DEP)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-%.o: ./common/os/%.c
+%.o: ./common/os/%.c $(DEP)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-$(ARCH_PATH)/%.o: $(ARCH_PATH)/%.c
+$(ARCH_PATH)/%.o: $(ARCH_PATH)/%.c $(DEP)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-$(TEST_ARCH_PATH)/%o: $(TEST_ARCH_PATH)/%.c
-	$(CC) $(CFLAGS) -o $@ -c $<
+$(TEST_PATH)/%.o: $(TEST_PATH)/%.c $(DEP)
+	$(CC) $(TEST_CFLAGS) -o $@ -c $<
+
+$(TEST_ARCH_PATH)/%o: $(TEST_ARCH_PATH)/%.c $(DEP)
+	$(CC) $(TEST_CFLAGS) -o $@ -c $<
 
 all: $(PROG) test
 
