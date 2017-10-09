@@ -499,6 +499,10 @@ perf_profiling_partpause(ui_count_id_t ui_count_id)
 	int n_perf_count;
 
 	n_perf_count = get_ui_perf_count_map(ui_count_id, &perf_count_ids);
+
+	if (n_perf_count == PERF_COUNT_INVALID)
+		return (-1);
+
 	if (n_perf_count > 1) {
 		return (os_perf_profiling_multipause(perf_count_ids));
 	} else {
@@ -513,6 +517,10 @@ perf_profiling_restore(ui_count_id_t ui_count_id)
 	int n_perf_count;
 
 	n_perf_count = get_ui_perf_count_map(ui_count_id, &perf_count_ids);
+
+	if (n_perf_count == PERF_COUNT_INVALID)
+		return (-1);
+
 	if (n_perf_count > 1) {
 		return (os_perf_profiling_multi_restore(perf_count_ids));
 	} else  {
