@@ -224,6 +224,10 @@ cpu_profiling_smpl(perf_cpu_t *cpu, void *arg)
 
 	for (i = 1; i < record_num; i++) {
 		record = &s_profiling_recbuf[i];
+
+		if (record->pid == -1 || record->tid == -1)
+			continue;
+
 		countval_diff(cpu, record, &diff);
 
 		if ((proc = proc_find(record->pid)) == NULL) {
