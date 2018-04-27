@@ -73,9 +73,9 @@ $(TEST_PROG): $(TEST_OBJS) $(COMMON_OBJS) $(OS_OBJS) $(ARCH_OBJS) $(TEST_ARCH_OB
 	$(ARCH_OBJS) $(TEST_ARCH_OBJS) $(LDLIBS)
 
 install: $(PROG)
-	install -m 0755 $(PROG) $(PREFIXDIR)$(BINDIR)/
+	install -m 0755 -D $(PROG) $(DESTDIR)$(PREFIXDIR)$(BINDIR)/$(PROG)
 	gzip -c numatop.8 > numatop.8.gz
-	mv -f numatop.8.gz $(PREFIXDIR)$(MANDIR)/
+	install -m 0755 -D numatop.8.gz $(DESTDIR)$(PREFIXDIR)$(MANDIR)/numatop.8.gz
 
 clean:
 	rm -rf *.o $(ARCH_PATH)/*.o $(TEST_PATH)/*.o $(TEST_ARCH_PATH)/*.o \
