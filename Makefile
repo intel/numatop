@@ -1,12 +1,12 @@
-PREFIXDIR = /usr/local
-BINDIR = /bin
-MANDIR = /usr/share/man/man8
+PREFIXDIR := /usr/local
+BINDIR := /bin
+MANDIR := /share/man/man8
 PROG = numatop
-CC = gcc
-LD = gcc
-CFLAGS = -g -Wall -O2
+CC := gcc
+LD := gcc
+CFLAGS := -g -Wall -O2
 TEST_CFLAGS = -g -Wall -O0
-LDFLAGS = -g
+LDFLAGS := -g
 LDLIBS = -lncurses -lpthread -lnuma
 
 NUMATOP_OBJS = numatop.o
@@ -75,7 +75,7 @@ $(TEST_PROG): $(TEST_OBJS) $(COMMON_OBJS) $(OS_OBJS) $(ARCH_OBJS) $(TEST_ARCH_OB
 install: $(PROG)
 	install -m 0755 $(PROG) $(PREFIXDIR)$(BINDIR)/
 	gzip -c numatop.8 > numatop.8.gz
-	mv -f numatop.8.gz $(MANDIR)/
+	mv -f numatop.8.gz $(PREFIXDIR)$(MANDIR)/
 
 clean:
 	rm -rf *.o $(ARCH_PATH)/*.o $(TEST_PATH)/*.o $(TEST_ARCH_PATH)/*.o \
