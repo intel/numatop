@@ -1,36 +1,36 @@
-Building & Installing NumaTOP
-------------------------------
-1. To build NumaTOP
-	make
 
-2. To clean the built objects
-	make clean
-	
-3. To install NumaTOP (needs root authority).
-	make install
+## Building & Installing NumaTOP
+
+Numatop uses autotools. If you're compiling from git, run `autogen.sh`
+and then `make`. Otherwise, use `./configure && make`.
+
+To install, run `sudo make install`.
 
 
-Build Dependencies
-------------------
+## Build Dependencies
+
 NumaTOP requires following libraries:
 
-1. numactl-devel or libnuma-dev(el)
-2. libncurses
-3. libpthread
+* numactl-devel or libnuma-dev(el)
+* libncurses
+* libpthread
 
 
-Kernel Requirement:
-------------------
-Recommended kernel: 3.16
+## Supported Kernels
+
+The recommended kernel version is the latest stable kernel, currently 4.15.
+
+The minimum kernel version supported is 3.16
 
 For Haswell supporting, please also apply a perf patch on 3.16. The patch
-is numatop/kernel_patches/0001-perf-x86-Widen-Haswell-OFFCORE-mask.patch.
+is `kernel_patches/0001-perf-x86-Widen-Haswell-OFFCORE-mask.patch`.
 
 The patch can also be found at following link:
 http://www.gossamer-threads.com/lists/linux/kernel/1964864
 
-Directories
-------------------
+
+## Directories
+
 common:	common code for all platforms.
 
 intel : Intel platform-specific code.
@@ -43,8 +43,9 @@ test  : mgen source code. mgen is a micro-test application which can
 
 kernel_patches: the required kernel patches.
 
-Note:
------
+
+## Supported Hardware
+
 numatop is supported on Intel Xeon processors: 5500-series, 6500/7500-series,
 5600 series, E7-x8xx-series, and E5-16xx/24xx/26xx/46xx-series. 
 
@@ -53,7 +54,8 @@ E5-16xx/24xx/26xx/46xx-series had better be updated to latest CPU microcode
 
 To learn about NumaTOP, please visit http://01.org/numatop
 
-PowerPC Support:
-----------------
+
+## PowerPC Support
+
 NumaTOP is also supported on PowerPC. Please check powerpc/FEATURES file
 for more details.
