@@ -21,6 +21,8 @@ AC_PROG_INSTALL
 AC_CHECK_LIB([numa], [numa_free])
 AC_CHECK_LIB([pthread], [pthread_create])
 
+PKG_CHECK_MODULES([CHECK], [check])
+
 PKG_CHECK_MODULES([NCURSES], [ncursesw ncurses], [LIBS="$LIBS $ncurses_LIBS"], [
 	AC_SEARCH_LIBS([delwin], [ncursesw ncurses], [], [
 		AC_MSG_ERROR([ncurses is required but was not found])

@@ -1,5 +1,7 @@
 *.lo
 *.o
+*.log
+*.trs
 .deps
 .dirstamp
 .libs
@@ -21,3 +23,4 @@ missing
 numatop
 numatop-*.tar.*
 stamp-h1
+test-driver

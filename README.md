@@ -6,6 +6,9 @@ and then `make`. Otherwise, use `./configure && make`.
 
 To install, run `sudo make install`.
 
+To run the test program, run `make check` after compilation or check
+the `mgen` program for help information.
+
 
 ## Build Dependencies
 
