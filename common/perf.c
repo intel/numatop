@@ -209,7 +209,7 @@ perf_status_wait(perf_status_t status)
  */
 /* ARGSUSED */
 static void *
-perf_handler(void *arg)
+perf_handler(void *arg __attribute__((unused)))
 {
 	perf_task_t task;
 	int intval_ms;

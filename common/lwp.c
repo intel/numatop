@@ -280,7 +280,7 @@ lwp_refcount_dec(track_lwp_t *lwp)
 static uint64_t
 count_value_get(track_lwp_t *lwp, ui_count_id_t ui_count_id)
 {
-	return (node_countval_sum(lwp->countval_arr, lwp->cpuid_max,
+	return (node_countval_sum(lwp->countval_arr,
 	    NODE_ALL, ui_count_id));
 }
 

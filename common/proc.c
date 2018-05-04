@@ -71,7 +71,9 @@ proc_group_init(void)
 
 /* ARGSUSED */
 static int
-lwp_free_walk(track_lwp_t *lwp, void *arg, boolean_t *end)
+lwp_free_walk(track_lwp_t *lwp,
+	void *arg __attribute__((unused)),
+	boolean_t *end)
 {
 	*end = B_FALSE;
 	(void) lwp_free(lwp);
@@ -155,7 +157,9 @@ proc_traverse(int (*func)(track_proc_t *, void *, boolean_t *), void *arg)
 
 /* ARGSUSED */
 static int
-proc_free_walk(track_proc_t *proc, void *arg, boolean_t *end)
+proc_free_walk(track_proc_t *proc,
+	void *arg __attribute__((unused)),
+	boolean_t *end)
 {
 	*end = B_FALSE;
 	proc_free(proc);
@@ -415,7 +419,7 @@ proc_group_unlock(void)
 static uint64_t
 count_value_get(track_proc_t *proc, ui_count_id_t ui_count_id)
 {
-	return (node_countval_sum(proc->countval_arr, proc->cpuid_max,
+	return (node_countval_sum(proc->countval_arr,
 	    NODE_ALL, ui_count_id));
 }
 
@@ -693,7 +697,9 @@ pid_find(pid_t pid, pid_t *pid_arr, int num)
 
 /* ARGSUSED */
 static int
-proc_lwp_refresh(track_proc_t *proc, void *arg, boolean_t *end)
+proc_lwp_refresh(track_proc_t *proc,
+	void *arg __attribute__((unused)),
+	boolean_t *end)
 {
 	*end = B_FALSE;
 	lwp_enum_update(proc);
@@ -702,7 +708,9 @@ proc_lwp_refresh(track_proc_t *proc, void *arg, boolean_t *end)
 
 /* ARGSUSED */
 static int
-proc_nlwps_sum(track_proc_t *proc, void *arg, boolean_t *end)
+proc_nlwps_sum(track_proc_t *proc,
+	void *arg __attribute__((unused)),
+	boolean_t *end)
 {
 	*end = B_FALSE;
 	s_proc_group.nlwps += proc_nlwp(proc);
@@ -921,7 +929,9 @@ proc_intval_get(track_proc_t *proc)
 
 /* ARGSUSED */
 static int
-lwp_profiling_clear(track_lwp_t *lwp, void *arg, boolean_t *end)
+lwp_profiling_clear(track_lwp_t *lwp,
+	void *arg __attribute__((unused)),
+	boolean_t *end)
 {
 	*end = B_FALSE;
 	(void) memset(lwp->countval_arr, 0,
@@ -931,7 +941,9 @@ lwp_profiling_clear(track_lwp_t *lwp, void *arg, boolean_t *end)
 
 /* ARGSUSED */
 static int
-profiling_clear(track_proc_t *proc, void *arg, boolean_t *end)
+profiling_clear(track_proc_t *proc,
+	void *arg __attribute__((unused)),
+	boolean_t *end)
 {
 	*end = B_FALSE;
 	proc_lwp_traverse(proc, lwp_profiling_clear, NULL);
@@ -948,7 +960,9 @@ proc_profiling_clear(void)
 
 /* ARGSUSED */
 static int
-lwp_callchain_clear(track_lwp_t *lwp, void *arg, boolean_t *end)
+lwp_callchain_clear(track_lwp_t *lwp,
+	void *arg __attribute__((unused)),
+	boolean_t *end)
 {
 	*end = B_FALSE;
 	perf_countchain_reset(&lwp->count_chain);
@@ -957,7 +971,9 @@ lwp_callchain_clear(track_lwp_t *lwp, void *arg, boolean_t *end)
 
 /* ARGSUSED */
 static int
-callchain_clear(track_proc_t *proc, void *arg, boolean_t *end)
+callchain_clear(track_proc_t *proc,
+	void *arg __attribute__((unused)),
+	boolean_t *end)
 {
 	*end = B_FALSE;
 	proc_lwp_traverse(proc, lwp_callchain_clear, NULL);
@@ -973,7 +989,9 @@ proc_callchain_clear(void)
 
 /* ARGSUSED */
 static int
-lwp_ll_clear(track_lwp_t *lwp, void *arg, boolean_t *end)
+lwp_ll_clear(track_lwp_t *lwp,
+	void *arg __attribute__((unused)),
+	boolean_t *end)
 {
 	*end = B_FALSE;
 	perf_llrecgrp_reset(&lwp->llrec_grp);
@@ -981,7 +999,9 @@ lwp_ll_clear(track_lwp_t *lwp, void *arg, boolean_t *end)
 }
 
 static int
-ll_clear(track_proc_t *proc, void *arg, boolean_t *end)
+ll_clear(track_proc_t *proc,
+	void *arg __attribute__((unused)),
+	boolean_t *end)
 {
         *end = B_FALSE;
         proc_lwp_traverse(proc, lwp_ll_clear, NULL);

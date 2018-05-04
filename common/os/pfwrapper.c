@@ -79,7 +79,7 @@ mmap_buffer_read(struct perf_event_mmap_page *header, void *buf, size_t size)
 	 * The kernel function "perf_output_space()" guarantees no data_head can
 	 * wrap over the data_tail.
 	 */
-	if ((data_size = data_head - data_tail) < size) {
+	if ((data_size = data_head - data_tail) < (int)size) {
 		return (-1);
 	}
 
@@ -88,7 +88,7 @@ mmap_buffer_read(struct perf_event_mmap_page *header, void *buf, size_t size)
 	/*
 	 * Need to consider if data_head is wrapped when copy data.
 	 */
-	if ((ncopies = (s_mapsize - data_tail)) < size) {
+	if ((ncopies = (s_mapsize - data_tail)) < (int)size) {
 		memcpy(buf, data + data_tail, ncopies);
 		memcpy(buf + ncopies, data, size - ncopies);
 	} else {
@@ -107,7 +107,7 @@ mmap_buffer_skip(struct perf_event_mmap_page *header, int size)
 	data_head = header->data_head;
 	rmb();
 
-	if ((header->data_tail + size) > data_head) {
+	if ((int)(header->data_tail + size) > data_head) {
 		size = data_head - header->data_tail;
 	}
 
@@ -641,31 +641,37 @@ pf_resource_free(struct _perf_cpu *cpu)
 }
 
 int
-pf_pqos_occupancy_setup(struct _perf_pqos *pqos, int pid, int lwpid)
+pf_pqos_occupancy_setup(struct _perf_pqos *pqos __attribute__((unused)),
+	int pid __attribute__((unused)),
+	int lwpid __attribute__((unused)))
 {
 	return 0;
 }
 
 int
-pf_pqos_totalbw_setup(struct _perf_pqos *pqos, int pid, int lwpid)
+pf_pqos_totalbw_setup(struct _perf_pqos *pqos __attribute__((unused)),
+	int pid __attribute__((unused)),
+	int lwpid __attribute__((unused)))
 {
 	return 0;
 }
 
 int
-pf_pqos_localbw_setup(struct _perf_pqos *pqos, int pid, int lwpid)
+pf_pqos_localbw_setup(struct _perf_pqos *pqos __attribute__((unused)),
+	int pid __attribute__((unused)),
+	int lwpid __attribute__((unused)))
 {
 	return 0;
 }
 
 int
-pf_pqos_start(struct _perf_pqos *pqos)
+pf_pqos_start(struct _perf_pqos *pqos __attribute__((unused)))
 {
 	return 0;
 }
 
 int
-pf_pqos_stop(struct _perf_pqos *pqos)
+pf_pqos_stop(struct _perf_pqos *pqos __attribute__((unused)))
 {
 	return 0;
 }
@@ -697,7 +703,7 @@ read_fd(int fd, void *buf, int bytes)
 }
 
 void
-pf_pqos_record(struct _perf_pqos *pqos)
+pf_pqos_record(struct _perf_pqos *pqos __attribute__((unused)))
 {
 
 }

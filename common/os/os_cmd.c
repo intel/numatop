@@ -49,9 +49,8 @@ static int s_callchain_ui_countid[] = {
 	UI_COUNT_IR
 };
 
-/* ARGSUSED */
 int
-os_preop_switch2profiling(cmd_t *cmd, boolean_t *smpl)
+os_preop_switch2profiling(cmd_t *cmd __attribute__((unused)), boolean_t *smpl)
 {
 	*smpl = B_FALSE;
 
@@ -78,7 +77,7 @@ os_preop_switch2profiling(cmd_t *cmd, boolean_t *smpl)
 }
 
 int
-os_preop_switch2ll(cmd_t *cmd, boolean_t *smpl)
+os_preop_switch2ll(cmd_t *cmd __attribute__((unused)), boolean_t *smpl)
 {
 	*smpl = B_FALSE;
 	if (!perf_ll_started()) {
@@ -93,50 +92,50 @@ os_preop_switch2ll(cmd_t *cmd, boolean_t *smpl)
 	return (0);
 }
 
-/* ARGSUSED */
 int
-os_preop_llrefresh(cmd_t *cmd, boolean_t *smpl)
-{
-	/* Not supported on Linux. */
-	return (0);
-}
-
-/* ARGSUSED */
-int
-os_preop_llmap_get(cmd_t *cmd, boolean_t *smpl)
+os_preop_llrefresh(cmd_t *cmd __attribute__((unused)),
+	boolean_t *smpl __attribute__((unused)))
 {
 	/* Not supported on Linux. */
 	return (0);
 }
 
 int
-os_preop_switch2ln(cmd_t *cmd, boolean_t *smpl)
+os_preop_llmap_get(cmd_t *cmd __attribute__((unused)),
+	boolean_t *smpl __attribute__((unused)))
 {
 	/* Not supported on Linux. */
 	return (0);
 }
 
-/* ARGSUSED */
 int
-os_preop_lnrefresh(cmd_t *cmd, boolean_t *smpl)
+os_preop_switch2ln(cmd_t *cmd __attribute__((unused)),
+	boolean_t *smpl __attribute__((unused)))
 {
 	/* Not supported on Linux. */
 	return (0);
 }
 
-/* ARGSUSED */
 int
-os_preop_lnmap_get(cmd_t *cmd, boolean_t *smpl)
+os_preop_lnrefresh(cmd_t *cmd __attribute__((unused)),
+	boolean_t *smpl __attribute__((unused)))
 {
 	/* Not supported on Linux. */
 	return (0);
 }
 
-/* ARGSUSED */
 int
-os_preop_back2ll(cmd_t *cmd, boolean_t *smpl)
+os_preop_lnmap_get(cmd_t *cmd __attribute__((unused)),
+	boolean_t *smpl __attribute__((unused)))
 {
 	/* Not supported on Linux. */
+	return (0);
+}
+
+int
+os_preop_back2ll(cmd_t *cmd __attribute__((unused)),
+	boolean_t *smpl __attribute__((unused)))
+{
 	return (0);
 }
 
@@ -166,7 +165,8 @@ os_preop_switch2callchain(cmd_t *cmd, boolean_t *smpl)
 }
 
 int
-os_preop_switch2accdst(cmd_t *cmd, boolean_t *smpl)
+os_preop_switch2accdst(cmd_t *cmd,
+	boolean_t *smpl __attribute__((unused)))
 {
 	page_t *cur = page_current_get();
 	win_type_t type = PAGE_WIN_TYPE(cur);
@@ -190,7 +190,7 @@ os_preop_switch2accdst(cmd_t *cmd, boolean_t *smpl)
 }
 
 int
-os_preop_leavecallchain(cmd_t *cmd, boolean_t *smpl)
+os_preop_leavecallchain(cmd_t *cmd __attribute__((unused)), boolean_t *smpl)
 {
 	page_t *cur = page_current_get();
 	ui_count_id_t ui_countid;
@@ -204,7 +204,8 @@ os_preop_leavecallchain(cmd_t *cmd, boolean_t *smpl)
 }
 
 int
-os_preop_switch2pqoscmt(cmd_t *cmd, boolean_t *smpl)
+os_preop_switch2pqoscmt(cmd_t *cmd,
+	boolean_t *smpl __attribute__((unused)))
 {
 	page_t *cur = page_current_get();
 	win_type_t type = PAGE_WIN_TYPE(cur);
@@ -260,7 +261,8 @@ os_preop_switch2pqoscmt(cmd_t *cmd, boolean_t *smpl)
 }
 
 int
-os_preop_switch2pqosmbm(cmd_t *cmd, boolean_t *smpl)
+os_preop_switch2pqosmbm(cmd_t *cmd,
+	boolean_t *smpl __attribute__((unused)))
 {
 	page_t *cur = page_current_get();
 	win_type_t type = PAGE_WIN_TYPE(cur);
@@ -288,7 +290,8 @@ os_preop_switch2pqosmbm(cmd_t *cmd, boolean_t *smpl)
 }
 
 int
-os_preop_switch2uncore(cmd_t *cmd, boolean_t *smpl)
+os_preop_switch2uncore(cmd_t *cmd,
+	boolean_t *smpl __attribute__((unused)))
 {
 	page_t *cur = page_current_get();
 	win_type_t type = PAGE_WIN_TYPE(cur);
@@ -310,14 +313,16 @@ os_preop_switch2uncore(cmd_t *cmd, boolean_t *smpl)
 }
 
 int
-os_op_llmap_stop(cmd_t *cmd, boolean_t smpl)
+os_op_llmap_stop(cmd_t *cmd __attribute__((unused)),
+	boolean_t smpl __attribute__((unused)))
 {
 	/* Not supported on Linux. */
 	return (0);
 }
 
 int
-os_op_lnmap_stop(cmd_t *cmd, boolean_t smpl)
+os_op_lnmap_stop(cmd_t *cmd __attribute__((unused)),
+	boolean_t smpl __attribute__((unused)))
 {
 	/* Not supported on Linux. */
 	return (0);
@@ -382,7 +387,6 @@ os_op_callchain_count(cmd_t *cmd, boolean_t smpl)
 	return (0);
 }
 
-/* ARGSUSED */
 int
 os_op_switch2llcallchain(cmd_t *cmd1, boolean_t smpl)
 {

@@ -286,7 +286,7 @@ void disp_pqos_cmt_data_fail(void)
  */
 /* ARGSUSED */
 void
-disp_on_resize(int sig)
+disp_on_resize(int sig __attribute__((unused)))
 {
 	char c = PIPE_CHAR_RESIZE;
 
@@ -455,7 +455,7 @@ consthr_init_wait(void)
  */
 /* ARGSUSED */
 static void *
-disp_handler(void *arg)
+disp_handler(void *arg __attribute__((unused)))
 {
 	disp_flag_t flag;
 	int status = 0;
@@ -625,7 +625,7 @@ L_EXIT:
  */
 /* ARGSUSED */
 static void *
-cons_handler(void *arg)
+cons_handler(void *arg __attribute__((unused)))
 {
 	int c, cmd_id;
 	unsigned char ch;

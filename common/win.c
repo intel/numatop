@@ -319,15 +319,15 @@ topnproc_win_destroy(dyn_win_t *win)
  */
 static int
 win_countvalue_fill(win_countvalue_t *cv,
-	count_value_t *countval_arr, int cpuid_max, int nid, int ms, int ncpus)
+	count_value_t *countval_arr, int nid, int ms, int ncpus)
 {
 	uint64_t rma, lma, ir, clk, all_clks;
 	double d;
 
-	rma = node_countval_sum(countval_arr, cpuid_max, nid, UI_COUNT_RMA);
-	lma = node_countval_sum(countval_arr, cpuid_max, nid, UI_COUNT_LMA);
-	clk = node_countval_sum(countval_arr, cpuid_max, nid, UI_COUNT_CLK);
-	ir = node_countval_sum(countval_arr, cpuid_max, nid, UI_COUNT_IR);
+	rma = node_countval_sum(countval_arr, nid, UI_COUNT_RMA);
+	lma = node_countval_sum(countval_arr, nid, UI_COUNT_LMA);
+	clk = node_countval_sum(countval_arr, nid, UI_COUNT_CLK);
+	ir = node_countval_sum(countval_arr, nid, UI_COUNT_IR);
 
 	cv->rpi = ratio(rma * 1000, ir);
 	cv->lpi = ratio(lma * 1000, ir);
@@ -361,7 +361,7 @@ topnproc_data_save(track_proc_t *proc, int intval, topnproc_line_t *line)
 	line->nlwp = proc_nlwp(proc);
 
 	(void) win_countvalue_fill(&line->value, proc->countval_arr,
-	    proc->cpuid_max, NODE_ALL, intval, g_ncpus);
+	    NODE_ALL, intval, g_ncpus);
 }
 
 static void
@@ -749,7 +749,8 @@ L_EXIT:
  */
 /* ARGSUSED */
 static void
-moniproc_data_save(track_proc_t *proc, int nid_idx, int nnodes,
+moniproc_data_save(track_proc_t *proc, int nid_idx,
+	int nnodes __attribute__((unused)),
 	moni_line_t *line)
 {
 	int ncpus, intval;
@@ -766,7 +767,7 @@ moniproc_data_save(track_proc_t *proc, int nid_idx, int nnodes,
 	intval = proc_intval_get(proc);
 
 	(void) win_countvalue_fill(&line->value, proc->countval_arr,
-	    proc->cpuid_max, node->nid, intval, ncpus);
+	    node->nid, intval, ncpus);
 }
 
 void
@@ -884,7 +885,8 @@ moniproc_win_draw(dyn_win_t *win)
  */
 /* ARGSUSED */
 static void
-monilwp_data_save(track_lwp_t *lwp, int nid_idx, int nnodes,
+monilwp_data_save(track_lwp_t *lwp, int nid_idx,
+	int nnodes __attribute__((unused)),
 	moni_line_t *line)
 {
 	node_t *node;
@@ -899,7 +901,7 @@ monilwp_data_save(track_lwp_t *lwp, int nid_idx, int nnodes,
 	intval = lwp_intval_get(lwp);
 
 	(void) win_countvalue_fill(&line->value, lwp->countval_arr,
-	    lwp->cpuid_max, node->nid, intval, 1);
+	    node->nid, intval, 1);
 }
 
 void
@@ -1279,7 +1281,7 @@ topnlwp_data_save(track_lwp_t *lwp, int intval, topnlwp_line_t *line)
 	line->lwpid = lwp->id;
 
 	(void) win_countvalue_fill(&line->value, lwp->countval_arr,
-	    lwp->cpuid_max, NODE_ALL, intval, 1);
+	    NODE_ALL, intval, 1);
 }
 
 static boolean_t
@@ -1558,7 +1560,9 @@ win_node_countvalue(node_t *node, win_countvalue_t *cv)
  */
 /* ARGSUSED */
 static void
-nodeoverview_data_save(int nid_idx, int nnodes, nodeoverview_line_t *line)
+nodeoverview_data_save(int nid_idx,
+	int nnodes __attribute__((unused)),
+	nodeoverview_line_t *line)
 {
 	node_t *node;
 	node_meminfo_t meminfo;
@@ -2899,18 +2903,19 @@ pqos_cmt_proc_data_save(track_proc_t *proc, track_lwp_t *lwp, int intval,
 	if (lwp == NULL) {
 		line->llc_occupancy = proc->pqos.occupancy_scaled;
 		win_countvalue_fill(&line->value, proc->countval_arr,
-			proc->cpuid_max, NODE_ALL, intval, g_ncpus);
+			NODE_ALL, intval, g_ncpus);
 
 	} else {
 		line->llc_occupancy = lwp->pqos.occupancy_scaled;
 		line->lwpid = lwp->id;
 		win_countvalue_fill(&line->value, lwp->countval_arr,
-			lwp->cpuid_max, NODE_ALL, intval, g_ncpus);
+			NODE_ALL, intval, g_ncpus);
 	}
 }
 
 static dyn_pqos_cmt_proc_t *
-pqos_cmt_dyn_create_proc(page_t *page, pid_t pid, int lwpid, win_type_t *type)
+pqos_cmt_dyn_create_proc(page_t *page __attribute__((unused)),
+	pid_t pid, int lwpid, win_type_t *type)
 {
 	dyn_pqos_cmt_proc_t *dyn;
 	void *buf;
@@ -3223,18 +3228,19 @@ pqos_mbm_proc_data_save(track_proc_t *proc, track_lwp_t *lwp, int intval,
 		line->totalbw_scaled = proc->pqos.totalbw_scaled;
 		line->localbw_scaled = proc->pqos.localbw_scaled;
 		win_countvalue_fill(&line->value, proc->countval_arr,
-			proc->cpuid_max, NODE_ALL, intval, g_ncpus);
+			NODE_ALL, intval, g_ncpus);
 
 	} else {
 		line->totalbw_scaled = lwp->pqos.totalbw_scaled;
 		line->localbw_scaled = lwp->pqos.localbw_scaled;
 		win_countvalue_fill(&line->value, lwp->countval_arr,
-			lwp->cpuid_max, NODE_ALL, intval, g_ncpus);
+			NODE_ALL, intval, g_ncpus);
 	}
 }
 
 static dyn_pqos_mbm_proc_t *
-pqos_mbm_dyn_create_proc(page_t *page, pid_t pid, int lwpid, win_type_t *type)
+pqos_mbm_dyn_create_proc(page_t *page __attribute__((unused)),
+	pid_t pid, int lwpid, win_type_t *type)
 {
 	dyn_pqos_mbm_proc_t *dyn;
 	void *buf;

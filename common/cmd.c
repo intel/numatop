@@ -166,7 +166,8 @@ preop_leavecallchain(cmd_t *cmd, boolean_t *smpl)
 
 /* ARGSUSED */
 static int
-op_page_prev(cmd_t *cmd, boolean_t smpl)
+op_page_prev(cmd_t *cmd __attribute__((unused)),
+	boolean_t smpl)
 {
 	page_t *prev;
 
@@ -184,7 +185,8 @@ op_page_prev(cmd_t *cmd, boolean_t smpl)
 
 /* ARGSUSED */
 int
-op_refresh(cmd_t *cmd, boolean_t smpl)
+op_refresh(cmd_t *cmd __attribute__((unused)),
+	boolean_t smpl __attribute__((unused)))
 {
 	page_t *cur = page_current_get();
 
@@ -232,7 +234,8 @@ sortkey_set(int cmd_id, page_t *page)
 
 /* ARGSUSED */
 static int
-op_sort(cmd_t *cmd, boolean_t smpl)
+op_sort(cmd_t *cmd,
+	boolean_t smpl __attribute__((unused)))
 {
 	page_t *cur;
 	int cmd_id;

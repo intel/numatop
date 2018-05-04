@@ -417,7 +417,7 @@ node_cpu_traverse(pfn_perf_cpu_op_t func, void *arg, boolean_t err_ret,
 }
 
 static uint64_t
-countval_sum(count_value_t *countval_arr, int cpuid_max, int nid,
+countval_sum(count_value_t *countval_arr, int nid,
 	ui_count_id_t ui_count_id)
 {
 	uint64_t value = 0;
@@ -445,18 +445,18 @@ countval_sum(count_value_t *countval_arr, int cpuid_max, int nid,
 }
 
 uint64_t
-node_countval_sum(count_value_t *countval_arr, int cpuid_max, int nid,
+node_countval_sum(count_value_t *countval_arr, int nid,
 	ui_count_id_t ui_count_id)
 {
 	int i;
 	uint64_t value = 0;
 
 	if (nid != NODE_ALL) {
-		return (countval_sum(countval_arr, cpuid_max, nid, ui_count_id));
+		return (countval_sum(countval_arr, nid, ui_count_id));
 	}
 
 	for (i = 0; i < NNODES_MAX; i++) {
-		value += countval_sum(countval_arr, cpuid_max, i, ui_count_id);
+		value += countval_sum(countval_arr, i, ui_count_id);
 	}
 
 	return (value);

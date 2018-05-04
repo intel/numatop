@@ -901,7 +901,8 @@ latnode_data_get(track_proc_t *proc, track_lwp_t *lwp, dyn_latnode_t *dyn)
 }
 
 static boolean_t
-latnode_data_show(track_proc_t *proc, dyn_latnode_t *dyn, map_entry_t *entry,
+latnode_data_show(track_proc_t *proc, dyn_latnode_t *dyn,
+	map_entry_t *entry __attribute__((unused)),
 	boolean_t *note_out)
 {
 	win_reg_t *reg;

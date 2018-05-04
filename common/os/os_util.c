@@ -57,7 +57,7 @@ os_authorized(void)
 }
 
 int
-os_numatop_lock(boolean_t *locked)
+os_numatop_lock(boolean_t *locked __attribute__((unused)))
 {
 	/* Not supported on Linux */
 	return (0);
@@ -70,7 +70,8 @@ os_numatop_unlock(void)
 }
 
 int
-os_procfs_psinfo_get(pid_t pid, void *info)
+os_procfs_psinfo_get(pid_t pid __attribute__((unused)),
+	void *info __attribute__((unused)))
 {
 	/* Not supported on Linux */
 	return (0);
@@ -117,7 +118,8 @@ os_procfs_lwp_enum(pid_t pid, int **lwps, int *num)
  * Check if the specified pid/lwpid can be found in '/proc'.
  */
 boolean_t
-os_procfs_lwp_valid(pid_t pid, int lwpid)
+os_procfs_lwp_valid(pid_t pid __attribute__((unused)),
+	int lwpid __attribute__((unused)))
 {
 	/* Not supported on Linux */
 	return (B_TRUE);

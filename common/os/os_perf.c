@@ -91,7 +91,8 @@ cpu_init(perf_cpu_t *cpu)
 }
 
 static int
-cpu_profiling_setup(perf_cpu_t *cpu, void *arg)
+cpu_profiling_setup(perf_cpu_t *cpu,
+	void *arg __attribute__((unused)))
 {
 	pf_conf_t *conf_arr = s_profiling_conf.conf_arr;
 	int i, ret = 0;
@@ -119,21 +120,24 @@ cpu_profiling_setup(perf_cpu_t *cpu, void *arg)
 }
 
 static int
-cpu_profiling_start(perf_cpu_t *cpu, void *arg)
+cpu_profiling_start(perf_cpu_t *cpu,
+	void *arg __attribute__((unused)))
 {
 	cpu_op(cpu, pf_profiling_allstart);	
 	return (0);
 }
 
 static int
-cpu_profiling_stop(perf_cpu_t *cpu, void *arg)
+cpu_profiling_stop(perf_cpu_t *cpu,
+	void *arg __attribute__((unused)))
 {
 	cpu_op(cpu, pf_profiling_allstop);	
 	return (0);
 }
 
 static int
-cpu_resource_free(perf_cpu_t *cpu, void *arg)
+cpu_resource_free(perf_cpu_t *cpu,
+	void *arg __attribute__((unused)))
 {	
 	pf_resource_free(cpu);
 	return (0);
@@ -195,7 +199,8 @@ chain_add(perf_countchain_t *count_chain, int perf_count_id, uint64_t count_valu
 }
 
 static int
-cpu_profiling_smpl(perf_cpu_t *cpu, void *arg)
+cpu_profiling_smpl(perf_cpu_t *cpu,
+	void *arg __attribute__((unused)))
 {
 	pf_profiling_rec_t *record;
 	track_proc_t *proc;
@@ -225,8 +230,10 @@ cpu_profiling_smpl(perf_cpu_t *cpu, void *arg)
 	for (i = 1; i < record_num; i++) {
 		record = &s_profiling_recbuf[i];
 
-		if (record->pid == -1 || record->tid == -1)
+		if (record->pid == (unsigned int)-1 ||
+			record->tid == (unsigned int)-1) {
 			continue;
+		}
 
 		countval_diff(cpu, record, &diff);
 
@@ -271,7 +278,8 @@ cpu_profiling_smpl(perf_cpu_t *cpu, void *arg)
 }
 
 static int
-cpu_profiling_setupstart(perf_cpu_t *cpu, void *arg)
+cpu_profiling_setupstart(perf_cpu_t *cpu,
+	void *arg __attribute__((unused)))
 {
 	if (cpu_profiling_setup(cpu, NULL) != 0) {
 		return (-1);
@@ -384,7 +392,8 @@ cpu_profiling_multi_restore(perf_cpu_t *cpu, void *arg)
 }
 
 static int
-cpu_ll_setup(perf_cpu_t *cpu, void *arg)
+cpu_ll_setup(perf_cpu_t *cpu,
+	void *arg __attribute__((unused)))
 {
 	cpu_init(cpu);
 	if (pf_ll_setup(cpu, &s_ll_conf) != 0) {
@@ -396,14 +405,16 @@ cpu_ll_setup(perf_cpu_t *cpu, void *arg)
 }
 
 static int
-cpu_ll_start(perf_cpu_t *cpu, void *arg)
+cpu_ll_start(perf_cpu_t *cpu,
+	void *arg __attribute__((unused)))
 {
 	cpu_op(cpu, pf_ll_start);	
 	return (0);
 }
 
 static int
-cpu_ll_stop(perf_cpu_t *cpu, void *arg)
+cpu_ll_stop(perf_cpu_t *cpu,
+	void *arg __attribute__((unused)))
 {
 	cpu_op(cpu, pf_ll_stop);	
 	return (0);
@@ -445,12 +456,12 @@ cpu_ll_smpl(perf_cpu_t *cpu, void *arg)
 
 	for (i = 0; i < record_num; i++) {
 		record = &s_ll_recbuf[i];
-		if ((task->pid != 0) && (task->pid != record->pid)) {
+		if ((task->pid != 0) && (task->pid != (int)record->pid)) {
 			continue;
 		}
 		
 		if ((task->pid != 0) && (task->lwpid != 0) &&
-			(task->lwpid != record->tid)) {
+			(task->lwpid != (int)record->tid)) {
 			continue;
 		}
 
@@ -477,7 +488,8 @@ cpu_ll_smpl(perf_cpu_t *cpu, void *arg)
 }
 
 static int
-cpu_ll_setupstart(perf_cpu_t *cpu, void *arg)
+cpu_ll_setupstart(perf_cpu_t *cpu,
+	void *arg __attribute__((unused)))
 {
 	if (cpu_ll_setup(cpu, NULL) != 0) {
 		return (-1);
@@ -502,7 +514,8 @@ profiling_stop(void)
 }
 
 static int
-profiling_start(perf_ctl_t *ctl, task_profiling_t *task)
+profiling_start(perf_ctl_t *ctl,
+	task_profiling_t *task __attribute__((unused)))
 {
 	/* Setup perf on each CPU. */
 	if (node_cpu_traverse(cpu_profiling_setup, NULL, B_TRUE, NULL) != 0) {
@@ -521,7 +534,9 @@ profiling_start(perf_ctl_t *ctl, task_profiling_t *task)
 }
 
 static int
-profiling_smpl(perf_ctl_t *ctl, task_profiling_t *task, int *intval_ms)
+profiling_smpl(perf_ctl_t *ctl,
+	task_profiling_t *task __attribute__((unused)),
+	int *intval_ms)
 {
 	*intval_ms = current_ms(&g_tvbase) - ctl->last_ms;
 	proc_intval_update(*intval_ms);
@@ -532,7 +547,8 @@ profiling_smpl(perf_ctl_t *ctl, task_profiling_t *task, int *intval_ms)
 }
 
 static int
-profiling_partpause(perf_ctl_t *ctl, task_partpause_t *task)
+profiling_partpause(perf_ctl_t *ctl __attribute__((unused)),
+	task_partpause_t *task __attribute__((unused)))
 {
 	node_cpu_traverse(cpu_profiling_partpause,
 		(void *)(task->perf_count_id), B_FALSE, NULL);
@@ -542,7 +558,8 @@ profiling_partpause(perf_ctl_t *ctl, task_partpause_t *task)
 }
 
 static int
-profiling_multipause(perf_ctl_t *ctl, task_multipause_t *task)
+profiling_multipause(perf_ctl_t *ctl __attribute__((unused)),
+	task_multipause_t *task __attribute__((unused)))
 {
 	node_cpu_traverse(cpu_profiling_multipause,
 		(void *)(task->perf_count_ids), B_FALSE, NULL);
@@ -552,7 +569,8 @@ profiling_multipause(perf_ctl_t *ctl, task_multipause_t *task)
 }
 
 static int
-profiling_restore(perf_ctl_t *ctl, task_restore_t *task)
+profiling_restore(perf_ctl_t *ctl,
+	task_restore_t *task __attribute__((unused)))
 {
 	node_cpu_traverse(cpu_profiling_restore,
 		(void *)(task->perf_count_id), B_FALSE, NULL);
@@ -718,21 +736,25 @@ os_profiling_multi_restore(perf_ctl_t *ctl, perf_task_t *task)
 }
 
 int
-os_callchain_start(perf_ctl_t *ctl, perf_task_t *task)
+os_callchain_start(perf_ctl_t *ctl __attribute__((unused)),
+	perf_task_t *task __attribute__((unused)))
 {
 	/* Not supported in Linux. */
 	return (0);
 }
 
 int
-os_callchain_smpl(perf_ctl_t *ctl, perf_task_t *task, int *intval_ms)
+os_callchain_smpl(perf_ctl_t *ctl __attribute__((unused)),
+	perf_task_t *task __attribute__((unused)),
+	int *intval_ms __attribute__((unused)))
 {
 	/* Not supported in Linux. */
 	return (0);	
 }
 
 int
-os_ll_start(perf_ctl_t *ctl, perf_task_t *task)
+os_ll_start(perf_ctl_t *ctl,
+	perf_task_t *task __attribute__((unused)))
 {
 	os_allstop();
 	proc_callchain_clear();
@@ -929,7 +951,8 @@ os_perf_profiling_multi_restore(perf_count_id_t *perf_count_ids)
 }
 
 int
-os_perf_callchain_start(pid_t pid, int lwpid)
+os_perf_callchain_start(pid_t pid __attribute__((unused)),
+	int lwpid __attribute__((unused)))
 {
 	/* Not supported in Linux. */
 	return (0);
@@ -943,7 +966,8 @@ os_perf_callchain_smpl(void)
 }
 
 int
-os_perf_ll_smpl(perf_ctl_t *ctl, pid_t pid, int lwpid)
+os_perf_ll_smpl(perf_ctl_t *ctl __attribute__((unused)),
+	pid_t pid, int lwpid)
 {
 	perf_task_t task;
 	task_ll_t *t;
@@ -1036,27 +1060,30 @@ os_perf_priv_alloc(boolean_t *supported)
 }
 
 void
-os_perf_priv_free(void *priv)
+os_perf_priv_free(void *priv __attribute__((unused)))
 {
 	/* Not supported in Linux. */
 }
 
 int
-os_perf_chain_nentries(perf_chainrecgrp_t *grp, int *nchains)
+os_perf_chain_nentries(perf_chainrecgrp_t *grp __attribute__((unused)),
+	int *nchains __attribute__((unused)))
 {
 	/* Not supported in Linux. */
 	return (0);
 }
 
 perf_chainrec_t *
-os_perf_chainrec_get(perf_chainrecgrp_t *grp, int rec_idx)
+os_perf_chainrec_get(perf_chainrecgrp_t *grp __attribute__((unused)),
+	int rec_idx __attribute__((unused)))
 {
 	/* Not supported in Linux. */
 	return (NULL);
 }
 
 char *
-os_perf_chain_entryname(void *buf, int depth_idx)
+os_perf_chain_entryname(void *buf __attribute__((unused)),
+	int depth_idx __attribute__((unused)))
 {
 	/* Not supported in Linux. */
 	return (NULL);
@@ -1172,7 +1199,8 @@ os_perf_cpuarr_refresh(perf_cpu_t *cpu_arr, int cpu_num, int *cpuid_arr,
 }
 
 static int
-pqos_cmt_start(perf_ctl_t *ctl, int pid, int lwpid, int flags)
+pqos_cmt_start(perf_ctl_t *ctl __attribute__((unused)),
+	int pid, int lwpid, int flags)
 {
 	track_proc_t *proc;
 	track_lwp_t *lwp = NULL;
@@ -1206,7 +1234,7 @@ pqos_cmt_start(perf_ctl_t *ctl, int pid, int lwpid, int flags)
 	return ret;
 }
 
-void os_pqos_cmt_init(perf_pqos_t *pqos)
+void os_pqos_cmt_init(perf_pqos_t *pqos __attribute__((unused)))
 {
 
 }
@@ -1229,7 +1257,8 @@ os_pqos_cmt_start(perf_ctl_t *ctl, perf_task_t *task)
 }
 
 int
-os_perf_pqos_cmt_smpl(perf_ctl_t *ctl, pid_t pid, int lwpid)
+os_perf_pqos_cmt_smpl(perf_ctl_t *ctl __attribute__((unused)),
+	pid_t pid, int lwpid)
 {
 	perf_task_t task;
 	task_pqos_cmt_t *t;
@@ -1301,7 +1330,9 @@ static int pqos_record(struct _perf_pqos *pqos)
 	return (os_sysfs_cmt_task_value(pqos, -1));
 }
 
-int os_pqos_cmt_proc_smpl(struct _track_proc *proc, void *arg, boolean_t *end)
+int os_pqos_cmt_proc_smpl(struct _track_proc *proc,
+	void *arg __attribute__((unused)),
+	boolean_t *end)
 {
 	*end = B_FALSE;
 	pqos_record(&proc->pqos);
@@ -1309,7 +1340,9 @@ int os_pqos_cmt_proc_smpl(struct _track_proc *proc, void *arg, boolean_t *end)
 }
 
 int
-os_pqos_cmt_lwp_smpl(track_lwp_t *lwp, void *arg, boolean_t *end)
+os_pqos_cmt_lwp_smpl(track_lwp_t *lwp,
+	void *arg __attribute__((unused)),
+	boolean_t *end)
 {
 	*end = B_FALSE;
 	pqos_record(&lwp->pqos);
@@ -1317,14 +1350,18 @@ os_pqos_cmt_lwp_smpl(track_lwp_t *lwp, void *arg, boolean_t *end)
 }
 
 static int
-os_pqos_cmt_lwp_free(track_lwp_t *lwp, void *arg, boolean_t *end)
+os_pqos_cmt_lwp_free(track_lwp_t *lwp __attribute__((unused)),
+	void *arg __attribute__((unused)),
+	boolean_t *end)
 {
 	*end = B_FALSE;
 	/* os_perf_pqos_free(&lwp->pqos); */
 	return 0;
 }
 
-int os_pqos_cmt_proc_free(struct _track_proc *proc, void *arg, boolean_t *end)
+int os_pqos_cmt_proc_free(struct _track_proc *proc,
+	void *arg __attribute__((unused)),
+	boolean_t *end)
 {
 	*end = B_FALSE;
 	/* os_perf_pqos_free(&proc->pqos); */
@@ -1346,7 +1383,8 @@ os_perf_pqos_cmt_started(perf_ctl_t *ctl)
 	return (B_FALSE);
 }
 
-int os_pqos_proc_stop(perf_ctl_t *ctl, perf_task_t *task)
+int os_pqos_proc_stop(perf_ctl_t *ctl __attribute__((unused)),
+	perf_task_t *task)
 {
 	task_pqos_cmt_t *t = (task_pqos_cmt_t *)task;
 	track_proc_t *proc;
@@ -1379,7 +1417,8 @@ int os_pqos_proc_stop(perf_ctl_t *ctl, perf_task_t *task)
 	return (0);
 }
 
-int os_uncore_stop(perf_ctl_t *ctl, perf_task_t *task)
+int os_uncore_stop(perf_ctl_t *ctl __attribute__((unused)),
+	perf_task_t *task)
 {
 	task_uncore_t *t = (task_uncore_t *)task;
 	node_t *node;
@@ -1410,7 +1449,8 @@ int os_uncore_stop(perf_ctl_t *ctl, perf_task_t *task)
 	return 0;
 }
 
-static int uncore_start(perf_ctl_t *ctl, int nid)
+static int uncore_start(perf_ctl_t *ctl __attribute__((unused)),
+	int nid)
 {
 	node_t *node;
 	int ret = -1;
@@ -1460,7 +1500,8 @@ os_uncore_start(perf_ctl_t *ctl, perf_task_t *task)
 }
 
 int
-os_uncore_smpl(perf_ctl_t *ctl, perf_task_t *task, int *intval_ms)
+os_uncore_smpl(perf_ctl_t *ctl __attribute__((unused)),
+	perf_task_t *task, int *intval_ms)
 {
 	task_uncore_t *t = (task_uncore_t *)task;
 	node_t *node;
@@ -1495,7 +1536,7 @@ os_perf_uncore_started(perf_ctl_t *ctl)
 }
 
 int
-os_perf_uncore_smpl(perf_ctl_t *ctl, int nid)
+os_perf_uncore_smpl(perf_ctl_t *ctl __attribute__((unused)), int nid)
 {
 	perf_task_t task;
 	task_uncore_t *t;

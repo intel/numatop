@@ -123,7 +123,7 @@ extern uint64_t node_countval_get(node_t *, ui_count_id_t);
 extern void node_meminfo(int, node_meminfo_t *);
 extern int node_cpu_traverse(pfn_perf_cpu_op_t, void *, boolean_t,
 	pfn_perf_cpu_op_t);
-extern uint64_t node_countval_sum(count_value_t *, int, int, ui_count_id_t);
+extern uint64_t node_countval_sum(count_value_t *, int, ui_count_id_t);
 extern perf_cpu_t* node_cpus(node_t *);
 extern void node_intval_update(int);
 extern void node_profiling_clear(void);
