@@ -3,7 +3,8 @@ EXTRA_DIST = \
 	README.md \
 	AUTHORS \
 	COPYING \
-	kernel_patches/0001-perf-x86-Widen-Haswell-OFFCORE-mask.patch
+	kernel_patches/0001-perf-x86-Widen-Haswell-OFFCORE-mask.patch \
+	$(TESTS)
 
 dist_man_MANS = \
 	numatop.8
@@ -110,3 +111,4 @@ mgen_SOURCES += \
 	test/mgen/intel/util.c
 endif
 
+TESTS = test/mgen.01.sh test/mgen.02.sh
