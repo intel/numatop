@@ -93,11 +93,11 @@ bin_PROGRAMS = numatop
 noinst_PROGRAMS = mgen
 
 numatop_CFLAGS = $(NCURSES_CFLAGS)
-numatop_LDADD = $(NCURSES_LIBS) libnumatop.la
+numatop_LDADD = libnumatop.la $(NCURSES_LIBS)
 numatop_SOURCES = common/numatop.c
 
 mgen_CFLAGS = $(NCURSES_CFLAGS)
-mgen_LDADD = $(NCURSES_LIBS) libnumatop.la
+mgen_LDADD = libnumatop.la $(NCURSES_LIBS)
 mgen_SOURCES = \
 	test/mgen/include/util.h \
 	test/mgen/mgen.c
