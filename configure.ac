@@ -11,6 +11,7 @@ AC_CONFIG_MACRO_DIRS([m4])
 
 AC_CANONICAL_HOST
 AM_CONDITIONAL(CPU_INTEL, test "x$host_cpu" = "xx86_64")
+AM_CONDITIONAL(CPU_INTEL, test "x$host_cpu" = "xi686")
 AM_CONDITIONAL(CPU_PPC, test "x$host_cpu" = "xpowerpc64")
 AM_CONDITIONAL(CPU_PPC, test "x$host_cpu" = "xpowerpc64le")
 
