@@ -766,7 +766,7 @@ void os_cmt_fini(void)
 
 int os_sysfs_cmt_task_set(int pid, int lwpid, struct _perf_pqos *pqos)
 {
-	char command[128], path[128];
+	char command[160], path[128];
 
 	if (lwpid)
 		pqos->task_id = lwpid;
