@@ -315,7 +315,7 @@ topnproc_win_destroy(dyn_win_t *win)
 }
 
 /*
- * Seperate the value of metrics by raw perf data.
+ * Separate the value of metrics by raw perf data.
  */
 static int
 win_countvalue_fill(win_countvalue_t *cv,
@@ -2163,7 +2163,7 @@ lat_win_destroy(dyn_win_t *win)
 
 /*
  * Due to the limitation of screen size, the string of path
- * probablly needs to be cut. For example:
+ * probably needs to be cut. For example:
  * /export/home/jinyao/ws/numatop-gate/usr/src/cmd/numatop/amd64/numatop
  * probably is cut to:
  * ../usr/src/cmd/numatop/amd64/numatop
