@@ -13,6 +13,7 @@ AM_CFLAGS = -fPIC -O2 -g -Wall -W -Wformat-security -D_FORTIFY_SOURCE=2 -fno-com
 ACLOCAL_AMFLAGS = -I m4
 
 noinst_LTLIBRARIES = libnumatop.la
+libnumatop_la_LIBADD = $(NCURSES_LIBS)
 libnumatop_la_SOURCES = \
 	common/include/os/linux/perf_event.h \
 	common/include/os/map.h \
