@@ -561,7 +561,7 @@ os_llcallchain_win_destroy(dyn_win_t *win)
 static int
 bufaddr_cmp(const void *p1, const void *p2)
 {
-	const uint64_t addr = (const uint64_t)p1;
+	const uint64_t addr = (const uint64_t)(uintptr_t)p1;
 	const bufaddr_t *bufaddr = (const bufaddr_t *)p2;
 
 	if (addr < bufaddr->addr) {
@@ -621,7 +621,7 @@ llcallchain_bufinfo_show(dyn_llcallchain_t *dyn, track_proc_t *proc,
 	 * Check if the linear address is located in a buffer in
 	 * process address space.
 	 */ 
-	if ((line = bsearch((void *)(dyn->addr), lat_buf, nlines,
+	if ((line = bsearch((void *)(uintptr_t)(dyn->addr), lat_buf, nlines,
 		sizeof (lat_line_t), bufaddr_cmp)) != NULL) {
 		win_lat_str_build(content, WIN_LINECHAR_MAX, 0, line);
 		reg_line_write(reg, 0, ALIGN_LEFT, content);
@@ -791,7 +791,7 @@ os_lat_buf_hit(lat_line_t *lat_buf, int nlines, os_perf_llrec_t *rec,
 	 * Check if the linear address is located in a buffer in
 	 * process address space.
 	 */
-	if ((line = bsearch((void *)(rec->addr), lat_buf, nlines,
+	if ((line = bsearch((void *)(uintptr_t)(rec->addr), lat_buf, nlines,
 	    sizeof (lat_line_t), bufaddr_cmp)) != NULL) {
 		/*
 		 * If the linear address is located in, that means this

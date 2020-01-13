@@ -746,7 +746,8 @@ proc_group_refresh(pid_t *procs_new, int nproc_new)
 				proc_group_remove(proc);
 				proc_free(proc);
 			} else {
-				j = ((uint64_t)p - (uint64_t)procs_new) /
+				j = ((uint64_t)(uintptr_t)p -
+				     (uint64_t)(uintptr_t)procs_new) /
 				    sizeof (pid_t);
 				exist_arr[j] = B_TRUE;
 			}
