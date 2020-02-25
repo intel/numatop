@@ -48,7 +48,8 @@ s_plat_profiling_config[CPU_TYPE_NUM] = {
 	snbep_profiling_config,
 	snbep_profiling_config,
 	bdw_profiling_config,
-	skl_profiling_config
+	skl_profiling_config,
+	icx_profiling_config
 };
 
 pfn_plat_ll_config_t
@@ -62,7 +63,8 @@ s_plat_ll_config[CPU_TYPE_NUM] = {
 	snbep_ll_config,
 	snbep_ll_config,
 	bdw_ll_config,
-	skl_ll_config
+	skl_ll_config,
+	icx_ll_config
 };
 
 pfn_plat_offcore_num_t
@@ -76,7 +78,8 @@ s_plat_offcore_num[CPU_TYPE_NUM] = {
 	snb_offcore_num,
 	snb_offcore_num,
 	bdw_offcore_num,
-	skl_offcore_num
+	skl_offcore_num,
+	icx_offcore_num
 };
 
 /* ARGSUSED */
@@ -165,6 +168,9 @@ cpu_type_get(void)
 		case 85:
 			type = CPU_SKX;
 			break;
+		case 106:
+			type = CPU_ICX;
+			break;
 		}
 	}
 
@@ -203,6 +209,7 @@ plat_detect(void)
 	case CPU_BDX:
 		/* fall through */
 	case CPU_SKX:
+	case CPU_ICX:
 		ret = 0;
 		s_cpu_type = cpu_type;
 		break;

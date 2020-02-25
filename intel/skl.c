@@ -47,6 +47,14 @@ static plat_event_config_t s_skl_config[PERF_COUNT_NUM] = {
 	{ PERF_TYPE_RAW, 0x01BB, 0x53, 0x1f84000001, "off_core_response_1" }
 };
 
+static plat_event_config_t s_icx_config[PERF_COUNT_NUM] = {
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.core" },
+	{ PERF_TYPE_RAW, 0x01B7, 0x53, 0x07b000bfff, "off_core_response_0" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_REF_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.ref" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS, 0x53, 0, "instr_retired.any" },
+	{ PERF_TYPE_RAW, 0x01BB, 0x53, 0x018400bfff, "off_core_response_1" }
+};
+
 static plat_event_config_t s_skl_ll = {
 	PERF_TYPE_RAW, 0x01CD, 0x53, LL_THRESH, "mem_trans_retired.latency_above_threshold"
 };
@@ -58,13 +66,31 @@ skl_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
 }
 
 void
+icx_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
+{
+	plat_config_get(perf_count_id, cfg, s_icx_config);
+}
+
+void
 skl_ll_config(plat_event_config_t *cfg)
 {
 	memcpy(cfg, &s_skl_ll, sizeof (plat_event_config_t));
+}
+
+void
+icx_ll_config(plat_event_config_t *cfg)
+{
+	skl_ll_config(cfg);
 }
 
 int
 skl_offcore_num(void)
 {
 	return (2);
+}
+
+int
+icx_offcore_num(void)
+{
+	return skl_offcore_num();
 }

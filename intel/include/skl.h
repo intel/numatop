@@ -43,6 +43,10 @@ extern void skl_profiling_config(perf_count_id_t, struct _plat_event_config *);
 extern void skl_ll_config(struct _plat_event_config *);
 extern int skl_offcore_num(void);
 
+extern void icx_profiling_config(perf_count_id_t, struct _plat_event_config *);
+extern void icx_ll_config(struct _plat_event_config *);
+extern int icx_offcore_num(void);
+
 #ifdef __cplusplus
 }
 #endif
