@@ -117,6 +117,7 @@ node_cpu_string(node_t *node, char *s1, int size)
 	int i, j, k, l, cpuid_start;
 	int *cpuid_arr;
 	int ncpus;
+	int s1_len = size;
 	perf_cpu_t *cpus = node_cpus(node);
 
 	s1[0] = 0;
@@ -140,8 +141,7 @@ node_cpu_string(node_t *node, char *s1, int size)
 	cpuid_start = cpuid_arr[0];
 
 	if (ncpus == 1) {
-		(void) snprintf(s2, sizeof (s2), "%d", cpuid_start);
-        	(void) strncat(s1, s2, strlen(s2));
+		(void) snprintf(s1, size, "%d", cpuid_start);
         	free(cpuid_arr);
 		return;
 	}
@@ -152,6 +152,8 @@ node_cpu_string(node_t *node, char *s1, int size)
 	for (j = 1; j < ncpus; j++) {
 		k++;
 		if (cpuid_arr[j] != cpuid_start + l) {
+			int s2_len = sizeof(s2);
+
 			if (k < ncpus) {
 				if (l == 1) {
 					(void) snprintf(s2, sizeof (s2), "%d ", cpuid_start);
@@ -167,20 +169,27 @@ node_cpu_string(node_t *node, char *s1, int size)
 					(void) snprintf(s2, sizeof (s2), "%d-%d",
 						cpuid_start, cpuid_start + l - 1);
 				}
+				s2_len -= strlen(s2);
 
 				(void) snprintf(s3, sizeof (s3), " %d",
 					cpuid_arr[j]);
-	        	  	(void) strncat(s2, s3, strlen(s3));
+				s2_len -= strlen(s3);
+				if (s2_len > 0)
+					(void) strncat(s2, s3, s2_len);
 			}
 
-          		(void) strncat(s1, s2, strlen(s2));
+			s1_len -= strlen(s2);
+			if (s1_len > 0)
+				(void) strncat(s1, s2, s1_len);
           		cpuid_start = cpuid_arr[j];
            		l = 1;
 		} else {
 	        	if (k == ncpus) {
         	    		(void) snprintf(s2, sizeof (s2), "%d-%d",
                 			cpuid_start, cpuid_start + l);
-         			(void) strncat(s1, s2, strlen(s2));
+				s1_len -= strlen(s2);
+				if (s1_len > 0)
+					(void) strncat(s1, s2, s1_len);
        			} else {
             			l++;
        			}
