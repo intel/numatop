@@ -391,7 +391,7 @@ str_int_extract(char *str, int *arr, int arr_size, int *num)
 		return (B_FALSE);
 	}
 
-	strncpy(scopy, str, len);
+	strncpy(scopy, str, len + 1);
 	scopy[len] = 0;
 	cur = scopy;
 
@@ -447,7 +447,6 @@ file_int_extract(char *path, int *arr, int arr_size, int *num)
 		fclose(fp);
 		return (B_FALSE);
 	}
-
 	fclose(fp);
 	return (str_int_extract(buf, arr, arr_size, num));
 }
