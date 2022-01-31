@@ -240,7 +240,7 @@ reg_line_write(win_reg_t *r, int line, reg_align_t align, char *content)
 	}
 
 	if (len > 0) {
-		(void) mvwprintw(r->hdl, line, pos_x, content);
+		(void) mvwprintw(r->hdl, line, pos_x, "%s", content);
 	}
 
 	if (r->mode != 0) {
@@ -267,7 +267,7 @@ reg_highlight_write(win_reg_t *r, int line, int align, char *content)
 	}
 
 	if (len > 0) {
-		(void) mvwprintw(r->hdl, line, pos_x, content);
+		(void) mvwprintw(r->hdl, line, pos_x, "%s", content);
 	}
 
 	(void) wattroff(r->hdl, A_REVERSE | A_BOLD);
