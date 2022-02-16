@@ -67,6 +67,7 @@ libnumatop_la_SOURCES += \
 	x86/include/types.h \
 	x86/include/util.h \
 	x86/include/wsm.h \
+	x86/include/zen.h \
 	x86/bdw.c \
 	x86/nhm.c \
 	x86/plat.c \
@@ -74,7 +75,8 @@ libnumatop_la_SOURCES += \
 	x86/snb.c \
 	x86/ui_perf_map.c \
 	x86/util.c \
-	x86/wsm.c
+	x86/wsm.c \
+	x86/zen.c
 endif
 
 if CPU_PPC

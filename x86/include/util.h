@@ -36,6 +36,9 @@
 #define	CPU_MODEL(eax) \
 	(((eax) & 0x00F0) >> 4)
 
+#define CPU_EXT_FAMILY(eax) \
+	(((eax) & 0x0FF00000) >> 20)
+
 #define	CPU_EXT_MODEL(eax) \
 	(((eax) & 0xF0000) >> 16)
 

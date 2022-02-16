@@ -36,6 +36,7 @@
 #include "include/snb.h"
 #include "include/bdw.h"
 #include "include/skl.h"
+#include "include/zen.h"
 
 pfn_plat_profiling_config_t
 s_plat_profiling_config[CPU_TYPE_NUM] = {
@@ -50,7 +51,8 @@ s_plat_profiling_config[CPU_TYPE_NUM] = {
 	bdw_profiling_config,
 	skl_profiling_config,
 	icx_profiling_config,
-	spr_profiling_config
+	spr_profiling_config,
+	zen_profiling_config
 };
 
 pfn_plat_ll_config_t
@@ -66,7 +68,8 @@ s_plat_ll_config[CPU_TYPE_NUM] = {
 	bdw_ll_config,
 	skl_ll_config,
 	icx_ll_config,
-	spr_ll_config
+	spr_ll_config,
+	zen_ll_config
 };
 
 pfn_plat_offcore_num_t
@@ -82,7 +85,8 @@ s_plat_offcore_num[CPU_TYPE_NUM] = {
 	bdw_offcore_num,
 	skl_offcore_num,
 	icx_offcore_num,
-	spr_offcore_num
+	spr_offcore_num,
+	zen_offcore_num
 };
 
 /* ARGSUSED */
@@ -117,7 +121,7 @@ static cpu_type_t
 cpu_type_get(void)
 {
 	unsigned int eax, ebx, ecx, edx;
-	int family, model, ext_model;
+	int family, model;
 	cpu_type_t type = CPU_UNSUP;
 	char vendor[16];
 
@@ -129,7 +133,8 @@ cpu_type_get(void)
 	(void) strncpy(&vendor[8], (char *)(&edx), 4);
 	vendor[12] = 0;
 
-	if (strncmp(vendor, "Genu" "ntel" "ineI", 12) != 0) {
+	if (strncmp(vendor, "Genu" "ntel" "ineI", 12) != 0 &&
+	    strncmp(vendor, "Auth" "cAMD" "enti", 12) != 0) {
 		return (CPU_UNSUP);
 	}
 
@@ -138,11 +143,16 @@ cpu_type_get(void)
 
 	family = CPU_FAMILY(eax);
 	model = CPU_MODEL(eax);
-	ext_model = CPU_EXT_MODEL(eax);
+
+	/* Extended Model ID is considered only when Family ID is either 6 or 15 */
+	if (family == 6 || family == 15)
+		model += CPU_EXT_MODEL(eax) << 4;
+
+	/* Extended Family ID is considered only when Family ID is 15 */
+	if (family == 15)
+		family += CPU_EXT_FAMILY(eax);
 
 	if (family == 6) {
-		model = (ext_model << 4) + model;
-
 		switch (model) {
 		case 26:
 			type = CPU_NHM_EP;
@@ -178,6 +188,8 @@ cpu_type_get(void)
                         type = CPU_SPR;
 			break;
 		}
+	} else if (family == 23) {
+		type = CPU_ZEN;
 	}
 
 	return (type);
@@ -217,6 +229,7 @@ plat_detect(void)
 	case CPU_SKX:
 	case CPU_ICX:
 	case CPU_SPR:
+	case CPU_ZEN:
 		ret = 0;
 		s_cpu_type = cpu_type;
 		break;

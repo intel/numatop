@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2013, Intel Corporation
- * Copyright (c) 2017, IBM Corporation
+ * Copyright (c) 2023, AMD Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -27,40 +26,45 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_X86_TYPES_H
-#define _NUMATOP_X86_TYPES_H
+/* This file contains the Zen platform specific functions. */
 
-#include "../../common/include/types.h"
+#include <inttypes.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <strings.h>
+#include "../common/include/os/linux/perf_event.h"
+#include "../common/include/os/plat.h"
+#include "include/zen.h"
 
-#define CORP "Intel"
+static plat_event_config_t s_zen_config[PERF_COUNT_NUM] = {
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0, 0, 0, "LsNotHaltedCyc" },
+	{ PERF_TYPE_RAW, 0x0000000000004043, 0, 0, 0, "LsDmndFillsFromSys.DRAM_IO_Far" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0, 0, 0, "LsNotHaltedCyc" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS, 0x53, 0, 0, "ExRetOps" },
+	{ PERF_TYPE_RAW, 0x0000000000000843, 0, 0, 0, "LsDmndFillsFromSys.DRAM_IO_Near" },
+};
 
-typedef enum {
-	CPU_UNSUP = 0,
-	CPU_WSM_EX,
-	CPU_SNB_EP,
-	CPU_NHM_EX,
-	CPU_NHM_EP,
-	CPU_WSM_EP,
-	CPU_IVB_EX,
-	CPU_HSX,
-	CPU_BDX,
-	CPU_SKX,
-	CPU_ICX,
-	CPU_SPR,
-	CPU_ZEN
-} cpu_type_t;
+static plat_event_config_t s_zen_ll = {
+	PERF_TYPE_RAW, 0, 0, 0, "Unsupported"
+};
 
-#define	CPU_TYPE_NUM	13
+void
+zen_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
+{
+	plat_config_get(perf_count_id, cfg, s_zen_config);
+}
 
-typedef enum {
-	PERF_COUNT_INVALID = -1,
-	PERF_COUNT_CORE_CLK = 0,
-	PERF_COUNT_RMA,
-	PERF_COUNT_CLK,
-	PERF_COUNT_IR,
-	PERF_COUNT_LMA
-} perf_count_id_t;
+void
+zen_ll_config(plat_event_config_t *cfg)
+{
+	memcpy(cfg, &s_zen_ll, sizeof (plat_event_config_t));
+}
 
-#define PERF_COUNT_NUM		5
-
-#endif /* _NUMATOP_X86_TYPES_H */
+int
+zen_offcore_num(void)
+{
+	return (2);
+}
