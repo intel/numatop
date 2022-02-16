@@ -34,7 +34,7 @@
 #ifdef __powerpc64__
 #include "../../powerpc/include/types.h"
 #else
-#include "../../intel/include/types.h"
+#include "../../x86/include/types.h"
 #endif
 
 #ifdef __cplusplus

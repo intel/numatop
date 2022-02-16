@@ -27,39 +27,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_INTEL_TYPES_H
-#define _NUMATOP_INTEL_TYPES_H
+#ifndef _NUMATOP_X86_UTIL_H
+#define _NUMATOP_X86_UTIL_H
 
-#include "../../common/include/types.h"
+#define	CPU_FAMILY(eax) \
+	(((eax) & 0x0F00) >> 8)
 
-#define CORP "Intel"
+#define	CPU_MODEL(eax) \
+	(((eax) & 0x00F0) >> 4)
 
-typedef enum {
-	CPU_UNSUP = 0,
-	CPU_WSM_EX,
-	CPU_SNB_EP,
-	CPU_NHM_EX,
-	CPU_NHM_EP,
-	CPU_WSM_EP,
-	CPU_IVB_EX,
-	CPU_HSX,
-	CPU_BDX,
-	CPU_SKX,
-	CPU_ICX,
-	CPU_SPR
-} cpu_type_t;
+#define	CPU_EXT_MODEL(eax) \
+	(((eax) & 0xF0000) >> 16)
 
-#define	CPU_TYPE_NUM	12
-
-typedef enum {
-	PERF_COUNT_INVALID = -1,
-	PERF_COUNT_CORE_CLK = 0,
-	PERF_COUNT_RMA,
-	PERF_COUNT_CLK,
-	PERF_COUNT_IR,
-	PERF_COUNT_LMA
-} perf_count_id_t;
-
-#define PERF_COUNT_NUM		5
-
-#endif /* _NUMATOP_INTEL_TYPES_H */
+#endif /* _NUMATOP_X86_UTIL_H */
