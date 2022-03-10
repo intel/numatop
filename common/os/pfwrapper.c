@@ -434,7 +434,8 @@ pf_ll_setup(struct _perf_cpu *cpu, pf_conf_t *conf)
 	attr.precise_ip = 1;
 	attr.exclude_guest = conf->exclude_guest;
 	attr.sample_type = PERF_SAMPLE_TID | PERF_SAMPLE_ADDR | PERF_SAMPLE_CPU |
-		PERF_SAMPLE_WEIGHT | PERF_SAMPLE_CALLCHAIN;
+		PERF_SAMPLE_WEIGHT | PERF_SAMPLE_CALLCHAIN |
+		PERF_SAMPLE_DATA_SRC;
 	attr.disabled = 1;
 
 	if ((fds[0] = pf_event_open(&attr, -1, cpu->cpuid, -1, 0)) < 0) {
@@ -481,6 +482,7 @@ ll_sample_read(struct perf_event_mmap_page *mhdr, int size,
 	pf_ll_rec_t *rec)
 {
 	struct { uint32_t pid, tid; } id;
+	union perf_mem_data_src data_src;
 	uint64_t i, addr, cpu, weight, nr, value, *ips;
 	int j, ret = -1;
 
@@ -492,6 +494,7 @@ ll_sample_read(struct perf_event_mmap_page *mhdr, int size,
 	 *	[ u64	nr; }
 	 *	{ u64   ips[nr]; }
 	 *	{ u64	weight; }
+	 *	{ u64   data_src; }
 	 * };
 	 */
 	if (mmap_buffer_read(mhdr, &id, sizeof (id)) == -1) {
@@ -551,7 +554,18 @@ ll_sample_read(struct perf_event_mmap_page *mhdr, int size,
 	}
 
 	size -= sizeof (weight);
-	
+
+	if (mmap_buffer_read(mhdr, &data_src, sizeof (data_src)) == -1) {
+		debug_print(NULL, 2, "ll_sample_read: read data_src failed.\n");
+		goto L_EXIT;
+	}
+
+	size -= sizeof (data_src);
+
+	if (data_src.mem_op == PERF_MEM_OP_NA ||
+	    data_src.mem_op == PERF_MEM_OP_EXEC)
+		addr = 0;
+
 	rec->ip_num = j;
 	rec->pid = id.pid;
 	rec->tid = id.tid;
@@ -575,7 +589,7 @@ ll_recbuf_update(pf_ll_rec_t *rec_arr, int *nrec, pf_ll_rec_t *rec)
 {
 	int i;
 
-	if ((rec->pid == 0) || (rec->tid == 0)) {
+	if ((rec->pid == 0) || (rec->tid == 0) || (rec->addr == 0)) {
 		/* Just consider the user-land process/thread. */
 		return;	
 	}

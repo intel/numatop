@@ -30,7 +30,9 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <sys/types.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -38,6 +40,9 @@
 #include "../common/include/os/linux/perf_event.h"
 #include "../common/include/os/plat.h"
 #include "include/zen.h"
+
+#define IBS_OP_PMU_TYPE_PATH \
+	"/sys/bus/event_source/devices/ibs_op/type"
 
 static plat_event_config_t s_zen_config[PERF_COUNT_NUM] = {
 	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0, 0, 0, 0, "LsNotHaltedCyc" },
@@ -47,8 +52,13 @@ static plat_event_config_t s_zen_config[PERF_COUNT_NUM] = {
 	{ PERF_TYPE_RAW, 0x0000000000000843, 0, 0, 0, 0, "LsDmndFillsFromSys.DRAM_IO_Near" },
 };
 
+/*
+ * Owing to the nature of IBS uop tagging, a higher sampling period is
+ * required to capture meaningful samples. All samples may not originate
+ * from a memory access instruction and require additional filtering.
+ */
 static plat_event_config_t s_zen_ll = {
-	PERF_TYPE_RAW, 0, 0, 0, 0, 0, "Unsupported"
+	0, 0x0000000000000000, 0, 0, LL_THRESH * 10, 0, "IbsOpCntCycles"
 };
 
 void
@@ -57,10 +67,33 @@ zen_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
 	plat_config_get(perf_count_id, cfg, s_zen_config);
 }
 
+static int
+zen_ibs_op_pmu_type(void)
+{
+	int fd, type, i;
+	char buf[32];
+
+	if ((fd = open(IBS_OP_PMU_TYPE_PATH, O_RDONLY)) < 0)
+		return (-1);
+
+	if ((i = read(fd, buf, sizeof (buf) - 1)) <= 0) {
+		close(fd);
+		return (-1);
+	}
+
+	close(fd);
+	buf[i] = 0;
+	if ((type = atoi(buf)) == 0)
+		return (-1);
+
+	return (type);
+}
+
 void
 zen_ll_config(plat_event_config_t *cfg)
 {
 	memcpy(cfg, &s_zen_ll, sizeof (plat_event_config_t));
+	cfg->type = zen_ibs_op_pmu_type();
 }
 
 int
