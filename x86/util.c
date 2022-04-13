@@ -67,27 +67,36 @@ rdtsc(void)
 
 /*
  * Check the cpu name in proc info. Intel CPUs always have @ x.y
- * Ghz and that is the TSC frequency.
+ * GHz and that is the TSC frequency. AMD CPUs do not advertise
+ * clock frequency as a part of the model name.
  */
 int
 arch__cpuinfo_freq(double *freq, char *unit)
 {
 	FILE *f;
 	char *line = NULL;
-	size_t len = 0;
+	size_t idx, len = 0;
 	int ret = -1;
 
 	if ((f = fopen(CPUINFO_PATH, "r")) == NULL) {
 		return (-1);
 	}
 
-	while (getline(&line, &len, f) > 0) {
+	while ((len = getline(&line, &len, f)) > 0) {
 		if (strncmp(line, "model name", sizeof ("model name") - 1) != 0) {
 			continue;
 		}
 
-		if (sscanf(line + strcspn(line, "@") + 1, "%lf%10s",
-			freq, unit) == 2) {
+		idx = strcspn(line, "@") + 1;
+
+		/*
+		 * The model name will not change for other processors. So
+		 * bail out if "@" is not found.
+		 */
+		if (idx >= len)
+			break;
+
+		if (sscanf(line + idx, "%lf%10s", freq, unit) == 2) {
 			if (strcasecmp(unit, "GHz") == 0) {
 				*freq *= GHZ;
 			} else if (strcasecmp(unit, "Mhz") == 0) {
