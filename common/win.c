@@ -497,7 +497,7 @@ load_msg_show(void)
 }
 
 /*
- * Show the title "NumaTop v2.0, (C) 2015 Intel Corporation"
+ * Show the title "NumaTop v2.3, (C) 2022 Intel Corporation"
  */
 void
 win_title_show(void)

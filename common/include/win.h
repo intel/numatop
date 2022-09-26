@@ -46,7 +46,7 @@ extern double g_llc_occupancy_scale;
 extern double g_llc_total_bw_scale;
 extern double g_llc_local_bw_scale;
 
-#define	NUMATOP_TITLE	"NumaTOP v2.0, (C) 2015 Intel Corporation"
+#define	NUMATOP_TITLE	"NumaTOP v2.3, (C) 2022 Intel Corporation"
 #define	CMD_CAPTION		"Command: "
 #define	WIN_PROCNAME_SIZE	12
 #define	WIN_DESCBUF_SIZE	32
