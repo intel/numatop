@@ -116,7 +116,7 @@ typedef enum {
 #define UI_COUNT_NUM		5
 
 #define	NNODES_MAX		64
-#define NCPUS_NODE_MAX	128
+#define NCPUS_NODE_MAX		256
 #define	NCPUS_MAX		(NNODES_MAX * NCPUS_NODE_MAX)
 #define NPROCS_NAX		4096
 #define	LL_THRESH		128
