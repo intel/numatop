@@ -12,12 +12,34 @@ the `mgen` program for help information.
 
 ## Build Dependencies
 
-NumaTOP requires following libraries:
+NumaTOP requires following libraries or packages:
 
 * numactl-devel or libnuma-dev(el)
 * libncurses
 * libpthread
 
+* check
+
+## Run NumaTOP
+
+NumaTOP requires running as root.
+	# ./numatop
+
+In many systems, the default max open files are 1024, for platforms (like SPR)
+that have more CPUs, they require the system with the max open files should
+bigger than 1024, otherwise, the error can be "Fail to setup perf":
+
+	# ulimit -n
+	  1024        <------the max open files are 1024
+	# ./numatop
+	  NumaTOP is starting ...
+	  Fail to setup perf (probably permission denied)!
+
+Need to enlarge the max open files:
+
+	# ulimit -n 8192
+	# ulimit -n
+	  8192        <------now the max open files are 8192
 
 ## Supported Kernels
 
