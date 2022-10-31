@@ -650,7 +650,7 @@ os_profiling_start(perf_ctl_t *ctl, perf_task_t *task)
 	proc_ll_clear(NULL);
 
 	if (profiling_start(ctl, (task_profiling_t *)(task)) != 0) {
-		exit_msg_put("Fail to setup perf (probably permission denied)!\n");
+		exit_msg_put("Fail to setup perf (probably permission denied or need to increase the ulimit)!\n");
 		debug_print(NULL, 2, "os_profiling_start failed\n");
 		perf_status_set(PERF_STATUS_PROFILING_FAILED);
 		return (-1);
