@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([numatop], [v2.1], [yao.jin@intel.com])
+AC_INIT([numatop], [v2.3], [zhengjun.xing@intel.com])
 AM_INIT_AUTOMAKE([-Wno-portability no-dist-gzip dist-xz foreign subdir-objects])
 AC_CONFIG_SRCDIR([common/numatop.c])
 AC_CONFIG_HEADERS([config.h])
@@ -18,7 +18,7 @@ AC_PROG_CC
 AC_PROG_INSTALL
 
 # Checks for libraries.
-AC_CHECK_LIB([numa], [numa_free])
+AC_CHECK_LIB([numa], [numa_free], [], [ AC_MSG_ERROR([numactl-devel or libnuma-dev(el) is required but was not found]) exit -1])
 AC_CHECK_LIB([pthread], [pthread_create])
 
 PKG_CHECK_MODULES([CHECK], [check])
