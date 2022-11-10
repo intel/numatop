@@ -3489,13 +3489,13 @@ win_warn_msg(warn_type_t warn_type)
 		break;
 
 	case WARN_INVALID_PID:
-		(void) strncpy(content, "Process exists, "
+		(void) strncpy(content, "Process exited, "
 		    "return to home window ...",
 		    WIN_LINECHAR_MAX);
 		break;
 
 	case WARN_INVALID_LWPID:
-		(void) strncpy(content, "Thread exists, "
+		(void) strncpy(content, "Thread exited, "
 		    "return to home window ...",
 		    WIN_LINECHAR_MAX);
 		break;
