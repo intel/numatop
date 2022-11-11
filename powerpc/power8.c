@@ -38,16 +38,16 @@
 #include "include/power8.h"
 
 static plat_event_config_t s_power8_profiling[PERF_COUNT_NUM] = {
-	{ PERF_TYPE_RAW, 0x600f4, 0, 0, "PM_RUN_CYC" },
-	{ PERF_TYPE_RAW, 0x4c04c, 0, 0, "PM_DATA_FROM_DMEM" },
-	{ PERF_TYPE_RAW, 0x1001e, 0, 0, "PM_CYC" },
-	{ PERF_TYPE_RAW, 0x500fa, 0, 0, "PM_RUN_INST_CMPL" },
-	{ PERF_TYPE_RAW, 0x2c048, 0, 0, "PM_DATA_FROM_LMEM" },
-	{ PERF_TYPE_RAW, 0x3c04a, 0, 0, "PM_DATA_FROM_RMEM" },
+	{ PERF_TYPE_RAW, 0x600f4, 0, 0, 0, "PM_RUN_CYC" },
+	{ PERF_TYPE_RAW, 0x4c04c, 0, 0, 0, "PM_DATA_FROM_DMEM" },
+	{ PERF_TYPE_RAW, 0x1001e, 0, 0, 0, "PM_CYC" },
+	{ PERF_TYPE_RAW, 0x500fa, 0, 0, 0, "PM_RUN_INST_CMPL" },
+	{ PERF_TYPE_RAW, 0x2c048, 0, 0, 0, "PM_DATA_FROM_LMEM" },
+	{ PERF_TYPE_RAW, 0x3c04a, 0, 0, 0, "PM_DATA_FROM_RMEM" },
 };
 
 static plat_event_config_t s_power8_ll = {
-	PERF_TYPE_RAW, 0x0000, 0, 0, "PM_SUSPENDED"
+	PERF_TYPE_RAW, 0x0000, 0, 0, 0, "PM_SUSPENDED"
 };
 
 void

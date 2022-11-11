@@ -48,7 +48,7 @@ static plat_event_config_t s_zen_config[PERF_COUNT_NUM] = {
 };
 
 static plat_event_config_t s_zen_ll = {
-	PERF_TYPE_RAW, 0, 0, 0, "Unsupported"
+	PERF_TYPE_RAW, 0, 0, 0, 0, "Unsupported"
 };
 
 void

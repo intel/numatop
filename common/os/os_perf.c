@@ -839,7 +839,11 @@ ll_init(pf_conf_t *conf)
 	conf->type = cfg.type;
 	conf->config = (cfg.config) | (cfg.other_attr << 16);
 	conf->config1 = cfg.extra_value;
-	conf->sample_period = LL_PERIOD;
+	conf->sample_period = cfg.sample_period;
+
+	/* If sample period is not set, choose a default value */
+	if (!cfg.sample_period)
+		conf->sample_period = LL_PERIOD;
 }
 
 int
