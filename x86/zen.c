@@ -52,6 +52,14 @@ static plat_event_config_t s_zen_config[PERF_COUNT_NUM] = {
 	{ PERF_TYPE_RAW, 0x0000000000000843, 0, 0, 0, 0, "LsDmndFillsFromSys.DRAM_IO_Near" },
 };
 
+static plat_event_config_t s_zen3_config[PERF_COUNT_NUM] = {
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0, 0, 0, 0, "LsNotHaltedCyc" },
+	{ PERF_TYPE_RAW, 0x0000000000004044, 0, 0, 0, 0, "LsAnyFillsFromSys.MemIoRemote" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0, 0, 0, 0, "LsNotHaltedCyc" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS, 0x53, 0, 0, 0, "ExRetOps" },
+	{ PERF_TYPE_RAW, 0x0000000000000844, 0, 0, 0, 0, "LsAnyFillsFromSys.MemIoLocal" },
+};
+
 /*
  * Owing to the nature of IBS uop tagging, a higher sampling period is
  * required to capture meaningful samples. All samples may not originate
@@ -65,6 +73,12 @@ void
 zen_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
 {
 	plat_config_get(perf_count_id, cfg, s_zen_config);
+}
+
+void
+zen3_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
+{
+	plat_config_get(perf_count_id, cfg, s_zen3_config);
 }
 
 static int

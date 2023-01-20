@@ -40,6 +40,7 @@ extern "C" {
 struct _plat_event_config;
 
 extern void zen_profiling_config(perf_count_id_t, struct _plat_event_config *);
+extern void zen3_profiling_config(perf_count_id_t, struct _plat_event_config *);
 extern void zen_ll_config(struct _plat_event_config *);
 extern int  zen_offcore_num(void);
 
