@@ -840,6 +840,7 @@ ll_init(pf_conf_t *conf)
 	conf->config = (cfg.config) | (cfg.other_attr << 16);
 	conf->config1 = cfg.extra_value;
 	conf->sample_period = cfg.sample_period;
+	conf->exclude_guest = cfg.exclude_guest;
 
 	/* If sample period is not set, choose a default value */
 	if (!cfg.sample_period)

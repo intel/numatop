@@ -40,15 +40,15 @@
 #include "include/zen.h"
 
 static plat_event_config_t s_zen_config[PERF_COUNT_NUM] = {
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0, 0, 0, "LsNotHaltedCyc" },
-	{ PERF_TYPE_RAW, 0x0000000000004043, 0, 0, 0, "LsDmndFillsFromSys.DRAM_IO_Far" },
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0, 0, 0, "LsNotHaltedCyc" },
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS, 0x53, 0, 0, "ExRetOps" },
-	{ PERF_TYPE_RAW, 0x0000000000000843, 0, 0, 0, "LsDmndFillsFromSys.DRAM_IO_Near" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0, 0, 0, 0, "LsNotHaltedCyc" },
+	{ PERF_TYPE_RAW, 0x0000000000004043, 0, 0, 0, 0, "LsDmndFillsFromSys.DRAM_IO_Far" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0, 0, 0, 0, "LsNotHaltedCyc" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS, 0x53, 0, 0, 0, "ExRetOps" },
+	{ PERF_TYPE_RAW, 0x0000000000000843, 0, 0, 0, 0, "LsDmndFillsFromSys.DRAM_IO_Near" },
 };
 
 static plat_event_config_t s_zen_ll = {
-	PERF_TYPE_RAW, 0, 0, 0, 0, "Unsupported"
+	PERF_TYPE_RAW, 0, 0, 0, 0, 0, "Unsupported"
 };
 
 void

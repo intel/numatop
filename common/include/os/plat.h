@@ -54,6 +54,7 @@ typedef struct _plat_event_config {
 	uint64_t other_attr;
 	uint64_t extra_value;
 	uint64_t sample_period;
+	bool exclude_guest;
 	char desc[PLAT_EVENT_DESC_SIZE];
 } plat_event_config_t;
 

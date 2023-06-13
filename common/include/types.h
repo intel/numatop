@@ -30,6 +30,7 @@
 #define	_NUMATOP_TYPES_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "./os/os_types.h"
 #ifdef __powerpc64__
 #include "../../powerpc/include/types.h"

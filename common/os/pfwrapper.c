@@ -432,7 +432,7 @@ pf_ll_setup(struct _perf_cpu *cpu, pf_conf_t *conf)
 	attr.config1 = conf->config1;
 	attr.sample_period = conf->sample_period;
 	attr.precise_ip = 1;
-	attr.exclude_guest = 1;
+	attr.exclude_guest = conf->exclude_guest;
 	attr.sample_type = PERF_SAMPLE_TID | PERF_SAMPLE_ADDR | PERF_SAMPLE_CPU |
 		PERF_SAMPLE_WEIGHT | PERF_SAMPLE_CALLCHAIN;
 	attr.disabled = 1;
