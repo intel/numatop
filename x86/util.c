@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013, Intel Corporation
+ * Copyright (c) 2017, IBM Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -26,45 +27,93 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* This file contains the bdw platform specific functions. */
-
-#include <inttypes.h>
-#include <stdlib.h>
-#include <sys/types.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
-#include <strings.h>
-#include "../common/include/os/linux/perf_event.h"
-#include "../common/include/os/plat.h"
-#include "include/bdw.h"
+#include <inttypes.h>
+#include "../common/include/os/os_util.h"
 
-static plat_event_config_t s_bdw_config[PERF_COUNT_NUM] = {
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.core" },
-	{ PERF_TYPE_RAW, 0x01B7, 0x53, 0x638000001, "off_core_response_0" },
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_REF_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.ref" },
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS, 0x53, 0, "instr_retired.any" },
-	{ PERF_TYPE_RAW, 0x01BB, 0x53, 0x604000001, "off_core_response_1" }
-};
+#define KERNEL_ADDR_START	0xffffffff80000000
 
-static plat_event_config_t s_bdw_ll = {
-	PERF_TYPE_RAW, 0x01CD, 0x53, LL_THRESH, "mem_trans_retired.latency_above_threshold"
-};
-
-void
-bdw_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
+/*
+* Get the TSC cycles.
+*/
+#ifdef __x86_64__
+uint64_t
+rdtsc(void)
 {
-	plat_config_get(perf_count_id, cfg, s_bdw_config);
+	uint64_t var;
+	uint32_t hi, lo;
+
+	__asm volatile
+	    ("rdtsc" : "=a" (lo), "=d" (hi));
+
+	/* LINTED E_VAR_USED_BEFORE_SET */
+	var = ((uint64_t)hi << 32) | lo;
+	return (var);
 }
-
-void
-bdw_ll_config(plat_event_config_t *cfg)
+#else
+uint64_t
+rdtsc(void)
 {
-	memcpy(cfg, &s_bdw_ll, sizeof (plat_event_config_t));
+	uint64_t var;
+
+	__asm volatile
+	    ("rdtsc" : "=A" (var));
+
+	return (var);
+}
+#endif
+
+/*
+ * Check the cpu name in proc info. Intel CPUs always have @ x.y
+ * GHz and that is the TSC frequency. AMD CPUs do not advertise
+ * clock frequency as a part of the model name.
+ */
+int
+arch__cpuinfo_freq(double *freq, char *unit)
+{
+	FILE *f;
+	char *line = NULL;
+	size_t idx, len = 0;
+	int ret = -1;
+
+	if ((f = fopen(CPUINFO_PATH, "r")) == NULL) {
+		return (-1);
+	}
+
+	while ((len = getline(&line, &len, f)) > 0) {
+		if (strncmp(line, "model name", sizeof ("model name") - 1) != 0) {
+			continue;
+		}
+
+		idx = strcspn(line, "@") + 1;
+
+		/*
+		 * The model name will not change for other processors. So
+		 * bail out if "@" is not found.
+		 */
+		if (idx >= len)
+			break;
+
+		if (sscanf(line + idx, "%lf%10s", freq, unit) == 2) {
+			if (strcasecmp(unit, "GHz") == 0) {
+				*freq *= GHZ;
+			} else if (strcasecmp(unit, "Mhz") == 0) {
+				*freq *= MHZ;
+			}
+			ret = 0;
+			break;
+		}
+	}
+
+	free(line);
+	fclose(f);
+	return ret;
 }
 
 int
-bdw_offcore_num(void)
+is_userspace(uint64_t ip)
 {
-	return (2);
+	return ip < KERNEL_ADDR_START;
 }

@@ -58,23 +58,25 @@ libnumatop_la_SOURCES = \
 	common/util.c \
 	common/win.c
 
-if CPU_INTEL
+if CPU_X86
 libnumatop_la_SOURCES += \
-	intel/include/bdw.h \
-	intel/include/nhm.h \
-	intel/include/skl.h \
-	intel/include/snb.h \
-	intel/include/types.h \
-	intel/include/util.h \
-	intel/include/wsm.h \
-	intel/bdw.c \
-	intel/nhm.c \
-	intel/plat.c \
-	intel/skl.c \
-	intel/snb.c \
-	intel/ui_perf_map.c \
-	intel/util.c \
-	intel/wsm.c
+	x86/include/bdw.h \
+	x86/include/nhm.h \
+	x86/include/skl.h \
+	x86/include/snb.h \
+	x86/include/types.h \
+	x86/include/util.h \
+	x86/include/wsm.h \
+	x86/include/zen.h \
+	x86/bdw.c \
+	x86/nhm.c \
+	x86/plat.c \
+	x86/skl.c \
+	x86/snb.c \
+	x86/ui_perf_map.c \
+	x86/util.c \
+	x86/wsm.c \
+	x86/zen.c
 endif
 
 if CPU_PPC
@@ -106,9 +108,9 @@ if CPU_PPC
 mgen_SOURCES += \
 	test/mgen/powerpc/util.c
 endif
-if CPU_INTEL
+if CPU_X86
 mgen_SOURCES += \
-	test/mgen/intel/util.c
+	test/mgen/x86/util.c
 endif
 
 TESTS = test/mgen.01.sh test/mgen.02.sh

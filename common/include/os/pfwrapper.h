@@ -78,6 +78,7 @@ typedef struct _pf_conf {
 	uint64_t config;
 	uint64_t config1;
 	uint64_t sample_period;
+	bool exclude_guest;
 } pf_conf_t;
 
 typedef struct _pf_profiling_rec {

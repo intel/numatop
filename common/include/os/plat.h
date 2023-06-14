@@ -35,7 +35,7 @@
 #ifdef __powerpc64__
 #include "../../../powerpc/include/types.h"
 #else
-#include "../../../intel/include/types.h"
+#include "../../../x86/include/types.h"
 #endif
 
 #ifdef __cplusplus
@@ -53,6 +53,8 @@ typedef struct _plat_event_config {
 	uint64_t config;
 	uint64_t other_attr;
 	uint64_t extra_value;
+	uint64_t sample_period;
+	bool exclude_guest;
 	char desc[PLAT_EVENT_DESC_SIZE];
 } plat_event_config_t;
 

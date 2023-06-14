@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2013, Intel Corporation
- * Copyright (c) 2017, IBM Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -27,16 +26,45 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_INTEL_UTIL_H
-#define _NUMATOP_INTEL_UTIL_H
+/* This file contains the Sandy-Bridge platform specific functions. */
 
-#define	CPU_FAMILY(eax) \
-	(((eax) & 0x0F00) >> 8)
+#include <inttypes.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <strings.h>
+#include "../common/include/os/linux/perf_event.h"
+#include "../common/include/os/plat.h"
+#include "include/snb.h"
 
-#define	CPU_MODEL(eax) \
-	(((eax) & 0x00F0) >> 4)
+static plat_event_config_t s_snb_ep_config[PERF_COUNT_NUM] = {
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0x53, 0, 0, 0, "cpu_clk_unhalted.core" },
+	{ PERF_TYPE_RAW, 0x01B7, 0x53, 0x67f800001, 0, 0, "off_core_response_0" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_REF_CPU_CYCLES, 0x53, 0, 0, 0, "cpu_clk_unhalted.ref" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS, 0x53, 0, 0, 0, "instr_retired.any" },
+	{ PERF_TYPE_RAW, 0x01BB, 0x53, 0x600400001, 0, 0, "off_core_response_1" }
+};
 
-#define	CPU_EXT_MODEL(eax) \
-	(((eax) & 0xF0000) >> 16)
+static plat_event_config_t s_snb_ll = {
+	PERF_TYPE_RAW, 0x01CD, 0x53, LL_THRESH, 0, 1, "mem_trans_retired.latency_above_threshold"
+};
 
-#endif /* _NUMATOP_INTEL_UTIL_H */
+void
+snbep_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
+{
+	plat_config_get(perf_count_id, cfg, s_snb_ep_config);
+}
+
+void
+snbep_ll_config(plat_event_config_t *cfg)
+{
+	memcpy(cfg, &s_snb_ll, sizeof (plat_event_config_t));
+}
+
+int
+snb_offcore_num(void)
+{
+	return (2);
+}

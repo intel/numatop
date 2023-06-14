@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, IBM Corporation
+ * Copyright (c) 2023, AMD Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -26,44 +26,27 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <inttypes.h>
-#include <stdlib.h>
+#ifndef _NUMATOP_AMD_ZEN_H
+#define _NUMATOP_AMD_ZEN_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <sys/types.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <strings.h>
-#include "../common/include/os/linux/perf_event.h"
-#include "../common/include/os/plat.h"
-#include "include/power9.h"
+#include <inttypes.h>
+#include "../../common/include/types.h"
 
-static plat_event_config_t s_power9_profiling[PERF_COUNT_NUM] = {
-	{ PERF_TYPE_RAW, 0x600f4, 0, 0, 0, 0, "PM_RUN_CYC" },
-	{ PERF_TYPE_RAW, 0x4c04c, 0, 0, 0, 0, "PM_DATA_FROM_DMEM" },
-	{ PERF_TYPE_RAW, 0x1001e, 0, 0, 0, 0, "PM_CYC" },
-	{ PERF_TYPE_RAW, 0x500fa, 0, 0, 0, 0, "PM_RUN_INST_CMPL" },
-	{ PERF_TYPE_RAW, 0x2c048, 0, 0, 0, 0, "PM_DATA_FROM_LMEM" },
-	{ PERF_TYPE_RAW, 0x3c04a, 0, 0, 0, 0, "PM_DATA_FROM_RMEM" },
-};
+struct _plat_event_config;
 
-static plat_event_config_t s_power9_ll = {
-	PERF_TYPE_RAW, 0x0000, 0, 0, 0, 1, "PM_SUSPENDED"
-};
+extern void zen_profiling_config(perf_count_id_t, struct _plat_event_config *);
+extern void zen3_profiling_config(perf_count_id_t, struct _plat_event_config *);
+extern void zen4_profiling_config(perf_count_id_t, struct _plat_event_config *);
+extern void zen_ll_config(struct _plat_event_config *);
+extern int  zen_offcore_num(void);
 
-void
-power9_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
-{
-	plat_config_get(perf_count_id, cfg, s_power9_profiling);
+#ifdef __cplusplus
 }
+#endif
 
-void
-power9_ll_config(plat_event_config_t *cfg)
-{
-	memcpy(cfg, &s_power9_ll, sizeof (plat_event_config_t));
-}
-
-int
-power9_offcore_num(void)
-{
-	return (3);
-}
+#endif /* _NUMATOP_AMD_ZEN_H */

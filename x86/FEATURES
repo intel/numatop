@@ -1,0 +1,52 @@
+Features supported on X86:
+--------------------------
+
+Per process/thread:
+
+| Feature                                                   | Supported     |
+|-----------------------------------------------------------|---------------|
+|                                                           | AMD   | Intel |
+|-----------------------------------------------------------|---------------|
+| RMA                                                       | Y     | Y     |
+| LMA                                                       | Y     | Y     |
+| CPI                                                       | Y     | Y     |
+| CPU%                                                      | Y     | Y     |
+| Memory area ADDR                                          | Y     | Y     |
+| Memory area SIZE                                          | Y     | Y     |
+| Memory area ACCESS%                                       | Y     | Y     |
+| Memory area LAT(ns)                                       | Y     | Y     |
+| Memory area DESC                                          | Y     | Y     |
+| Node ACCESS%                                              | Y     | Y     |
+| Node LAT(ns)                                              | Y     | Y     |
+| Call-chain when process generates RMA / LMA / CYCLES / IR | Y     | Y     |
+| Call-chain when process accesses the memory area          | Y     | Y     |
+| PQOS CMT/MBM                                              | N     | Y     |
+
+Per Node:
+
+| Feature                                                   | Supported     |
+|-----------------------------------------------------------|---------------|
+|                                                           | AMD   | Intel |
+|-----------------------------------------------------------|---------------|
+| RMA                                                       | Y     | Y     |
+| LMA                                                       | Y     | Y     |
+| CPU                                                       | Y     | Y     |
+| CPU%                                                      | Y     | Y     |
+| MEM total                                                 | Y     | Y     |
+| MEM free                                                  | Y     | Y     |
+| MEM active                                                | Y     | Y     |
+| MEM inactive                                              | Y     | Y     |
+| Dirty                                                     | Y     | Y     |
+| Writeback                                                 | Y     | Y     |
+| Mapped                                                    | Y     | Y     |
+| QPI/UPI 0 bandwidth                                       | N     | Y     |
+| QPI/UPI 1 bandwidth                                       | N     | Y     |
+| Memory controller bandwidth                               | N     | Y     |
+
+Other:
+
+| Feature                                                   | Supported     |
+|-----------------------------------------------------------|---------------|
+|                                                           | AMD   | Intel |
+|-----------------------------------------------------------|---------------|
+| mgen testcase                                             | Y     | Y     |

@@ -26,7 +26,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* This file contains the Westmere platform specific functions. */
+/* This file contains the Nehalem platform specific functions. */
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -37,54 +37,58 @@
 #include <strings.h>
 #include "../common/include/os/linux/perf_event.h"
 #include "../common/include/os/plat.h"
-#include "include/wsm.h"
+#include "../common/include/os/os_perf.h"
+#include "include/nhm.h"
 
-static plat_event_config_t s_wsmex_profiling[PERF_COUNT_NUM] = {
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.core" },
-	{ PERF_TYPE_RAW, 0x01B7, 0x53, 0x2011, "off_core_response_0" },
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_REF_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.ref" },
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS, 0x53, 0, "instr_retired.any" },
-	{ PERF_TYPE_RAW, 0x01BB, 0x53, 0x5011, "off_core_response_1" }
+static plat_event_config_t s_nhm_profiling[PERF_COUNT_NUM] = {
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0x53, 0, 0, 0, "cpu_clk_unhalted.core" },
+	{ PERF_TYPE_RAW, 0x01B7, 0x53, 0x2011, 0, 0, "off_core_response_0" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_REF_CPU_CYCLES, 0x53, 0, 0, 0, "cpu_clk_unhalted.ref" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS, 0x53, 0, 0, 0, "instr_retired.any" },
+	{ PERF_TYPE_RAW, INVALID_CODE_UMASK, 0, 0, 0, 0, "off_core_response_1" }
 };
 
-static plat_event_config_t s_wsmep_profiling[PERF_COUNT_NUM] = {
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.core" },
-	{ PERF_TYPE_RAW, 0x01B7, 0x53, 0x2011, "off_core_response_0" },
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_REF_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.ref" },
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS, 0x53, 0, "instr_retired.any" },
-	{ PERF_TYPE_RAW, 0x01BB, 0x53, 0x5011, "off_core_response_1" }
+static plat_event_config_t s_nhm_ll = {
+	PERF_TYPE_RAW, 0x100B, 0x53, LL_THRESH, 0, 1, "mem_inst_retired.latency_above_threshold"
 };
 
-static plat_event_config_t s_wsm_ll = {
-	PERF_TYPE_RAW, 0x100B, 0x53, LL_THRESH, "mem_inst_retired.latency_above_threshold"
-};
-
-void
-wsmex_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
+static void
+config_get(perf_count_id_t perf_count_id, plat_event_config_t *cfg, plat_event_config_t *cfg_arr)
 {
-	plat_config_get(perf_count_id, cfg, s_wsmex_profiling);
+	cfg->type = cfg_arr[perf_count_id].type;
+	cfg->config = cfg_arr[perf_count_id].config;
+	cfg->other_attr = cfg_arr[perf_count_id].other_attr;
+	cfg->extra_value = cfg_arr[perf_count_id].extra_value;
+	strncpy(cfg->desc, cfg_arr[perf_count_id].desc, PLAT_EVENT_DESC_SIZE);
+	cfg->desc[PLAT_EVENT_DESC_SIZE - 1] = 0;
 }
 
 void
-wsmep_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
+nhmex_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
 {
-	plat_config_get(perf_count_id, cfg, s_wsmep_profiling);
+	config_get(perf_count_id, cfg, s_nhm_profiling);
 }
 
 void
-wsmex_ll_config(plat_event_config_t *cfg)
+nhmep_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
 {
-	memcpy(cfg, &s_wsm_ll, sizeof (plat_event_config_t));
+	config_get(perf_count_id, cfg, s_nhm_profiling);
 }
 
 void
-wsmep_ll_config(plat_event_config_t *cfg)
+nhmex_ll_config(plat_event_config_t *cfg)
 {
-	memcpy(cfg, &s_wsm_ll, sizeof (plat_event_config_t));
+	memcpy(cfg, &s_nhm_ll, sizeof (plat_event_config_t));
+}
+
+void
+nhmep_ll_config(plat_event_config_t *cfg)
+{
+	memcpy(cfg, &s_nhm_ll, sizeof (plat_event_config_t));
 }
 
 int
-wsm_offcore_num(void)
+nhm_offcore_num(void)
 {
-	return (2);
+	return (1);
 }

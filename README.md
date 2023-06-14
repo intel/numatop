@@ -58,7 +58,7 @@ http://www.gossamer-threads.com/lists/linux/kernel/1964864
 
 common:	common code for all platforms.
 
-intel : Intel platform-specific code.
+x86   : Intel and AMD platform-specific code.
 
 powerpc: PowerPC platform-specific code.
 

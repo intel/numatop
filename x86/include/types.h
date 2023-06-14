@@ -27,84 +27,42 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <inttypes.h>
-#include "../common/include/os/os_util.h"
+#ifndef _NUMATOP_X86_TYPES_H
+#define _NUMATOP_X86_TYPES_H
 
-#define KERNEL_ADDR_START	0xffffffff80000000
+#include "../../common/include/types.h"
 
-/*
-* Get the TSC cycles.
-*/
-#ifdef __x86_64__
-uint64_t
-rdtsc(void)
-{
-	uint64_t var;
-	uint32_t hi, lo;
+#define CORP "Intel"
 
-	__asm volatile
-	    ("rdtsc" : "=a" (lo), "=d" (hi));
+typedef enum {
+	CPU_UNSUP = 0,
+	CPU_WSM_EX,
+	CPU_SNB_EP,
+	CPU_NHM_EX,
+	CPU_NHM_EP,
+	CPU_WSM_EP,
+	CPU_IVB_EX,
+	CPU_HSX,
+	CPU_BDX,
+	CPU_SKX,
+	CPU_ICX,
+	CPU_SPR,
+	CPU_ZEN,
+	CPU_ZEN3,
+	CPU_ZEN4
+} cpu_type_t;
 
-	/* LINTED E_VAR_USED_BEFORE_SET */
-	var = ((uint64_t)hi << 32) | lo;
-	return (var);
-}
-#else
-uint64_t
-rdtsc(void)
-{
-	uint64_t var;
+#define	CPU_TYPE_NUM	15
 
-	__asm volatile
-	    ("rdtsc" : "=A" (var));
+typedef enum {
+	PERF_COUNT_INVALID = -1,
+	PERF_COUNT_CORE_CLK = 0,
+	PERF_COUNT_RMA,
+	PERF_COUNT_CLK,
+	PERF_COUNT_IR,
+	PERF_COUNT_LMA
+} perf_count_id_t;
 
-	return (var);
-}
-#endif
+#define PERF_COUNT_NUM		5
 
-/*
- * Check the cpu name in proc info. Intel CPUs always have @ x.y
- * Ghz and that is the TSC frequency.
- */
-int
-arch__cpuinfo_freq(double *freq, char *unit)
-{
-	FILE *f;
-	char *line = NULL;
-	size_t len = 0;
-	int ret = -1;
-
-	if ((f = fopen(CPUINFO_PATH, "r")) == NULL) {
-		return (-1);
-	}
-
-	while (getline(&line, &len, f) > 0) {
-		if (strncmp(line, "model name", sizeof ("model name") - 1) != 0) {
-			continue;
-		}
-
-		if (sscanf(line + strcspn(line, "@") + 1, "%lf%10s",
-			freq, unit) == 2) {
-			if (strcasecmp(unit, "GHz") == 0) {
-				*freq *= GHZ;
-			} else if (strcasecmp(unit, "Mhz") == 0) {
-				*freq *= MHZ;
-			}
-			ret = 0;
-			break;
-		}
-	}
-
-	free(line);
-	fclose(f);
-	return ret;
-}
-
-int
-is_userspace(uint64_t ip)
-{
-	return ip < KERNEL_ADDR_START;
-}
+#endif /* _NUMATOP_X86_TYPES_H */

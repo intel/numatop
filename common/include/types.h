@@ -30,11 +30,12 @@
 #define	_NUMATOP_TYPES_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "./os/os_types.h"
 #ifdef __powerpc64__
 #include "../../powerpc/include/types.h"
 #else
-#include "../../intel/include/types.h"
+#include "../../x86/include/types.h"
 #endif
 
 #ifdef __cplusplus
@@ -115,7 +116,7 @@ typedef enum {
 #define UI_COUNT_NUM		5
 
 #define	NNODES_MAX		64
-#define NCPUS_NODE_MAX	128
+#define NCPUS_NODE_MAX		256
 #define	NCPUS_MAX		(NNODES_MAX * NCPUS_NODE_MAX)
 #define NPROCS_NAX		4096
 #define	LL_THRESH		128

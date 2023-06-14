@@ -26,7 +26,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* This file contains the Sandy-Bridge platform specific functions. */
+/* This file contains the bdw platform specific functions. */
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -37,34 +37,34 @@
 #include <strings.h>
 #include "../common/include/os/linux/perf_event.h"
 #include "../common/include/os/plat.h"
-#include "include/snb.h"
+#include "include/bdw.h"
 
-static plat_event_config_t s_snb_ep_config[PERF_COUNT_NUM] = {
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.core" },
-	{ PERF_TYPE_RAW, 0x01B7, 0x53, 0x67f800001, "off_core_response_0" },
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_REF_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.ref" },
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS, 0x53, 0, "instr_retired.any" },
-	{ PERF_TYPE_RAW, 0x01BB, 0x53, 0x600400001, "off_core_response_1" }
+static plat_event_config_t s_bdw_config[PERF_COUNT_NUM] = {
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0x53, 0, 0, 0, "cpu_clk_unhalted.core" },
+	{ PERF_TYPE_RAW, 0x01B7, 0x53, 0x638000001, 0, 0, "off_core_response_0" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_REF_CPU_CYCLES, 0x53, 0, 0, 0, "cpu_clk_unhalted.ref" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS, 0x53, 0, 0, 0, "instr_retired.any" },
+	{ PERF_TYPE_RAW, 0x01BB, 0x53, 0x604000001, 0, 0, "off_core_response_1" }
 };
 
-static plat_event_config_t s_snb_ll = {
-	PERF_TYPE_RAW, 0x01CD, 0x53, LL_THRESH, "mem_trans_retired.latency_above_threshold"
+static plat_event_config_t s_bdw_ll = {
+	PERF_TYPE_RAW, 0x01CD, 0x53, LL_THRESH, 0, 1, "mem_trans_retired.latency_above_threshold"
 };
 
 void
-snbep_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
+bdw_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
 {
-	plat_config_get(perf_count_id, cfg, s_snb_ep_config);
+	plat_config_get(perf_count_id, cfg, s_bdw_config);
 }
 
 void
-snbep_ll_config(plat_event_config_t *cfg)
+bdw_ll_config(plat_event_config_t *cfg)
 {
-	memcpy(cfg, &s_snb_ll, sizeof (plat_event_config_t));
+	memcpy(cfg, &s_bdw_ll, sizeof (plat_event_config_t));
 }
 
 int
-snb_offcore_num(void)
+bdw_offcore_num(void)
 {
 	return (2);
 }

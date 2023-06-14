@@ -28,6 +28,7 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
+#include <sys/resource.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
@@ -839,17 +840,37 @@ ll_init(pf_conf_t *conf)
 	conf->type = cfg.type;
 	conf->config = (cfg.config) | (cfg.other_attr << 16);
 	conf->config1 = cfg.extra_value;
-	conf->sample_period = LL_PERIOD;
+	conf->sample_period = cfg.sample_period;
+	conf->exclude_guest = cfg.exclude_guest;
+
+	/* If sample period is not set, choose a default value */
+	if (!cfg.sample_period)
+		conf->sample_period = LL_PERIOD;
 }
 
 int
 os_perf_init(void)
 {
+	struct rlimit limit;
 	int ringsize, size;
 
 	s_profiling_recbuf = NULL;
 	s_ll_recbuf = NULL;
 	s_partpause_enabled = B_FALSE;
+
+	/*
+	 * Depending on the number of available CPUs in the system, the
+	 * default fd limit may be exceeded. Set it to a large value to
+	 * avoid running into problems.
+	 */
+	limit.rlim_cur = 32768;
+	limit.rlim_max = 32768;
+
+	if (setrlimit(RLIMIT_NOFILE, &limit) < 0) {
+		exit_msg_put("Failed to setup perf!\n");
+		debug_print(NULL, 2, "os_perf_init failed\n");
+		return (-1);
+	}
 
 	ringsize = pf_ringsize_init();
 	size = ((ringsize / sizeof (pf_profiling_rbrec_t)) + 1) *
