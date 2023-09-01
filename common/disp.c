@@ -637,7 +637,7 @@ cons_handler(void *arg __attribute__((unused)))
 	win_fix_init();
 
 	/*
-	 * Excute "home" command. It shows the NumaTop default page.
+	 * Execute "home" command. It shows the NumaTop default page.
 	 */
 	disp_go_home();
 

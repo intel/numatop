@@ -45,7 +45,7 @@
 #include "include/os/os_util.h"
 
 /*
- * Allocation and initialization for a 'track_lwp_t' struture.
+ * Allocation and initialization for a 'track_lwp_t' structure.
  * A 'track_lwp_t' structure is allocated for each tracked thread.
  */
 static track_lwp_t *
@@ -92,7 +92,7 @@ lwp_alloc(void)
 }
 
 /*
- * Clean up the resource of 'track_lwp_t' struture. Before calling
+ * Clean up the resource of 'track_lwp_t' structure. Before calling
  * lwp_free(), 'track_lwp_t' must be removed from 'lwp_list' in
  * 'track_proc_t' structure.
  */
