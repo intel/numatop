@@ -83,10 +83,12 @@ if CPU_PPC
 libnumatop_la_SOURCES += \
 	powerpc/include/power8.h \
 	powerpc/include/power9.h \
+	powerpc/include/power10.h \
 	powerpc/include/types.h \
 	powerpc/plat.c \
 	powerpc/power8.c \
 	powerpc/power9.c \
+	powerpc/power10.c \
 	powerpc/ui_perf_map.c \
 	powerpc/util.c
 endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, IBM Corporation
+ * Copyright (c) 2023, IBM Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -26,32 +26,44 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_POWERPC_TYPES_H
-#define _NUMATOP_POWERPC_TYPES_H
+#include <inttypes.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <strings.h>
+#include "../common/include/os/linux/perf_event.h"
+#include "../common/include/os/plat.h"
+#include "include/power10.h"
 
-#include "../../common/include/types.h"
+static plat_event_config_t s_power10_profiling[PERF_COUNT_NUM] = {
+	{ PERF_TYPE_RAW, 0x600f4, 0, 0, 0, 0, "PM_RUN_CYC" },
+	{ PERF_TYPE_RAW, 0x0F4040000004C040, 0, 0, 0, 0, "PM_DATA_FROM_DMEM" },
+	{ PERF_TYPE_RAW, 0x100f0, 0, 0, 0, 0, "PM_CYC" },
+	{ PERF_TYPE_RAW, 0x500fa, 0, 0, 0, 0, "PM_RUN_INST_CMPL" },
+	{ PERF_TYPE_RAW, 0x094040000002C040, 0, 0, 0, 0, "PM_DATA_FROM_LMEM" },
+	{ PERF_TYPE_RAW, 0x0D4040000003C040, 0, 0, 0, 0, "PM_DATA_FROM_RMEM" },
+};
 
-#define CORP "IBM"
+static plat_event_config_t s_power10_ll = {
+	PERF_TYPE_RAW, 0x0000, 0, 0, 0, 1, "PM_SUSPENDED"
+};
 
-typedef enum {
-	CPU_UNSUP = 0,
-	CPU_POWER8,
-	CPU_POWER9,
-	CPU_POWER10
-} cpu_type_t;
+void
+power10_profiling_config(perf_count_id_t perf_count_id, plat_event_config_t *cfg)
+{
+	plat_config_get(perf_count_id, cfg, s_power10_profiling);
+}
 
-#define CPU_TYPE_NUM    4
+void
+power10_ll_config(plat_event_config_t *cfg)
+{
+	memcpy(cfg, &s_power10_ll, sizeof (plat_event_config_t));
+}
 
-typedef enum {
-	PERF_COUNT_INVALID = -1,
-	PERF_COUNT_CORE_CLK = 0,
-	PERF_COUNT_RMA,
-	PERF_COUNT_CLK,
-	PERF_COUNT_IR,
-	PERF_COUNT_LMA,
-	PERF_COUNT_RMA_1
-} perf_count_id_t;
-
-#define PERF_COUNT_NUM	6
-
-#endif /* _NUMATOP_POWERPC_TYPES_H */
+int
+power10_offcore_num(void)
+{
+	return (3);
+}

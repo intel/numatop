@@ -35,26 +35,30 @@
 #include "include/types.h"
 #include "include/power8.h"
 #include "include/power9.h"
+#include "include/power10.h"
 
 pfn_plat_profiling_config_t
 s_plat_profiling_config[CPU_TYPE_NUM] = {
 	NULL,
 	power8_profiling_config,
-	power9_profiling_config
+	power9_profiling_config,
+	power10_profiling_config
 };
 
 pfn_plat_ll_config_t
 s_plat_ll_config[CPU_TYPE_NUM] = {
 	NULL,
 	power8_ll_config,
-	power9_ll_config
+	power9_ll_config,
+	power10_ll_config
 };
 
 pfn_plat_offcore_num_t
 s_plat_offcore_num[CPU_TYPE_NUM] = {
 	NULL,
 	power8_offcore_num,
-	power9_offcore_num
+	power9_offcore_num,
+	power10_offcore_num
 };
 
 #define SPRN_PVR	0x11F
@@ -83,6 +87,10 @@ plat_detect(void)
 			break;
 
 		s_cpu_type = CPU_POWER9;
+		ret = 0;
+		break;
+	case 0x80:
+		s_cpu_type = CPU_POWER10;
 		ret = 0;
 		break;
 	}
