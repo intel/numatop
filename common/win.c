@@ -456,7 +456,7 @@ topnproc_data_show(dyn_win_t *win)
 	reg_refresh_nout(data_reg);
 
 	/*
-	 * Dispaly hint message for window type
+	 * Display hint message for window type
 	 * "WIN_TYPE_TOPNPROC" and "WIN_TYPE_RAW_NUM"
 	 */
 	r = &dyn->hint;
@@ -845,7 +845,7 @@ moniproc_data_show(dyn_win_t *win, boolean_t *note_out)
 	proc_refcount_dec(proc);
 
 	/*
-	 * Dispaly hint message for window type "WIN_TYPE_MONIPROC"
+	 * Display hint message for window type "WIN_TYPE_MONIPROC"
 	 */
 	r = &dyn->hint;
 	reg_erase(r);
@@ -990,7 +990,7 @@ monilwp_data_show(dyn_win_t *win, boolean_t *note_out)
 	proc_refcount_dec(proc);
 
 	/*
-	 * Dispaly hint message for window type "WIN_TYPE_MONILWP"
+	 * Display hint message for window type "WIN_TYPE_MONILWP"
 	 */
 	r = &dyn->hint;
 	reg_erase(r);
@@ -1634,7 +1634,7 @@ nodeoverview_data_show(dyn_win_t *win, boolean_t *note_out)
 	reg_refresh_nout(r);
 
 	/*
-	 * Dispaly hint message for window type "WIN_TYPE_NODE_OVERVIEW"
+	 * Display hint message for window type "WIN_TYPE_NODE_OVERVIEW"
 	 */
 	r = &dyn->hint;
 	reg_erase(r);
