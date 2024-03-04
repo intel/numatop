@@ -215,7 +215,7 @@ nodedetail_line_show(win_reg_t *reg, char *title, char *value, int line)
 void
 os_nodedetail_data(dyn_nodedetail_t *dyn, win_reg_t *seg)
 {
-	char s1[256], s2[32];
+	char s1[512], s2[32];
 	node_t *node;
 	win_countvalue_t value;
 	node_meminfo_t meminfo;
