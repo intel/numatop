@@ -29,6 +29,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -105,6 +106,28 @@ cpuid_cmp(const void *a, const void *b)
 	return (0);
 }
 
+static void
+print_buf(char **destp, int *sizep, const char *fmt, ...)
+{
+	va_list ap;
+	int len;
+
+	if (*sizep <= 0)
+		return;
+
+	va_start(ap, fmt);
+	len = vsnprintf(*destp, *sizep, fmt, ap);
+	va_end(ap);
+
+	if (len >= *sizep) {
+		*sizep = 0;
+		return;
+	}
+
+	*destp += len;
+	*sizep -= len;
+}
+
 /*
  * Build a readable string of CPU ID and try to reduce the string length. e.g.
  * For cpu1, cpu2, cpu3, cpu4, the string is "CPU(1-4)",
@@ -113,7 +136,6 @@ cpuid_cmp(const void *a, const void *b)
 static void
 node_cpu_string(node_t *node, char *s1, int size)
 {
-	char s2[128], s3[128];
 	int i, j, k, l, cpuid_start;
 	int *cpuid_arr;
 	int ncpus;
@@ -156,40 +178,29 @@ node_cpu_string(node_t *node, char *s1, int size)
 
 			if (k < ncpus) {
 				if (l == 1) {
-					(void) snprintf(s2, sizeof (s2), "%d ", cpuid_start);
+					print_buf(&s1, &size, "%d ", cpuid_start);
 				} else {
-					(void) snprintf(s2, sizeof (s2),
+					print_buf(&s1, &size,
 						"%d-%d ", cpuid_start, cpuid_start + l - 1);
 				}
           		} else {
 				if (l == 1) {
-					(void) snprintf(s2, sizeof (s2), "%d",
-						cpuid_start);
+					print_buf(&s1, &size, "%d", cpuid_start);
 				} else {
-					(void) snprintf(s2, sizeof (s2), "%d-%d",
+					print_buf(&s1, &size, "%d-%d",
 						cpuid_start, cpuid_start + l - 1);
 				}
 				s2_len -= strlen(s2);
 
-				(void) snprintf(s3, sizeof (s3), " %d",
-					cpuid_arr[j]);
-				s2_len -= strlen(s3);
-				if (s2_len > 0)
-					(void) strncat(s2, s3, s2_len);
+				print_buf(&s1, &size, " %d", cpuid_arr[j]);
 			}
 
-			s1_len -= strlen(s2);
-			if (s1_len > 0)
-				(void) strncat(s1, s2, s1_len);
           		cpuid_start = cpuid_arr[j];
            		l = 1;
 		} else {
 	        	if (k == ncpus) {
-        	    		(void) snprintf(s2, sizeof (s2), "%d-%d",
+				print_buf(&s1, &size, "%d-%d",
                 			cpuid_start, cpuid_start + l);
-				s1_len -= strlen(s2);
-				if (s1_len > 0)
-					(void) strncat(s1, s2, s1_len);
        			} else {
             			l++;
        			}
