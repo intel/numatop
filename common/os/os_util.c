@@ -387,12 +387,10 @@ str_int_extract(char *str, int *arr, int arr_size, int *num)
 	int len = strlen(str);
 	boolean_t ret = B_FALSE;
 
-	if ((scopy = malloc(len + 1)) == NULL) {
+	if ((scopy = strdup(str)) == NULL) {
 		return (B_FALSE);
 	}
 
-	strncpy(scopy, str, len + 1);
-	scopy[len] = 0;
 	cur = scopy;
 
 	while (cur < (scopy + len)) {
