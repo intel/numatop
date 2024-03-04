@@ -64,11 +64,11 @@ static plat_event_config_t s_spr_config[PERF_COUNT_NUM] = {
 };
 
 static plat_event_config_t s_emr_config[PERF_COUNT_NUM] = {
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.core" },
-	{ PERF_TYPE_RAW, 0x012A, 0x53, 0x730000001, "off_core_response_0" },
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_REF_CPU_CYCLES, 0x53, 0, "cpu_clk_unhalted.ref" },
-	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS, 0x53, 0, "instr_retired.any" },
-	{ PERF_TYPE_RAW, 0x012B, 0x53, 0x104000001, "off_core_response_1" }
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0x53, 0, 0, 0, "cpu_clk_unhalted.core" },
+	{ PERF_TYPE_RAW, 0x012A, 0x53, 0x730000001, 0, 0, "off_core_response_0" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_REF_CPU_CYCLES, 0x53, 0, 0, 0, "cpu_clk_unhalted.ref" },
+	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS, 0x53, 0, 0, 0, "instr_retired.any" },
+	{ PERF_TYPE_RAW, 0x012B, 0x53, 0x104000001, 0, 0, "off_core_response_1" }
 };
 
 static plat_event_config_t s_skl_ll = {

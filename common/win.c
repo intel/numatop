@@ -355,8 +355,7 @@ topnproc_data_save(track_proc_t *proc, int intval, topnproc_line_t *line)
 	/*
 	 * Cut off the process name if it's too long.
 	 */
-	(void) strncpy(line->proc_name, proc->name, sizeof (line->proc_name));
-	line->proc_name[WIN_PROCNAME_SIZE - 1] = 0;
+	memcpy(line->proc_name, proc->name, sizeof (line->proc_name) - 1);
 	line->pid = proc->pid;
 	line->nlwp = proc_nlwp(proc);
 
@@ -484,14 +483,11 @@ topnproc_data_show(dyn_win_t *win)
 static void
 load_msg_show(void)
 {
-	char content[64];
 	win_reg_t r;
-
-	(void) snprintf(content, sizeof (content), "Loading ...");
 
 	(void) reg_init(&r, 0, 1, g_scr_width, g_scr_height - 1, A_BOLD);
 	reg_erase(&r);
-	reg_line_write(&r, 1, ALIGN_LEFT, content);
+	reg_line_write(&r, 1, ALIGN_LEFT, "Loading ...");
 	reg_refresh(&r);
 	reg_win_destroy(&r);
 }
@@ -2895,8 +2891,7 @@ pqos_cmt_proc_data_save(track_proc_t *proc, track_lwp_t *lwp, int intval,
 {
 	(void) memset(line, 0, sizeof (pqos_cmt_proc_line_t));
 
-	(void) strncpy(line->proc_name, proc->name, sizeof (line->proc_name));
-	line->proc_name[WIN_PROCNAME_SIZE - 1] = 0;
+	memcpy(line->proc_name, proc->name, sizeof (line->proc_name) - 1);
 	line->pid = proc->pid;
 	line->nlwp = proc_nlwp(proc);
 
@@ -3219,8 +3214,7 @@ pqos_mbm_proc_data_save(track_proc_t *proc, track_lwp_t *lwp, int intval,
 {
 	(void) memset(line, 0, sizeof (pqos_mbm_proc_line_t));
 
-	(void) strncpy(line->proc_name, proc->name, sizeof (line->proc_name));
-	line->proc_name[WIN_PROCNAME_SIZE - 1] = 0;
+	memcpy(line->proc_name, proc->name, sizeof (line->proc_name) - 1);
 	line->pid = proc->pid;
 	line->nlwp = proc_nlwp(proc);
 

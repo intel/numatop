@@ -463,7 +463,7 @@ L_EXIT:
 }
 
 static int
-elf64_binary_read(sym_binary_t *binary, unsigned int sym_type)
+elf64_binary_read(sym_binary_t *binary, sym_type_t sym_type)
 {
 	Elf64_Ehdr ehdr;
 	Elf64_Shdr shdr;
