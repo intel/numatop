@@ -484,14 +484,11 @@ topnproc_data_show(dyn_win_t *win)
 static void
 load_msg_show(void)
 {
-	char content[64];
 	win_reg_t r;
-
-	(void) snprintf(content, sizeof (content), "Loading ...");
 
 	(void) reg_init(&r, 0, 1, g_scr_width, g_scr_height - 1, A_BOLD);
 	reg_erase(&r);
-	reg_line_write(&r, 1, ALIGN_LEFT, content);
+	reg_line_write(&r, 1, ALIGN_LEFT, "Loading ...");
 	reg_refresh(&r);
 	reg_win_destroy(&r);
 }
