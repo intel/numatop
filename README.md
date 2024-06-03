@@ -77,6 +77,9 @@ numatop is supported on Intel Xeon processors: 5500-series, 6500/7500-series,
 E5-16xx/24xx/26xx/46xx-series had better be updated to latest CPU microcode
 (microcode must be 0x618+ or 0x70c+).
 
+AMD EPYC processors from the 7001, 7002, 7003, 4004, 8004 and 9004 series are
+also supported.
+
 To learn about NumaTOP, please visit http://01.org/numatop
 
 
