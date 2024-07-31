@@ -93,6 +93,11 @@ plat_detect(void)
 		s_cpu_type = CPU_POWER10;
 		ret = 0;
 		break;
+
+	case 0x82:
+		s_cpu_type = CPU_POWER10;
+		ret = 0;
+		break;
 	}
 
 	return ret;
