@@ -210,6 +210,8 @@ cpu_type_get(void)
 		} else {
 			type = CPU_ZEN4;
 		}
+	} else if (family >= 26) {	/* Family 1Ah and later */
+		type = CPU_ZEN4;
 	}
 
 	return (type);
