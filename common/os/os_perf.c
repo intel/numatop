@@ -292,7 +292,7 @@ cpu_profiling_setupstart(perf_cpu_t *cpu,
 static int
 cpu_profiling_partpause(perf_cpu_t *cpu, void *arg)
 {
-	perf_count_id_t perf_count_id = (perf_count_id_t)arg;
+  	perf_count_id_t perf_count_id = (perf_count_id_t)(uintptr_t)arg;
 	int i;
 
 	if (perf_count_id == PERF_COUNT_INVALID ||
@@ -345,7 +345,7 @@ cpu_profiling_multipause(perf_cpu_t *cpu, void *arg)
 static int
 cpu_profiling_restore(perf_cpu_t *cpu, void *arg)
 {
-	perf_count_id_t perf_count_id = (perf_count_id_t)arg;
+  	perf_count_id_t perf_count_id = (perf_count_id_t)(uintptr_t)arg;
 	int i;
 
 	if (perf_count_id == PERF_COUNT_INVALID ||

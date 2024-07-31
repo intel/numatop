@@ -144,7 +144,7 @@ map_read(pid_t pid, map_proc_t *map)
 	char path[PATH_MAX];
 	char line[MAPFILE_LINE_SIZE];
 	char addr_str[128], attr_str[128], off_str[128];
-	char fd_str[128], inode_str[128], path_str[PATH_MAX];
+	char fd_str[128], inode_str[128], path_str[PATH_MAX*2];
 	char s1[64], s2[64];
 	uint64_t start_addr, end_addr;
 	unsigned int attr;
