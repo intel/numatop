@@ -2668,7 +2668,7 @@ llrec2addr(track_proc_t *proc, track_lwp_t *lwp, void ***addr_arr,
 	}
 
 	for (i = 0; i < grp->nrec_cur; i++) {
-		addr_buf[i] = (void *)(grp->rec_arr[i].addr);
+		addr_buf[i] = (void *)(uintptr_t)(grp->rec_arr[i].addr);
 		lat_buf[i] = grp->rec_arr[i].latency;
 	}
 

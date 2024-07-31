@@ -322,7 +322,7 @@ numa_map_update(numa_map_t *numa_map, void **addr_arr, int *node_arr,
 	int i = 0, j;
 
 	if ((entry = last_entry) == NULL) {
-		if ((entry = numa_entry_add(numa_map, (uint64_t)(addr_arr[i]), 
+		if ((entry = numa_entry_add(numa_map, (uint64_t)(uintptr_t)addr_arr[i],
 			node_arr[i])) == NULL) {
 			return (NULL);
 		}
@@ -332,10 +332,10 @@ numa_map_update(numa_map_t *numa_map, void **addr_arr, int *node_arr,
 
 	for (j = i; j < addr_num; j++) {
 		if ((entry->nid == node_arr[j]) &&
-			(entry->end_addr == (uint64_t)(addr_arr[j]))) {
+			(entry->end_addr == (uint64_t)(uintptr_t)addr_arr[j])) {
 			entry->end_addr += g_pagesize;
 		} else {
-			if ((entry = numa_entry_add(numa_map, (uint64_t)(addr_arr[j]), 
+			if ((entry = numa_entry_add(numa_map, (uint64_t)(uintptr_t)addr_arr[j],
 				node_arr[j])) == NULL) {
 				return (NULL);
 			}		
@@ -359,7 +359,7 @@ map_map2numa(track_proc_t *proc, map_entry_t *map_entry)
 	while (npages_moved < npages_total) {
 		npages_tomove = MIN(NUMA_MOVE_NPAGES, npages_total - npages_moved);
 		for (i = 0; i < npages_tomove; i++) {
-			addr_arr[i] = (void *)(map_entry->start_addr + 
+			addr_arr[i] = (void *)(uintptr_t)(map_entry->start_addr +
 				(i + npages_moved) * g_pagesize);
 		}
 

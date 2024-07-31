@@ -239,9 +239,12 @@ reg_line_write(win_reg_t *r, int line, reg_align_t align, char *content)
 		pos_x = (r->ncols_scr - len) / 2;
 	}
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-security"
 	if (len > 0) {
 		(void) mvwprintw(r->hdl, line, pos_x, content);
 	}
+#pragma GCC diagnostic pop
 
 	if (r->mode != 0) {
 		(void) wattroff(r->hdl, r->mode);
@@ -266,9 +269,12 @@ reg_highlight_write(win_reg_t *r, int line, int align, char *content)
 		pos_x = (r->ncols_scr - len) / 2;
 	}
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-security"
 	if (len > 0) {
 		(void) mvwprintw(r->hdl, line, pos_x, content);
 	}
+#pragma GCC diagnostic pop
 
 	(void) wattroff(r->hdl, A_REVERSE | A_BOLD);
 }

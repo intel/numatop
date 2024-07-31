@@ -166,7 +166,7 @@ pf_profiling_setup(struct _perf_cpu *cpu, int idx, pf_conf_t *conf)
 		PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING;
 	attr.size = sizeof(attr);
 
-	debug_print(NULL, 2, "pf_profiling_setup: attr.type = 0x%lx, "
+	debug_print(NULL, 2, "pf_profiling_setup: attr.type = 0x%x, "
 		"attr.config = 0x%lx, attr.config1 = 0x%lx\n",
 		 attr.type, attr.config, attr.config1);
 
@@ -773,14 +773,14 @@ pf_uncoreqpi_setup(struct _node *node)
 		if ((qpi->qpi_info[i].fd = pf_event_open(&attr, -1,
 			node->cpus[0].cpuid, -1, 0)) < 0) {
 			debug_print(NULL, 2, "pf_uncoreqpi_setup: pf_event_open is failed "
-				"for node %d, qpi %d, cpu %d, type %d, config 0x%x\n",
+				"for node %d, qpi %d, cpu %d, type %d, config 0x%lx\n",
 				node->nid, i, node->cpus[0].cpuid, attr.type, attr.config);
 			qpi->qpi_info[i].fd = INVALID_FD;
 			return (-1);
 		}
 
 		debug_print(NULL, 2, "pf_uncoreqpi_setup: pf_event_open is successful "
-			"for node %d, qpi %d, cpu %d, type %d, config 0x%x, fd %d\n",
+			"for node %d, qpi %d, cpu %d, type %d, config 0x%lx, fd %d\n",
 			node->nid, i, node->cpus[0].cpuid, attr.type, attr.config,
 			qpi->qpi_info[i].fd);
 	}
@@ -897,14 +897,14 @@ pf_uncoreimc_setup(struct _node *node)
 		if ((imc->imc_info[i].fd = pf_event_open(&attr, -1,
 			node->cpus[0].cpuid, -1, 0)) < 0) {
 			debug_print(NULL, 2, "pf_uncoreimc_setup: pf_event_open is failed "
-				"for node %d, imc %d, cpu %d, type %d, config 0x%x\n",
+				"for node %d, imc %d, cpu %d, type %d, config 0x%lx\n",
 				node->nid, i, node->cpus[0].cpuid, attr.type, attr.config);
 			imc->imc_info[i].fd = INVALID_FD;
 			return (-1);
 		}
 
 		debug_print(NULL, 2, "pf_uncoreimc_setup: pf_event_open is successful "
-			"for node %d, imc %d, cpu %d, type %d, config 0x%x, fd %d\n",
+			"for node %d, imc %d, cpu %d, type %d, config 0x%lx, fd %d\n",
 			node->nid, i, node->cpus[0].cpuid, attr.type, attr.config,
 			imc->imc_info[i].fd);
 	}

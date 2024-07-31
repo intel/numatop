@@ -384,7 +384,7 @@ elf32_binary_read(sym_binary_t *binary, sym_type_t sym_type)
 	}
 
 	if (ehdr.e_shentsize != sizeof (Elf32_Shdr)) {
-		debug_print(NULL, 2, "elf32_binary_read: ehdr.e_shentsize != %d\n",
+		debug_print(NULL, 2, "elf32_binary_read: ehdr.e_shentsize != %zu\n",
 			sizeof (Elf32_Shdr));
 		return (-1);
 	}
@@ -481,7 +481,7 @@ elf64_binary_read(sym_binary_t *binary, unsigned int sym_type)
 	}
 
 	if (ehdr.e_shentsize != sizeof (Elf64_Shdr)) {
-		debug_print(NULL, 2, "elf64_binary_read: ehdr.e_shentsize != %d\n",
+		debug_print(NULL, 2, "elf64_binary_read: ehdr.e_shentsize != %zu\n",
 			sizeof (Elf64_Shdr));
 		return (-1);
 	}
