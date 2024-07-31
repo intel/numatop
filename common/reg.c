@@ -242,7 +242,7 @@ reg_line_write(win_reg_t *r, int line, reg_align_t align, char *content)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-security"
 	if (len > 0) {
-		(void) mvwprintw(r->hdl, line, pos_x, content);
+		(void) mvwprintw(r->hdl, line, pos_x, "%s", content);
 	}
 #pragma GCC diagnostic pop
 
@@ -272,7 +272,7 @@ reg_highlight_write(win_reg_t *r, int line, int align, char *content)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-security"
 	if (len > 0) {
-		(void) mvwprintw(r->hdl, line, pos_x, content);
+		(void) mvwprintw(r->hdl, line, pos_x, "%s", content);
 	}
 #pragma GCC diagnostic pop
 
