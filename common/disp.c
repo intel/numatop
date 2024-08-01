@@ -299,8 +299,12 @@ disp_on_resize(int sig __attribute__((unused)))
 void
 disp_intval(char *buf, int size)
 {
-	(void) snprintf(buf, size, "%.1fs",
-	    (float)(s_disp_ctl.intval_ms) / (float)MS_SEC);
+	int intval_ms;
+
+	(void) pthread_mutex_lock(&s_disp_ctl.mutex);
+	intval_ms = s_disp_ctl.intval_ms;
+	(void) pthread_mutex_unlock(&s_disp_ctl.mutex);
+	(void) snprintf(buf, size, "%.1fs", (float)intval_ms / (float)MS_SEC);
 }
 
 /*
