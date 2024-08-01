@@ -139,7 +139,6 @@ node_cpu_string(node_t *node, char *s1, int size)
 	int i, j, k, l, cpuid_start;
 	int *cpuid_arr;
 	int ncpus;
-	int s1_len = size;
 	perf_cpu_t *cpus = node_cpus(node);
 
 	s1[0] = 0;
@@ -174,8 +173,6 @@ node_cpu_string(node_t *node, char *s1, int size)
 	for (j = 1; j < ncpus; j++) {
 		k++;
 		if (cpuid_arr[j] != cpuid_start + l) {
-			int s2_len = sizeof(s2);
-
 			if (k < ncpus) {
 				if (l == 1) {
 					print_buf(&s1, &size, "%d ", cpuid_start);
@@ -190,8 +187,6 @@ node_cpu_string(node_t *node, char *s1, int size)
 					print_buf(&s1, &size, "%d-%d",
 						cpuid_start, cpuid_start + l - 1);
 				}
-				s2_len -= strlen(s2);
-
 				print_buf(&s1, &size, " %d", cpuid_arr[j]);
 			}
 
