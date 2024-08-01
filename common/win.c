@@ -3324,6 +3324,7 @@ pqos_mbm_data_show(dyn_win_t *win, boolean_t *note_out)
 
 	if (dyn->pid == 0) {
 		/* TODO */
+		*content = '\0';
 	} else if (dyn->lwpid == 0) {
 		nprocs = 1;
 		data_reg->nlines_total = 1;
