@@ -1510,7 +1510,7 @@ os_uncore_start(perf_ctl_t *ctl, perf_task_t *task)
 
 	if (uncore_start(ctl, t->nid) != 0) {
 		debug_print(NULL, 2,
-			"os_uncore_start is failed for node %d/%d\n",
+			"os_uncore_start failed for node %d\n",
 			t->nid);
 		perf_status_set(PERF_STATUS_UNCORE_FAILED);
 		return (-1);
