@@ -387,6 +387,6 @@ print_usage(const char *exec_name)
 	    "        normal: balance precision and overhead (default)\n"
 	    "        high  : high sampling precision\n"
 	    "                (high overhead, not recommended option)\n"
-	    "        low   : low sampling precision, suitable for high"
-	    " load system\n");
+	    "        low   : low sampling precision, suitable for high load system\n"
+	    "  -t    specify run time in seconds\n");
 }

@@ -1,4 +1,4 @@
-.TH NUMATOP 8 "April 3, 2013"
+.TH NUMATOP 8 "August 1, 2024"
 .\" Please adjust this date whenever revising the manpage.
 .\"
 .\" Some roff macros, for reference:
@@ -50,7 +50,7 @@ that specifies what percentage of memory accesses are attributable to each memor
 predefined threshold (128 CPU cycles).\fP
 
 \fBC)\fP Provide the call-chain(s) in the process/thread code that accesses a given hot
-memory area. 
+memory area.
 
 \fBD)\fP Provide the call-chain(s) when the process/thread generates certain counter
 events (RMA/LMA/IR/CYCLE). The call-chain(s) helps to locate the source code that generates
@@ -87,10 +87,10 @@ processes and threads and displays useful metrics. Users can scroll up/down by u
 up or down key to navigate in the current window and can use several hot keys shown at the
 bottom of the window, to switch between windows or to change the running state of the tool.
 For example, hotkey 'R' refreshes the data in the current window.
-    
+
 Below is a detailed description of the various display windows and the data items
 that they display:
-    
+
 \fB[WIN1 - Monitoring processes and threads]:\fP
 .br
 Get the locality characterization of all processes. This is the first window upon startup,
@@ -140,7 +140,7 @@ N: Switch to WIN11 to show the per-node statistics.
 \fB[WIN2 - Monitoring processes and threads (normalized)]:\fP
 .br
 Get the normalized locality characterization of all processes.
-.PP 
+.PP
 \fB[KEY METRICS]:\fP
 .br
 RPI(K): RMA normalized by 1000 instructions.
@@ -178,7 +178,7 @@ N: Switch to WIN11 to show the per-node statistics.
 \fB[WIN3 - Monitoring the process]:\fP
 .br
 Get the locality characterization with node affinity of a specified process.
-.PP 
+.PP
 \fB[KEY METRICS]:\fP
 .br
 NODE: the node ID.
@@ -234,7 +234,7 @@ Get the locality characterization with node affinity of a specified thread.
 CPU%: per-CPU CPU utilization.
 .br
 Other metrics remain the same.
-.PP      
+.PP
 \fB[HOTKEY]:\fP
 .br
 Q: Quit the application.
@@ -264,7 +264,7 @@ SIZE: size of memory area (K/M/G bytes).
 .br
 ACCESS%: percentage of memory accesses are to this memory area.
 .br
-LAT(ns): the average latency (nanoseconds) of memory accesses. 
+LAT(ns): the average latency (nanoseconds) of memory accesses.
 .br
 DESC: description of memory area (from /proc/<pid>/maps).
 .PP
@@ -284,7 +284,7 @@ C: Show the call-chain when process/thread accesses the memory area.
 .PP
 \fB[WIN7 - Memory access node distribution overview]:\fP
 .br
-Get the percentage of memory accesses originated from the process/thread to each node. 
+Get the percentage of memory accesses originated from the process/thread to each node.
 .PP
 \fB[KEY METRICS]:\fP
 .br
@@ -308,13 +308,13 @@ R: Refresh to show the latest data.
 .br
 Break down the memory area into the physical mapping on node with the
 associated accessing latency of a process/thread.
-.PP   
+.PP
 \fB[KEY METRICS]:\fP
 .br
 NODE: the node ID.
 .br
 Other metrics remain the same.
-.PP   
+.PP
 \fB[HOTKEY]:\fP
 .br
 Q: Quit the application.
@@ -328,7 +328,7 @@ R: Refresh to show the latest data.
 \fB[WIN9 - Call-chain when process/thread generates the event ("RMA"/"LMA"/"CYCLE"/"IR")]:\fP
 .br
 Determine the call-chains to the code that generates "RMA"/"LMA"/"CYCLE"/"IR".
-.PP 
+.PP
 \fB[KEY METRICS]:\fP
 .br
 Call-chain list: a list of call-chains.
@@ -355,7 +355,7 @@ R: Refresh to show the latest data.
 .br
 Determine the call-chains to the code that references this memory area.
 The latency must be greater than the predefined latency threshold
-(128 CPU cycles).  
+(128 CPU cycles).
 .PP
 \fB[KEY METRICS]:\fP
 .br
@@ -436,20 +436,22 @@ Specifies the level of logging in the log file. Valid values are:
 .br
 2: all
 .PP
--f log_file    
+-f log_file
 .br
 Specifies the log file where output will be written. If the log file is
 not writable, the tool will prompt "Cannot open '<file name>' for writting.".
-.PP    
+.PP
 -d dump_file
 .br
 Specifies the dump file where the screen data will be written. Generally the dump
 file is used for automated test. If the dump file is not writable, the tool will
 prompt "Cannot open <file name> for dump writing."
 .PP
--h
+-h Displays the command's usage.
+.PP
+-t duration
 .br
-Displays the command's usage.
+Specifies run time duration in seconds.
 .PP
 .SH EXAMPLES
 Example 1: Launch numatop with high sampling precision
@@ -497,7 +499,7 @@ in 3.9. The following steps show how to get and apply the patch set.
 4. build kernel as usual
 .PP
 
-\fBnumatop\fP supports the Intel Xeon processors: 5500-series, 6500/7500-series, 
-5600 series, E7-x8xx-series, and E5-16xx/24xx/26xx/46xx-series. 
+\fBnumatop\fP supports the Intel Xeon processors: 5500-series, 6500/7500-series,
+5600 series, E7-x8xx-series, and E5-16xx/24xx/26xx/46xx-series.
 \fBNote\fP: CPU microcode version 0x618 or 0x70c or later is required on
 E5-16xx/24xx/26xx/46xx-series. It also supports IBM Power8, Power9, Power10 and Power11 processors.
