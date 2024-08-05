@@ -167,6 +167,9 @@ cpu_refresh(boolean_t init)
 			if (!os_sysfs_cpu_enum(node->nid, cpu_arr, NCPUS_NODE_MAX, &num)) {
 				return (-1);
 			}
+			if (num < 0 || num >= NCPUS_NODE_MAX) {
+				return (-1);
+			}
 
 			if (os_perf_cpuarr_refresh(node->cpus, NCPUS_NODE_MAX, cpu_arr,
 				num, init) != 0) {
@@ -223,6 +226,9 @@ node_group_refresh(boolean_t init)
 
 	node_group_lock();
 	if (!os_sysfs_node_enum(node_arr, NNODES_MAX, &num)) {
+		goto L_EXIT;
+	}
+	if (num < 0 || num >= NNODES_MAX) {
 		goto L_EXIT;
 	}
 
