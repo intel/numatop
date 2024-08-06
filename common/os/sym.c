@@ -842,7 +842,7 @@ sym_resolve(sym_t *sym, uint64_t addr, sym_item_t **item_arr,
 static sym_item_t *
 resolve_unique(sym_t *sym, uint64_t addr, sym_item_t **arr, uint64_t *base_addr)
 {
-	sym_item_t *item_arr, *item;
+	sym_item_t *item_arr, *item = NULL;
 	int num, i;
 
 	if (sym_resolve(sym, addr, &item_arr, &num, base_addr) != 0) {

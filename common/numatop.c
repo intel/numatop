@@ -103,6 +103,11 @@ main(int argc, char *argv[])
 				goto L_EXIT0;
 			}
 
+			if (log != NULL) {
+				stderr_print("Invalid multiple use of -f option.\n");
+				goto L_EXIT0;
+			}
+
 			if ((log = fopen(optarg, "w")) == NULL) {
 				stderr_print("Cannot open '%s' for writing.\n",
 				    optarg);
@@ -139,6 +144,11 @@ main(int argc, char *argv[])
 		case 'd':
 			if (optarg == NULL) {
 				stderr_print("Invalid dump file.\n");
+				goto L_EXIT0;
+			}
+
+			if (dump != NULL) {
+				stderr_print("Invalid multiple use of -d option.\n");
 				goto L_EXIT0;
 			}
 

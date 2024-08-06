@@ -58,7 +58,7 @@ mmap_buffer_read(struct perf_event_mmap_page *header, void *buf, size_t size)
 {
 	void *data;
 	uint64_t data_head, data_tail;
-	int data_size, ncopies;
+	int ncopies;
 	
 	/*
 	 * The first page is a meta-data page (struct perf_event_mmap_page),
@@ -79,7 +79,7 @@ mmap_buffer_read(struct perf_event_mmap_page *header, void *buf, size_t size)
 	 * The kernel function "perf_output_space()" guarantees no data_head can
 	 * wrap over the data_tail.
 	 */
-	if ((data_size = data_head - data_tail) < (int)size) {
+	if ((int64_t)(data_head - data_tail) < (int64_t)size) {
 		return (-1);
 	}
 
