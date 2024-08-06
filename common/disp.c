@@ -514,7 +514,7 @@ disp_handler(void *arg __attribute__((unused)))
 			g_run_secs = TIME_NSEC_MAX;
 			debug_print(NULL, 2,
 			    "disp: it's time to exit\n");
-			continue;
+			break;
 		}
 
 		if ((status == ETIMEDOUT) && (flag == DISP_FLAG_NONE)) {
