@@ -42,6 +42,7 @@
 #include <locale.h>
 #include <math.h>
 #include <sys/wait.h>
+#include <sys/mount.h>
 #include "../include/types.h"
 #include "../include/util.h"
 #include "../include/os/os_util.h"
@@ -731,33 +732,34 @@ static boolean_t resctrl_mounted(void)
 
 boolean_t os_cmt_init(void)
 {
-	char command[128];
+	int ret;
 
 	g_pqos_moni_id = 0;
 
 	if (resctrl_mounted())
 		return B_TRUE;
 
-	snprintf(command, sizeof(command),
-		"mount -t resctrl resctrl /sys/fs/resctrl 2>/dev/null");
-
-	if (!execute_command(command, "r"))
+	ret = mount("resctrl", "/sys/fs/resctrl", "resctrl", 0, NULL);
+	if (ret < 0) {
+		debug_print(NULL, 2, "Mount of /sys/fs/resctrl failed (errno = %d)\n", errno);
 		return B_FALSE;
+	}
 
 	return resctrl_mounted();
 }
 
 void os_cmt_fini(void)
 {
-	char command[128];
+	int ret;
 
 	if (!resctrl_mounted())
 		return;
 
-	snprintf(command, sizeof(command),
-		"umount -f /sys/fs/resctrl 2>/dev/null");
+	ret = umount("/sys/fs/resctrl");
+	if (ret < 0) {
+		debug_print(NULL, 2, "Unmount of /sys/fs/resctrl failed (errno = %d)\n", errno);
+	}
 
-	execute_command(command, "r");
 	g_pqos_moni_id = 0;
 }
 
