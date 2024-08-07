@@ -27,6 +27,7 @@
  */
 
 #define _GNU_SOURCE
+#define _XOPEN_SOURCE 500
 #include <inttypes.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -41,6 +42,7 @@
 #include <limits.h>
 #include <locale.h>
 #include <math.h>
+#include <ftw.h>
 #include <sys/wait.h>
 #include <sys/mount.h>
 #include "../include/types.h"
@@ -699,23 +701,6 @@ os_sysfs_uncore_imc_init(imc_info_t *imc, int num)
 	return imc_num;
 }
 
-static boolean_t execute_command(const char *command, const char *type)
-{
-	FILE *fp;
-
-	fp = popen(command, type);
-	if (fp == NULL) {
-		debug_print(NULL, 2, "Execute '%s' failed (errno = %d)\n",
-			command, errno);
-		return B_FALSE;
-	}
-
-	pclose(fp);
-	debug_print(NULL, 2, "Execute '%s' ok\n", command);
-
-	return B_TRUE;
-}
-
 static boolean_t resctrl_mounted(void)
 {
 	char path[128];
@@ -763,9 +748,41 @@ void os_cmt_fini(void)
 	g_pqos_moni_id = 0;
 }
 
+static int os_sysfs_nftw_unlink(const char *fpath, const struct stat *statbuf,
+			       int tflag, struct FTW *ftwbuf)
+{
+	int ret;
+
+	(void)statbuf;
+	(void)ftwbuf;
+
+	switch (tflag) {
+	case FTW_F:
+	case FTW_SL:
+	case FTW_SLN:
+	default:
+		errno = 0;
+		ret = unlink(fpath);
+		if (ret < 0)
+			debug_print(NULL, 2, "unlink %s (errno=%d)\n", fpath, errno);
+		break;
+	case FTW_D:
+	case FTW_DP:
+	case FTW_DNR:
+		errno = 0;
+		ret = rmdir(fpath);
+		if (ret < 0)
+			debug_print(NULL, 2, "rmdir %s (errno=%d)\n", fpath, errno);
+		break;
+	}
+
+	return 0;
+}
+
 int os_sysfs_cmt_task_set(int pid, int lwpid, struct _perf_pqos *pqos)
 {
-	char command[160], path[128];
+	char data[64], path[128];
+	int ret, fd;
 
 	if (lwpid)
 		pqos->task_id = lwpid;
@@ -777,23 +794,33 @@ int os_sysfs_cmt_task_set(int pid, int lwpid, struct _perf_pqos *pqos)
 	snprintf(path, sizeof(path),
 		"/sys/fs/resctrl/mon_groups/%d", pqos->task_id);
 
-	snprintf(command, sizeof(command), "rm -rf %s 2>/dev/null", path);
-	if (!execute_command(command, "r"))
-		return -1;
+	/* nftw will return -1 if the path does not exist, ignore this */
+	(void)nftw(path, os_sysfs_nftw_unlink, 32, FTW_DEPTH | FTW_PHYS);
 
-	snprintf(command, sizeof(command), "mkdir %s 2>/dev/null", path);
-	if (!execute_command(command, "r"))
+	ret = mkdir(path, 0777);
+	if (ret < 0) {
+		debug_print(NULL, 2, "mkdir %s failed, errno=%d\n", path, errno);
 		return -1;
+	}
+
+	snprintf(path, sizeof(path),
+		"/sys/fs/resctrl/mon_groups/%d/tasks", pqos->task_id);
+	fd = open(path, O_RDWR);
+	if (fd < 0) {
+		debug_print(NULL, 2, "open %s failed, errno=%d\n", path, errno);
+		return -1;
+	}
 
 	if (lwpid == 0)
-		snprintf(command, sizeof(command),
-			"echo %d > %s/tasks", pid, path);
+		snprintf(data, sizeof(data), "%d\n", pid);
 	else
-		snprintf(command, sizeof(command),
-			"echo %d > %s/tasks", lwpid, path);
-
-	if (!execute_command(command, "r"))
+		snprintf(data, sizeof(data), "%d\n", lwpid);
+	if (write(fd, data, strlen(data)) < 0) {
+		debug_print(NULL, 2, "write to %s failed, errno=%d\n", path, errno);
+		(void)close(fd);
 		return -1;
+	}
+	(void)close(fd);
 
 	return 0;
 }
