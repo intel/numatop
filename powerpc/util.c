@@ -88,7 +88,7 @@ arch__cpuinfo_freq(double *freq, char *unit)
 		}
 
 		c = strchr(line, ':');
-		if (c - line + 2 < len &&
+		if ((size_t)(c - line + 2) < len &&
 		    !strncmp(c + 2, "pSeries", sizeof ("pSeries") - 1)) {
 			ret = 0;
 			break;
