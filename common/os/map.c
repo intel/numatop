@@ -165,7 +165,7 @@ map_read(pid_t pid, map_proc_t *map)
 		/* 
 		 * e.g. 00400000-00405000 r-xp 00000000 fd:00 678793	/usr/bin/vmstat
 		 */
-		if ((nargs = sscanf(line, "%127[^ ] %127[^ ] %127[^ ] %127[^ ] %127[^ ] %4095[^\n]",
+		if ((nargs = sscanf(line, "%127[^ ] %127[^ ] %127[^ ] %127[^ ] %127[^ ] %2047[^\n]",
 		    addr_str, attr_str, off_str, fd_str, inode_str, path_str)) < 0) {
 		    goto L_EXIT;
 		}
