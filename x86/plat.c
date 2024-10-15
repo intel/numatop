@@ -52,7 +52,7 @@ s_plat_profiling_config[CPU_TYPE_NUM] = {
 	skl_profiling_config,
 	icx_profiling_config,
 	spr_profiling_config,
-	emr_profiling_config,
+	spr_profiling_config,	/* EMR */
 	zen_profiling_config,
 	zen3_profiling_config,
 	zen4_profiling_config
@@ -72,7 +72,7 @@ s_plat_ll_config[CPU_TYPE_NUM] = {
 	skl_ll_config,
 	icx_ll_config,
 	spr_ll_config,
-	emr_ll_config,
+	spr_ll_config,		/* EMR */
 	zen_ll_config,
 	zen_ll_config,
 	zen_ll_config
@@ -92,7 +92,7 @@ s_plat_offcore_num[CPU_TYPE_NUM] = {
 	skl_offcore_num,
 	icx_offcore_num,
 	spr_offcore_num,
-	emr_offcore_num,
+	spr_offcore_num,	/* EMR */
 	zen_offcore_num,
 	zen_offcore_num,
 	zen_offcore_num
