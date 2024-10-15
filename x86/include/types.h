@@ -48,12 +48,13 @@ typedef enum {
 	CPU_ICX,
 	CPU_SPR,
 	CPU_EMR,
+	CPU_GNR,
 	CPU_ZEN,
 	CPU_ZEN3,
 	CPU_ZEN4
 } cpu_type_t;
 
-#define	CPU_TYPE_NUM	16
+#define	CPU_TYPE_NUM	17
 
 typedef enum {
 	PERF_COUNT_INVALID = -1,

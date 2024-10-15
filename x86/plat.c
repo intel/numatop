@@ -53,6 +53,7 @@ s_plat_profiling_config[CPU_TYPE_NUM] = {
 	icx_profiling_config,
 	spr_profiling_config,
 	spr_profiling_config,	/* EMR */
+	spr_profiling_config,	/* GNR */
 	zen_profiling_config,
 	zen3_profiling_config,
 	zen4_profiling_config
@@ -73,6 +74,7 @@ s_plat_ll_config[CPU_TYPE_NUM] = {
 	icx_ll_config,
 	spr_ll_config,
 	spr_ll_config,		/* EMR */
+	spr_ll_config,		/* GNR */
 	zen_ll_config,
 	zen_ll_config,
 	zen_ll_config
@@ -93,6 +95,7 @@ s_plat_offcore_num[CPU_TYPE_NUM] = {
 	icx_offcore_num,
 	spr_offcore_num,
 	spr_offcore_num,	/* EMR */
+	spr_offcore_num,	/* GNR */
 	zen_offcore_num,
 	zen_offcore_num,
 	zen_offcore_num
@@ -199,6 +202,9 @@ cpu_type_get(void)
 		case 207:
                         type = CPU_EMR;
 			break;
+		case 173:
+			type = CPU_GNR;
+			break;
 		}
 	} else if (family == 23) {	/* Family 17h */
 		type = CPU_ZEN;
@@ -252,6 +258,7 @@ plat_detect(void)
 	case CPU_ICX:
 	case CPU_SPR:
 	case CPU_EMR:
+	case CPU_GNR:
 	case CPU_ZEN:
 	case CPU_ZEN3:
 	case CPU_ZEN4:
