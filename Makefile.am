@@ -64,6 +64,7 @@ libnumatop_la_SOURCES += \
 	x86/include/nhm.h \
 	x86/include/skl.h \
 	x86/include/snb.h \
+	x86/include/srf.h \
 	x86/include/types.h \
 	x86/include/util.h \
 	x86/include/wsm.h \
@@ -73,6 +74,7 @@ libnumatop_la_SOURCES += \
 	x86/plat.c \
 	x86/skl.c \
 	x86/snb.c \
+	x86/srf.c \
 	x86/ui_perf_map.c \
 	x86/util.c \
 	x86/wsm.c \

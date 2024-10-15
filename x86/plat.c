@@ -36,6 +36,7 @@
 #include "include/snb.h"
 #include "include/bdw.h"
 #include "include/skl.h"
+#include "include/srf.h"
 #include "include/zen.h"
 
 pfn_plat_profiling_config_t
@@ -54,6 +55,7 @@ s_plat_profiling_config[CPU_TYPE_NUM] = {
 	spr_profiling_config,
 	spr_profiling_config,	/* EMR */
 	spr_profiling_config,	/* GNR */
+	srf_profiling_config,
 	zen_profiling_config,
 	zen3_profiling_config,
 	zen4_profiling_config
@@ -75,6 +77,7 @@ s_plat_ll_config[CPU_TYPE_NUM] = {
 	spr_ll_config,
 	spr_ll_config,		/* EMR */
 	spr_ll_config,		/* GNR */
+	srf_ll_config,
 	zen_ll_config,
 	zen_ll_config,
 	zen_ll_config
@@ -96,6 +99,7 @@ s_plat_offcore_num[CPU_TYPE_NUM] = {
 	spr_offcore_num,
 	spr_offcore_num,	/* EMR */
 	spr_offcore_num,	/* GNR */
+	srf_offcore_num,
 	zen_offcore_num,
 	zen_offcore_num,
 	zen_offcore_num
@@ -205,6 +209,9 @@ cpu_type_get(void)
 		case 173:
 			type = CPU_GNR;
 			break;
+		case 175:
+			type = CPU_SRF;
+			break;
 		}
 	} else if (family == 23) {	/* Family 17h */
 		type = CPU_ZEN;
@@ -259,6 +266,7 @@ plat_detect(void)
 	case CPU_SPR:
 	case CPU_EMR:
 	case CPU_GNR:
+	case CPU_SRF:
 	case CPU_ZEN:
 	case CPU_ZEN3:
 	case CPU_ZEN4:
