@@ -51,10 +51,6 @@ extern void spr_profiling_config(perf_count_id_t, struct _plat_event_config *);
 extern void spr_ll_config(struct _plat_event_config *);
 extern int spr_offcore_num(void);
 
-extern void emr_profiling_config(perf_count_id_t, struct _plat_event_config *);
-extern void emr_ll_config(struct _plat_event_config *);
-extern int emr_offcore_num(void);
-
 #ifdef __cplusplus
 }
 #endif

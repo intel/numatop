@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2013, Intel Corporation
- * Copyright (c) 2017, IBM Corporation
+ * Copyright (c) 2024, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -27,45 +26,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _NUMATOP_X86_TYPES_H
-#define _NUMATOP_X86_TYPES_H
+#ifndef _NUMATOP_INTEL_SRF_H
+#define _NUMATOP_INTEL_SRF_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <sys/types.h>
+#include <inttypes.h>
 #include "../../common/include/types.h"
 
-#define CORP "Intel"
+struct _plat_event_config;
 
-typedef enum {
-	CPU_UNSUP = 0,
-	CPU_WSM_EX,
-	CPU_SNB_EP,
-	CPU_NHM_EX,
-	CPU_NHM_EP,
-	CPU_WSM_EP,
-	CPU_IVB_EX,
-	CPU_HSX,
-	CPU_BDX,
-	CPU_SKX,
-	CPU_ICX,
-	CPU_SPR,
-	CPU_EMR,
-	CPU_GNR,
-	CPU_SRF,
-	CPU_ZEN,
-	CPU_ZEN3,
-	CPU_ZEN4
-} cpu_type_t;
+extern void srf_profiling_config(perf_count_id_t, struct _plat_event_config *);
+extern void srf_ll_config(struct _plat_event_config *);
+extern int srf_offcore_num(void);
 
-#define	CPU_TYPE_NUM	18
+#ifdef __cplusplus
+}
+#endif
 
-typedef enum {
-	PERF_COUNT_INVALID = -1,
-	PERF_COUNT_CORE_CLK = 0,
-	PERF_COUNT_RMA,
-	PERF_COUNT_CLK,
-	PERF_COUNT_IR,
-	PERF_COUNT_LMA
-} perf_count_id_t;
-
-#define PERF_COUNT_NUM		5
-
-#endif /* _NUMATOP_X86_TYPES_H */
+#endif /* _NUMATOP_INTEL_SRF_H */
