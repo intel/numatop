@@ -58,6 +58,7 @@ static cons_ctl_t s_cons_ctl;
 static int disp_start(void);
 static void* disp_handler(void *);
 static void* cons_handler(void *);
+static disp_flag_t handle_getch(cmd_t *cmdp);
 
 static int mutex_cond_init(pthread_mutex_t *mutex, pthread_cond_t *cond)
 {
@@ -465,6 +466,12 @@ disp_handler(void *arg __attribute__((unused)))
 	uint64_t start_ms;
 	int64_t diff_ms;
 
+	if (!reg_curses_init(B_TRUE)) {
+		goto L_EXIT;
+	}
+
+	win_fix_init();
+
 	/*
 	 * Wait cons thread to complete initialization.
 	 */
@@ -509,6 +516,7 @@ disp_handler(void *arg __attribute__((unused)))
 		s_disp_ctl.flag = DISP_FLAG_NONE;
 		(void) pthread_mutex_unlock(&s_disp_ctl.mutex);
 
+
 		diff_ms = current_ms(&g_tvbase) - start_ms;
 		if (g_run_secs <= diff_ms / MS_SEC) {
 			g_run_secs = TIME_NSEC_MAX;
@@ -532,6 +540,7 @@ disp_handler(void *arg __attribute__((unused)))
 			continue;
 		}
 
+	handle_cmd:
 		switch (flag) {
 		case DISP_FLAG_QUIT:
 			debug_print(NULL, 2,
@@ -601,6 +610,12 @@ disp_handler(void *arg __attribute__((unused)))
 			}
 			break;
 
+		case DISP_FLAG_GETCH:
+			flag = handle_getch(&cmd);
+			if (flag == DISP_FLAG_ERR)
+				goto L_EXIT;
+			goto handle_cmd;
+
 		default:
 			break;
 		}
@@ -610,7 +625,7 @@ L_EXIT:
 	if (pagelist_inited) {
 		page_list_fini();
 	}
-
+	reg_curses_fini();
 	/*
 	 * Let the perf thread exit first.
 	 */
@@ -620,6 +635,53 @@ L_EXIT:
 	return (NULL);
 }
 
+static disp_flag_t
+handle_getch(cmd_t *cmd_id_p)
+{
+	int c, cmd_id;
+	unsigned char ch;
+
+	if ((c = getch()) == ERR) {
+		/*
+		 * It's possile if the associated
+		 * terminal is lost.
+		 */
+		debug_print(NULL, 2, "cons: "
+			    "getch() failed.\n");
+		return DISP_FLAG_ERR;
+	}
+
+	ch = tolower((unsigned char)c);
+	dump_write("\n<-- User hit the key '%c' "
+		   "(ascii = %d) -->\n", ch, (int)ch);
+
+	/* These will send the command to itself. */
+
+	cmd_id = cmd_id_get(ch);
+	if (cmd_id != CMD_INVALID_ID) {
+		CMD_ID_SET(cmd_id_p, cmd_id);
+		return DISP_FLAG_CMD;
+	} else {
+		/*
+		 * Hit the keys 'UP'/'DOWN'/'ENTER'
+		 */
+		switch (ch) {
+		case 2:	/* KEY DOWN */
+			return DISP_FLAG_SCROLLDOWN;
+
+		case 3:	/* KEY UP */
+			return DISP_FLAG_SCROLLUP;
+
+		case 13:	/* enter. */
+			return DISP_FLAG_SCROLLENTER;
+
+		default:
+			break;
+		}
+	}
+	return DISP_FLAG_NONE;
+}
+
 /*
  * The handler of 'cons thread'
  */
@@ -627,17 +689,10 @@ L_EXIT:
 static void *
 cons_handler(void *arg __attribute__((unused)))
 {
-	int c, cmd_id;
 	unsigned char ch;
 
-	if (!reg_curses_init(B_TRUE)) {
-		goto L_EXIT;
-	}
-
-	win_fix_init();
-
 	/*
-	 * Excute "home" command. It shows the NumaTop default page.
+	 * Execute "home" command. It shows the NumaTop default page.
 	 */
 	disp_go_home();
 
@@ -676,75 +731,22 @@ cons_handler(void *arg __attribute__((unused)))
 
 						CMD_ID_SET(&s_disp_ctl.cmd,
 						    CMD_RESIZE_ID);
-					dispthr_flagset_nolock(DISP_FLAG_CMD);
+						dispthr_flagset_nolock(DISP_FLAG_CMD);
 
-					(void) pthread_mutex_unlock(
-					    &s_disp_ctl.mutex);
+						(void) pthread_mutex_unlock(
+							&s_disp_ctl.mutex);
 					}
 				}
 			} else {
 				/*
-				 * Character is from STDIN.
+				 * Character is from STDIN. Tell disp handler to process.
 				 */
-				if ((c = getch()) == ERR) {
-					/*
-					 * It's possile if the associated
-					 * terminal is lost.
-					 */
-					debug_print(NULL, 2, "cons: "
-					    "getch() failed.\n");
-					break;
-				}
-
-				ch = tolower((unsigned char)c);
-				dump_write("\n<-- User hit the key '%c' "
-				    "(ascii = %d) -->\n", ch, (int)ch);
-
-				cmd_id = cmd_id_get(ch);
-				if (cmd_id != CMD_INVALID_ID) {
-					/*
-					 * The character is a command. Send
-					 * the command to 'disp thread'.
-					 */
-					(void) pthread_mutex_lock(
-					    &s_disp_ctl.mutex);
-
-					CMD_ID_SET(&s_disp_ctl.cmd, cmd_id);
-					dispthr_flagset_nolock(DISP_FLAG_CMD);
-
-					(void) pthread_mutex_unlock(
-					    &s_disp_ctl.mutex);
-				} else {
-					/*
-					 * Hit the keys 'UP'/'DOWN'/'ENTER'
-					 */
-					switch (ch) {
-					case 2:	/* KEY DOWN */
-						dispthr_flagset_lock(
-						    DISP_FLAG_SCROLLDOWN);
-						break;
-
-					case 3:	/* KEY UP */
-						dispthr_flagset_lock(
-						    DISP_FLAG_SCROLLUP);
-						break;
-
-					case 13:	/* enter. */
-						dispthr_flagset_lock(
-						    DISP_FLAG_SCROLLENTER);
-						break;
-
-					default:
-						break;
-					}
-				}
+				dispthr_flagset_lock(DISP_FLAG_GETCH);
 			}
+
 		}
 	}
 
-	reg_curses_fini();
-
-L_EXIT:
 	debug_print(NULL, 2, "cons thread is exiting\n");
 	return (NULL);
 }
