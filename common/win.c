@@ -68,7 +68,7 @@ topnproc_caption_build(char *buf, int size)
 	case SORT_KEY_CPU:
 		(void) snprintf(tmp, sizeof (tmp), "*%s", CAPTION_CPU);
 		(void) snprintf(buf, size,
-		    "%6s%15s%11s%11s%11s%11s%11s",
+		    "%10s%15s%11s%11s%11s%11s%11s",
 		    CAPTION_PID, CAPTION_PROC, CAPTION_RPI,
 		    CAPTION_LPI, CAPTION_RL, CAPTION_CPI, tmp);
 		break;
@@ -76,7 +76,7 @@ topnproc_caption_build(char *buf, int size)
 	case SORT_KEY_CPI:
 		(void) snprintf(tmp, sizeof (tmp), "*%s", CAPTION_CPI);
 		(void) snprintf(buf, size,
-		    "%6s%15s%11s%11s%11s%11s%11s",
+		    "%10s%15s%11s%11s%11s%11s%11s",
 		    CAPTION_PID, CAPTION_PROC, CAPTION_RPI,
 		    CAPTION_LPI, CAPTION_RL, tmp, CAPTION_CPU);
 		break;
@@ -84,7 +84,7 @@ topnproc_caption_build(char *buf, int size)
 	case SORT_KEY_RPI:
 		(void) snprintf(tmp, sizeof (tmp), "*%s", CAPTION_RPI);
 		(void) snprintf(buf, size,
-		    "%6s%15s%11s%11s%11s%11s%11s",
+		    "%10s%15s%11s%11s%11s%11s%11s",
 		    CAPTION_PID, CAPTION_PROC, tmp,
 		    CAPTION_LPI, CAPTION_RL, CAPTION_CPI, CAPTION_CPU);
 		break;
@@ -92,7 +92,7 @@ topnproc_caption_build(char *buf, int size)
 	case SORT_KEY_LPI:
 		(void) snprintf(tmp, sizeof (tmp), "*%s", CAPTION_LPI);
 		(void) snprintf(buf, size,
-		    "%6s%15s%11s%11s%11s%11s%11s",
+		    "%10s%15s%11s%11s%11s%11s%11s",
 		    CAPTION_PID, CAPTION_PROC, CAPTION_RPI,
 		    tmp, CAPTION_RL, CAPTION_CPI, CAPTION_CPU);
 		break;
@@ -100,14 +100,14 @@ topnproc_caption_build(char *buf, int size)
 	case SORT_KEY_RL:
 		(void) snprintf(tmp, sizeof (tmp), "*%s", CAPTION_RL);
 		(void) snprintf(buf, size,
-		    "%6s%15s%11s%11s%11s%11s%11s",
+		    "%10s%15s%11s%11s%11s%11s%11s",
 		    CAPTION_PID, CAPTION_PROC, CAPTION_RPI,
 		    CAPTION_LPI, tmp, CAPTION_CPI, CAPTION_CPU);
 		break;
 
 	default:
 		(void) snprintf(buf, size,
-		    "%6s%15s%11s%11s%11s%11s%11s",
+		    "%10s%15s%11s%11s%11s%11s%11s",
 		    CAPTION_PID, CAPTION_PROC, CAPTION_RPI,
 		    CAPTION_LPI, CAPTION_RL, CAPTION_CPI, CAPTION_CPU);
 		break;
@@ -120,7 +120,7 @@ topnproc_data_build(char *buf, int size, topnproc_line_t *line)
 	win_countvalue_t *value = &line->value;
 
 	(void) snprintf(buf, size,
-	    "%6d%15s%11.1f%11.1f%11.1f%11.2f%10.1f",
+	    "%10d%15s%11.1f%11.1f%11.1f%11.2f%10.1f",
 	    line->pid, line->proc_name, value->rpi, value->lpi,
 	    value->rl, value->cpi, value->cpu * 100);
 }
@@ -164,7 +164,7 @@ rawnum_caption_build(char *buf, int size)
 	case SORT_KEY_CPU:
 		(void) snprintf(tmp, sizeof (tmp), "*%s", CAPTION_CPU);
 		(void) snprintf(buf, size,
-		    "%6s%15s%11s%11s%11s%11s%11s",
+		    "%10s%15s%11s%11s%11s%11s%11s",
 		    CAPTION_PID, CAPTION_PROC, CAPTION_RMA,
 		    CAPTION_LMA, CAPTION_RL, CAPTION_CPI, tmp);
 		break;
@@ -172,7 +172,7 @@ rawnum_caption_build(char *buf, int size)
 	case SORT_KEY_CPI:
 		(void) snprintf(tmp, sizeof (tmp), "*%s", CAPTION_CPI);
 		(void) snprintf(buf, size,
-		    "%6s%15s%11s%11s%11s%11s%11s",
+		    "%10s%15s%11s%11s%11s%11s%11s",
 		    CAPTION_PID, CAPTION_PROC, CAPTION_RMA,
 		    CAPTION_LMA, CAPTION_RL, tmp, CAPTION_CPU);
 		break;
@@ -180,7 +180,7 @@ rawnum_caption_build(char *buf, int size)
 	case SORT_KEY_RMA:
 		(void) snprintf(tmp, sizeof (tmp), "*%s", CAPTION_RMA);
 		(void) snprintf(buf, size,
-		    "%6s%15s%11s%11s%11s%11s%11s",
+		    "%10s%15s%11s%11s%11s%11s%11s",
 		    CAPTION_PID, CAPTION_PROC, tmp,
 		    CAPTION_LMA, CAPTION_RL, CAPTION_CPI, CAPTION_CPU);
 		break;
@@ -188,7 +188,7 @@ rawnum_caption_build(char *buf, int size)
 	case SORT_KEY_LMA:
 		(void) snprintf(tmp, sizeof (tmp), "*%s", CAPTION_LMA);
 		(void) snprintf(buf, size,
-		    "%6s%15s%11s%11s%11s%11s%11s",
+		    "%10s%15s%11s%11s%11s%11s%11s",
 		    CAPTION_PID, CAPTION_PROC, CAPTION_RMA,
 		    tmp, CAPTION_RL, CAPTION_CPI, CAPTION_CPU);
 		break;
@@ -196,14 +196,14 @@ rawnum_caption_build(char *buf, int size)
 	case SORT_KEY_RL:
 		(void) snprintf(tmp, sizeof (tmp), "*%s", CAPTION_RL);
 		(void) snprintf(buf, size,
-		    "%6s%15s%11s%11s%11s%11s%11s",
+		    "%10s%15s%11s%11s%11s%11s%11s",
 		    CAPTION_PID, CAPTION_PROC, CAPTION_RMA,
 		    CAPTION_LMA, tmp, CAPTION_CPI, CAPTION_CPU);
 		break;
 
 	default:
 		(void) snprintf(buf, size,
-		    "%6s%15s%11s%11s%11s%11s%11s",
+		    "%10s%15s%11s%11s%11s%11s%11s",
 		    CAPTION_PID, CAPTION_PROC, CAPTION_RMA,
 		    CAPTION_LMA, CAPTION_RL, CAPTION_CPI, CAPTION_CPU);
 		break;
@@ -216,7 +216,7 @@ rawnum_data_build(char *buf, int size, topnproc_line_t *line)
 	win_countvalue_t *value = &line->value;
 
 	(void) snprintf(buf, size,
-	    "%6d%15s%11.1f%11.1f%11.1f%11.2f%10.1f",
+	    "%10d%15s%11.1f%11.1f%11.1f%11.2f%10.1f",
 	    line->pid, line->proc_name, value->rma, value->lma,
 	    value->rl, value->cpi, value->cpu * 100);
 }
@@ -1154,7 +1154,7 @@ static void
 topnlwp_caption_build(char *buf, int size)
 {
 	(void) snprintf(buf, size,
-	    "%6s%10s%10s%11s%11s%10s%10s%10s",
+	    "%10s%10s%10s%11s%11s%10s%10s%10s",
 	    CAPTION_LWP, CAPTION_RPI, CAPTION_LPI,
 	    CAPTION_RMA, CAPTION_LMA, CAPTION_RL,
 	    CAPTION_CPI, CAPTION_CPU);
@@ -1169,7 +1169,7 @@ topnlwp_data_build(char *buf, int size, topnlwp_line_t *line)
 	(void) snprintf(tmp, sizeof (tmp), "%d", line->lwpid);
 
 	(void) snprintf(buf, size,
-	    "%6s%10.1f%10.1f%11.1f%11.1f%10.1f%10.2f%9.1f",
+	    "%10s%10.1f%10.1f%11.1f%11.1f%10.1f%10.2f%9.1f",
 	    tmp, value->rpi, value->lpi, value->rma,
 	    value->lma, value->rl, value->cpi, value->cpu * 100);
 }
@@ -2859,7 +2859,7 @@ pqos_cmt_proc_data_build(char *buf, int size,
 		snprintf(tmp, sizeof(tmp), "*%s", id);
 
 	snprintf(buf, size,
-	    "%6s%15s%11.1f%11.1f%21.1f%10.1f",
+	    "%10s%15s%11.1f%11.1f%21.1f%10.1f",
 	    tmp, line->proc_name,
 	    value->rma, value->lma,
 	    ratio(line->llc_occupancy,
@@ -2970,12 +2970,12 @@ pqos_cmt_caption_build(int lwpid, char *buf, int size)
 {
 	if (lwpid == 0)
 		snprintf(buf, size,
-			"%6s%15s%11s%11s%21s%11s",
+			"%10s%15s%11s%11s%21s%11s",
 			CAPTION_PID, CAPTION_PROC, CAPTION_RMA, CAPTION_LMA,
 			CAPTION_LLC_OCCUPANCY, CAPTION_CPU);
 	else
 		snprintf(buf, size,
-			"%6s%15s%11s%11s%21s%11s",
+			"%10s%15s%11s%11s%21s%11s",
 			CAPTION_LWP, CAPTION_PROC, CAPTION_RMA, CAPTION_LMA,
 			CAPTION_LLC_OCCUPANCY, CAPTION_CPU);
 }
@@ -3183,7 +3183,7 @@ pqos_mbm_proc_data_build(char *buf, int size,
 		ratio(line->localbw_scaled, 1048576));
 
 	snprintf(buf, size,
-	    "%6s%15s%10.1f%10.1f%14s%14s%9.1f",
+	    "%10s%15s%10.1f%10.1f%14s%14s%9.1f",
 	    id, line->proc_name,
 	    value->rma, value->lma,
 	    total_bw, local_bw,
@@ -3295,12 +3295,12 @@ pqos_mbm_caption_build(int lwpid, char *buf, int size)
 {
 	if (lwpid == 0)
 		snprintf(buf, size,
-			"%6s%15s%10s%10s%14s%14s%10s",
+			"%10s%15s%10s%10s%14s%14s%10s",
 			CAPTION_PID, CAPTION_PROC, CAPTION_RMA, CAPTION_LMA,
 			CAPTION_TOTAL_BW, CAPTION_LOCAL_BW, CAPTION_CPU);
 	else
 		snprintf(buf, size,
-			"%6s%15s%10s%10s%14s%14s%10s",
+			"%10s%15s%10s%10s%14s%14s%10s",
 			CAPTION_LWP, CAPTION_PROC, CAPTION_RMA, CAPTION_LMA,
 			CAPTION_TOTAL_BW, CAPTION_LOCAL_BW, CAPTION_CPU);
 }
