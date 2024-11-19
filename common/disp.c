@@ -193,6 +193,14 @@ disp_consthr_quit(void)
 static void
 dispthr_flagset_nolock(disp_flag_t flag)
 {
+	if (flag != DISP_FLAG_QUIT) {
+		/* Wait in case we the disp thread hasn't processed the flag yet. */
+		while (*(volatile disp_flag_t *)&s_disp_ctl.flag != DISP_FLAG_NONE) {
+			(void) pthread_mutex_unlock(&s_disp_ctl.mutex);
+			usleep(1);
+			(void) pthread_mutex_lock(&s_disp_ctl.mutex);
+		}
+	}
 	s_disp_ctl.flag = flag;
 	(void) pthread_cond_signal(&s_disp_ctl.cond);
 }
