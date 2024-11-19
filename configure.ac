@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([numatop], [v2.3], [zhengjun.xing@intel.com])
+AC_INIT([numatop], [v2.5.1], [zhengjun.xing@intel.com])
 AM_INIT_AUTOMAKE([-Wno-portability no-dist-gzip dist-xz foreign subdir-objects])
 AC_CONFIG_SRCDIR([common/numatop.c])
 AC_CONFIG_HEADERS([config.h])
