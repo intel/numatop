@@ -470,19 +470,23 @@ os_sysfs_cpu_enum(int nid, int *cpu_arr, int arr_size, int *num)
 int
 os_sysfs_online_ncpus(void)
 {
-	int cpu_arr[NCPUS_MAX], num;
+	int *cpu_arr, num, ret = -1;
 	char path[PATH_MAX];
 
-	if (sysconf(_SC_NPROCESSORS_CONF) > NCPUS_MAX) {
+	cpu_arr = (int *) malloc(ncpus_max * sizeof(int));
+	if (!cpu_arr)
 		return (-1);
-	}
 
 	snprintf(path, PATH_MAX, "/sys/devices/system/cpu/online");
-	if (!file_int_extract(path, cpu_arr, NCPUS_MAX, &num)) {
-		return (-1);
+	if (!file_int_extract(path, cpu_arr, ncpus_max, &num)) {
+		goto L_EXIT;
 	}
 
-	return (num);
+	ret = num;
+
+L_EXIT:
+	free(cpu_arr);
+	return (ret);
 }
 
 static boolean_t

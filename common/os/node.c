@@ -48,6 +48,7 @@ static node_group_t s_node_group;
 int g_ncpus;
 
 int nnodes_max;
+int ncpus_max;
 
 static void
 node_init(node_t *node, int nid, boolean_t hotadd)
@@ -86,6 +87,7 @@ node_group_init(void)
 		return (-1);
 
 	nnodes_max = numa_num_possible_nodes();
+	ncpus_max = numa_num_possible_cpus();
 
 	(void) memset(&s_node_group, 0, sizeof (node_group_t));
 	if (pthread_mutex_init(&s_node_group.mutex, NULL) != 0) {
