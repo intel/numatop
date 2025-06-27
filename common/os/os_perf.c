@@ -1025,7 +1025,7 @@ uncore_stop_all(void)
 	node_t *node;
 	int i;
 
-	for (i = 0; i < NNODES_MAX; i++) {
+	for (i = 0; i < nnodes_max; i++) {
 		node = node_get(i);
 		if (NODE_VALID(node)) {
 			if (node->qpi.qpi_num > 0)
@@ -1455,7 +1455,7 @@ int os_uncore_stop(perf_ctl_t *ctl __attribute__((unused)),
 				pf_uncoreimc_free(node);
 		}
 	} else {
-		for (i = 0; i < NNODES_MAX; i++) {
+		for (i = 0; i < nnodes_max; i++) {
 			node = node_get(i);
 			if (NODE_VALID(node)) {
 				if (node->qpi.qpi_num > 0)

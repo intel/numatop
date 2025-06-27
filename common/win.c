@@ -2714,7 +2714,7 @@ accdst_data_show(track_proc_t *proc, dyn_accdst_t *dyn, boolean_t *note_out)
 	void **addr_arr = NULL;
 	int *lat_arr = NULL;
 	int addr_num, i, nnodes, naccess_total = 0;
-	map_nodedst_t nodedst_arr[NNODES_MAX];
+	map_nodedst_t *nodedst_arr;
 	accdst_line_t *lines;
 	char content[WIN_LINECHAR_MAX], intval_buf[16];
 	boolean_t ret = B_FALSE;
@@ -2728,14 +2728,19 @@ accdst_data_show(track_proc_t *proc, dyn_accdst_t *dyn, boolean_t *note_out)
 		return (B_FALSE);
 	}
 
+	nodedst_arr = (map_nodedst_t *) malloc(sizeof (map_nodedst_t) * nnodes_max);
+	if (!nodedst_arr) {
+		goto L_EXIT;
+	}
+
 	if (llrec2addr(proc, lwp, &addr_arr, &lat_arr, &addr_num) != 0) {
 		goto L_EXIT;
 	}
 
-	(void) memset(nodedst_arr, 0, sizeof (map_nodedst_t) * NNODES_MAX);
+	(void) memset(nodedst_arr, 0, sizeof (map_nodedst_t) * nnodes_max);
 	if (addr_num > 0) {
 		if (map_addr2nodedst(proc->pid, addr_arr, lat_arr, addr_num,
-		    nodedst_arr, NNODES_MAX, &naccess_total) != 0) {
+		    nodedst_arr, nnodes_max, &naccess_total) != 0) {
 			goto L_EXIT;
 		}
 	}
@@ -2784,7 +2789,7 @@ accdst_data_show(track_proc_t *proc, dyn_accdst_t *dyn, boolean_t *note_out)
 	 * Save the per-node data with metrics in scrolling buffer.
 	 */
 	for (i = 0; i < nnodes; i++) {
-		accdst_data_save(nodedst_arr, NNODES_MAX, naccess_total, i,
+		accdst_data_save(nodedst_arr, nnodes_max, naccess_total, i,
 		    &lines[i]);
 	}
 
@@ -2799,6 +2804,8 @@ accdst_data_show(track_proc_t *proc, dyn_accdst_t *dyn, boolean_t *note_out)
 	reg_refresh_nout(r);
 
 L_EXIT:
+	free(nodedst_arr);
+
 	if (lwp != NULL) {
 		lwp_refcount_dec(lwp);
 	}

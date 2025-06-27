@@ -36,6 +36,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <assert.h>
+#include <numa.h>
 #include "../include/types.h"
 #include "../include/util.h"
 #include "../include/ui_perf_map.h"
@@ -45,6 +46,8 @@
 
 static node_group_t s_node_group;
 int g_ncpus;
+
+int nnodes_max;
 
 static void
 node_init(node_t *node, int nid, boolean_t hotadd)
@@ -79,13 +82,22 @@ node_group_init(void)
 	int i;
 	node_t *node;
 
+	if (numa_available() < 0)
+		return (-1);
+
+	nnodes_max = numa_num_possible_nodes();
+
 	(void) memset(&s_node_group, 0, sizeof (node_group_t));
 	if (pthread_mutex_init(&s_node_group.mutex, NULL) != 0) {
 		return (-1);
 	}
 
+	if ((s_node_group.nodes = zalloc(nnodes_max  * sizeof(node_t))) == NULL) {
+		return (-1);
+	}
+
 	s_node_group.inited = B_TRUE;
-	for (i = 0; i < NNODES_MAX; i++) {
+	for (i = 0; i < nnodes_max; i++) {
 		node = node_get(i);
 		node_init(node, INVALID_NID, B_FALSE);
 	}
@@ -102,12 +114,13 @@ node_group_reset(void)
 	node_t *node;
 	int i;
 
-	for (i = 0; i < NNODES_MAX; i++) {
+	for (i = 0; i < nnodes_max; i++) {
 		node = node_get(i);
 		node_fini(node);
 	}
 
 	s_node_group.nnodes = 0;
+	free(s_node_group.nodes);
 }
 
 /*
@@ -161,7 +174,7 @@ cpu_refresh(boolean_t init)
 	int cpu_arr[NCPUS_NODE_MAX];
 	node_t *node;
 
-	for (i = 0; i < NNODES_MAX; i++) {
+	for (i = 0; i < nnodes_max; i++) {
 		node = node_get(i);
 		if (NODE_VALID(node)) {
 			if (!os_sysfs_cpu_enum(node->nid, cpu_arr, NCPUS_NODE_MAX, &num)) {
@@ -199,7 +212,7 @@ meminfo_refresh(void)
 	int i;
 	node_t *node;
 	
-	for (i = 0; i < NNODES_MAX; i++) {
+	for (i = 0; i < nnodes_max; i++) {
 		node = node_get(i);
 		if (NODE_VALID(node)) {
 			if (!os_sysfs_meminfo(node->nid, &node->meminfo)) {
@@ -220,19 +233,23 @@ meminfo_refresh(void)
 int
 node_group_refresh(boolean_t init)
 {
-	int node_arr[NNODES_MAX];
-	int num, i, j, ret = -1;
+	int *node_arr, num, i, j, ret = -1;
 	node_t *node;
 
 	node_group_lock();
-	if (!os_sysfs_node_enum(node_arr, NNODES_MAX, &num)) {
-		goto L_EXIT;
-	}
-	if (num < 0 || num > NNODES_MAX) {
+
+	if ((node_arr = zalloc(nnodes_max * sizeof(int))) == NULL) {
 		goto L_EXIT;
 	}
 
-	for (i = 0; i < NNODES_MAX; i++) {
+	if (!os_sysfs_node_enum(node_arr, nnodes_max, &num)) {
+		goto L_EXIT;
+	}
+	if (num < 0 || num > nnodes_max) {
+		goto L_EXIT;
+	}
+
+	for (i = 0; i < nnodes_max; i++) {
 		node = node_get(i);
 		if (NODE_VALID(node)) {
 			if ((j = nid_find(node->nid, node_arr, num)) == -1) {
@@ -244,7 +261,7 @@ node_group_refresh(boolean_t init)
 		}
 	}
 
-	for (i = 0; i < NNODES_MAX; i++) {
+	for (i = 0; i < nnodes_max; i++) {
 		node = node_get(i);
 		if (!NODE_VALID(node)) {
 			if ((j = nid_find(i, node_arr, num)) >= 0) {
@@ -272,6 +289,7 @@ node_group_refresh(boolean_t init)
 	ret = 0;
 
 L_EXIT:
+	free(node_arr);
 	node_group_unlock();
 	return (ret);
 }
@@ -313,7 +331,7 @@ node_by_cpu(int cpuid)
 		return (NULL);
 	}
 
-	for (i = 0; i < NNODES_MAX; i++) {
+	for (i = 0; i < nnodes_max; i++) {
 		node = node_get(i);
 		if (!NODE_VALID(node)) {
 			continue;
@@ -386,7 +404,7 @@ node_cpu_traverse(pfn_perf_cpu_op_t func, void *arg, boolean_t err_ret,
 	perf_cpu_t *cpu;
 	int i, j, ret;
 
-	for (i = 0; i < NNODES_MAX; i++) {
+	for (i = 0; i < nnodes_max; i++) {
 		node = node_get(i);
 		if (!NODE_VALID(node)) {
 			continue;
@@ -461,7 +479,7 @@ node_countval_sum(count_value_t *countval_arr, int nid,
 		return (countval_sum(countval_arr, nid, ui_count_id));
 	}
 
-	for (i = 0; i < NNODES_MAX; i++) {
+	for (i = 0; i < nnodes_max; i++) {
 		value += countval_sum(countval_arr, i, ui_count_id);
 	}
 
@@ -486,7 +504,7 @@ node_profiling_clear(void)
 	node_t *node;
 	int i;
 
-	for (i = 0; i < NNODES_MAX; i++) {
+	for (i = 0; i < nnodes_max; i++) {
 		node = node_get(i);
 		(void) memset(&node->countval, 0, sizeof (count_value_t));
 	}	
@@ -498,7 +516,7 @@ node_valid_get(int node_idx)
 	int i, nvalid = 0;
 	node_t *node;
 
-	for (i = 0; i < NNODES_MAX; i++) {
+	for (i = 0; i < nnodes_max; i++) {
 		node = node_get(i);
 		if (NODE_VALID(node)) {
 			if (node_idx == nvalid) {
@@ -537,7 +555,7 @@ node_qpi_init(void)
 
 	node_group_lock();
 
-	for (i = 0; i < NNODES_MAX; i++) {
+	for (i = 0; i < nnodes_max; i++) {
 		node = node_get(i);
 		if (NODE_VALID(node) && (qpi_num > 0)) {
 			memcpy(node->qpi.qpi_info, qpi_tmp,
@@ -566,7 +584,7 @@ node_imc_init(void)
 
 	node_group_lock();
 
-	for (i = 0; i < NNODES_MAX; i++) {
+	for (i = 0; i < nnodes_max; i++) {
 		node = node_get(i);
 		if (NODE_VALID(node) && (imc_num > 0)) {
 			memcpy(node->imc.imc_info, imc_tmp,

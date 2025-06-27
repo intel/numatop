@@ -101,7 +101,7 @@ typedef struct _node {
 
 typedef struct _node_group {
 	pthread_mutex_t mutex;
-	node_t nodes[NNODES_MAX];
+	node_t *nodes;
 	int nnodes;
 	int cpuid_max;
 	int intval_ms;

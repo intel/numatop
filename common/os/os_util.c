@@ -863,7 +863,7 @@ static uint64_t cmt_field_value(char *dir, const char *field, int nid)
 	int i;
 
 	if (nid == -1) {
-		for (i = 0; i < NNODES_MAX; i++) {
+		for (i = 0; i < nnodes_max; i++) {
 			if (cmt_task_node_value(dir, i, field,
 				&tmp) == 0)
 				val += tmp;
