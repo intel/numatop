@@ -50,20 +50,34 @@ int g_ncpus;
 int nnodes_max;
 int ncpus_max;
 
-static void
+static int
 node_init(node_t *node, int nid, boolean_t hotadd)
 {
 	memset(node, 0, sizeof (node_t));
-	os_perf_cpuarr_init(node->cpus, NCPUS_NODE_MAX, hotadd);
 	node->nid = nid;
 	node->hotadd = hotadd;
+	if (!NODE_VALID(node)) {
+		return 0;
+	}
+
+	if ((node->cpus = zalloc(ncpus_max * sizeof(perf_cpu_t))) == NULL) {
+		return (-1);
+	}
+
+	os_perf_cpuarr_init(node->cpus, ncpus_max, hotadd);
+	return 0;
 }
 
 static void
 node_fini(node_t *node)
 {
-	os_perf_cpuarr_fini(node->cpus, NCPUS_NODE_MAX, B_FALSE);
+	if (!NODE_VALID(node)) {
+		return;
+	}
+
+	os_perf_cpuarr_fini(node->cpus, ncpus_max, B_FALSE);
 	node->ncpus = 0;
+	free(node->cpus);
 	node->nid = INVALID_NID;
 }
 
@@ -71,7 +85,7 @@ static void
 node_hotremove(node_t *node)
 {
 	node->hotremove = B_TRUE;
-	os_perf_cpuarr_fini(node->cpus, NCPUS_NODE_MAX, B_TRUE);
+	os_perf_cpuarr_fini(node->cpus, ncpus_max, B_TRUE);
 }
 
 /*
@@ -101,10 +115,20 @@ node_group_init(void)
 	s_node_group.inited = B_TRUE;
 	for (i = 0; i < nnodes_max; i++) {
 		node = node_get(i);
-		node_init(node, INVALID_NID, B_FALSE);
+		if (node_init(node, INVALID_NID, B_FALSE)) {
+			goto L_EXIT;
+		}
 	}
 
 	return (node_group_refresh(B_TRUE));
+
+L_EXIT:
+	for (i = i - 1; i >= 0; i--) {
+		node = node_get(i);
+		node_fini(node);
+	}
+
+	return (-1);
 }
 
 /*
@@ -172,23 +196,27 @@ cpuid_max_get(int *cpu_arr, int num)
 static int
 cpu_refresh(boolean_t init)
 {
-	int i, j, num, cpuid_max = -1;
-	int cpu_arr[NCPUS_NODE_MAX];
+	int i, j, num, cpuid_max = -1, ret = -1;
+	int *cpu_arr;
 	node_t *node;
+
+	if ((cpu_arr = zalloc(ncpus_max * sizeof(int))) == NULL) {
+		return (-1);
+	}
 
 	for (i = 0; i < nnodes_max; i++) {
 		node = node_get(i);
 		if (NODE_VALID(node)) {
-			if (!os_sysfs_cpu_enum(node->nid, cpu_arr, NCPUS_NODE_MAX, &num)) {
-				return (-1);
+			if (!os_sysfs_cpu_enum(node->nid, cpu_arr, ncpus_max, &num)) {
+				goto L_EXIT;
 			}
-			if (num < 0 || num > NCPUS_NODE_MAX) {
-				return (-1);
+			if (num < 0 || num > ncpus_max) {
+				goto L_EXIT;
 			}
 
-			if (os_perf_cpuarr_refresh(node->cpus, NCPUS_NODE_MAX, cpu_arr,
+			if (os_perf_cpuarr_refresh(node->cpus, ncpus_max, cpu_arr,
 				num, init) != 0) {
-				return (-1);
+				goto L_EXIT;
 			}
 
 			node->ncpus = num;
@@ -205,7 +233,11 @@ cpu_refresh(boolean_t init)
 
 	/* Refresh the number of online CPUs */
 	g_ncpus = os_sysfs_online_ncpus();
-	return (0);
+	ret = 0;
+
+L_EXIT:
+	free(cpu_arr);
+	return (ret);
 }
 
 static int
@@ -268,10 +300,8 @@ node_group_refresh(boolean_t init)
 		if (!NODE_VALID(node)) {
 			if ((j = nid_find(i, node_arr, num)) >= 0) {
 				ASSERT(node_arr[j] == i);
-				if (init) {
-					node_init(node, i, B_FALSE);
-				} else {				
-					node_init(node, i, B_TRUE);
+				if (node_init(node, i, init ? B_FALSE : B_TRUE)) {
+					goto L_EXIT;
 				}
 
 				s_node_group.nnodes++;
@@ -339,7 +369,7 @@ node_by_cpu(int cpuid)
 			continue;
 		}
 
-		for (j = 0; j < NCPUS_NODE_MAX; j++) {
+		for (j = 0; j < ncpus_max; j++) {
 			if (cpuid == node->cpus[j].cpuid) {
 				return (node);
 			}
@@ -412,7 +442,7 @@ node_cpu_traverse(pfn_perf_cpu_op_t func, void *arg, boolean_t err_ret,
 			continue;
 		}
 
-		for (j = 0; j < NCPUS_NODE_MAX; j++) {
+		for (j = 0; j < ncpus_max; j++) {
 			cpu = &node->cpus[j];
 			if (cpu->hotremove) {
 				pf_resource_free(cpu);
@@ -455,7 +485,7 @@ countval_sum(count_value_t *countval_arr, int nid,
 		return (0);
 	}
 
-	for (i = 0; i < NCPUS_NODE_MAX; i++) {
+	for (i = 0; i < ncpus_max; i++) {
 		if (num >= node->ncpus) {
 			break;
 		}
