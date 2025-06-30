@@ -167,7 +167,7 @@ cpu_refresh(boolean_t init)
 			if (!os_sysfs_cpu_enum(node->nid, cpu_arr, NCPUS_NODE_MAX, &num)) {
 				return (-1);
 			}
-			if (num < 0 || num >= NCPUS_NODE_MAX) {
+			if (num < 0 || num > NCPUS_NODE_MAX) {
 				return (-1);
 			}
 
