@@ -228,7 +228,7 @@ node_group_refresh(boolean_t init)
 	if (!os_sysfs_node_enum(node_arr, NNODES_MAX, &num)) {
 		goto L_EXIT;
 	}
-	if (num < 0 || num >= NNODES_MAX) {
+	if (num < 0 || num > NNODES_MAX) {
 		goto L_EXIT;
 	}
 
