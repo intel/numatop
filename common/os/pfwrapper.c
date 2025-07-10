@@ -497,7 +497,7 @@ ll_sample_read(struct perf_event_mmap_page *mhdr, int size,
 	 *	{ u64   data_src; }
 	 * };
 	 */
-	if (mmap_buffer_read(mhdr, &id, sizeof (id)) == -1) {
+	if (mmap_buffer_read(mhdr, &id, sizeof (id)) == -1 || id.pid == -1U) {
 		debug_print(NULL, 2, "ll_sample_read: read pid/tid failed.\n");
 		goto L_EXIT;
 	}
