@@ -90,7 +90,7 @@ typedef struct _node_imc {
 typedef struct _node {
 	int nid;
 	int ncpus;
-	perf_cpu_t cpus[NCPUS_NODE_MAX];
+	perf_cpu_t *cpus;
 	count_value_t countval;
 	node_meminfo_t meminfo;
 	node_qpi_t qpi;
@@ -101,7 +101,7 @@ typedef struct _node {
 
 typedef struct _node_group {
 	pthread_mutex_t mutex;
-	node_t nodes[NNODES_MAX];
+	node_t *nodes;
 	int nnodes;
 	int cpuid_max;
 	int intval_ms;

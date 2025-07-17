@@ -152,7 +152,7 @@ node_cpu_string(node_t *node, char *s1, int size)
 	}
 
 	j = 0;
-	for (i = 0; (i < NCPUS_NODE_MAX) && (j < ncpus); i++) {
+	for (i = 0; (i < ncpus_max) && (j < ncpus); i++) {
 		if ((cpus[i].cpuid != INVALID_CPUID) && (!cpus[i].hotremove)) {
 			cpuid_arr[j++] = cpus[i].cpuid;
 		}

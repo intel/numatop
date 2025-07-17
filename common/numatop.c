@@ -236,7 +236,7 @@ main(int argc, char *argv[])
 	if (node_group_init() != 0) {
 		stderr_print("The node/cpu number is out of range, \n"
 		    "numatop supports up to %d nodes and %d CPUs\n",
-		    NNODES_MAX, NCPUS_MAX);
+		    nnodes_max, ncpus_max);
 		goto L_EXIT5;
 	}
 

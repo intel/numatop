@@ -115,12 +115,11 @@ typedef enum {
 
 #define UI_COUNT_NUM		5
 
-#define	NNODES_MAX		64
-#define NCPUS_NODE_MAX		256
-#define	NCPUS_MAX		(NNODES_MAX * NCPUS_NODE_MAX)
-#define NPROCS_NAX		4096
 #define	LL_THRESH		128
 #define LL_PERIOD		1000
+
+extern int nnodes_max;
+extern int ncpus_max;
 
 typedef struct _count_value {
 	uint64_t counts[PERF_COUNT_NUM];
