@@ -640,6 +640,7 @@ L_EXIT:
 	perf_fini();
 
 	debug_print(NULL, 2, "disp thread is exiting\n");
+	s_disp_ctl.flag = DISP_FLAG_NONE;
 	return (NULL);
 }
 
