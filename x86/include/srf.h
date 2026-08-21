@@ -40,8 +40,11 @@ extern "C" {
 struct _plat_event_config;
 
 extern void srf_profiling_config(perf_count_id_t, struct _plat_event_config *);
+extern void cwf_profiling_config(perf_count_id_t, struct _plat_event_config *);
 extern void srf_ll_config(struct _plat_event_config *);
+extern void cwf_ll_config(struct _plat_event_config *);
 extern int srf_offcore_num(void);
+extern int cwf_offcore_num(void);
 
 #ifdef __cplusplus
 }
