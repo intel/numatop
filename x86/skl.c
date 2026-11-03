@@ -41,7 +41,7 @@
 
 static plat_event_config_t s_skl_config[PERF_COUNT_NUM] = {
 	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_CPU_CYCLES, 0x53, 0, 0, 0, "cpu_clk_unhalted.core" },
-	{ PERF_TYPE_RAW, 0x01B7, 0x53, 0x638000001, 0, 0, "off_core_response_0" },
+	{ PERF_TYPE_RAW, 0x01B7, 0x53, 0x3fb8000001, 0, 0, "off_core_response_0" },
 	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_REF_CPU_CYCLES, 0x53, 0, 0, 0, "cpu_clk_unhalted.ref" },
 	{ PERF_TYPE_HARDWARE, PERF_COUNT_HW_INSTRUCTIONS, 0x53, 0, 0, 0, "instr_retired.any" },
 	{ PERF_TYPE_RAW, 0x01BB, 0x53, 0x1f84000001, 0, 0, "off_core_response_1" }
